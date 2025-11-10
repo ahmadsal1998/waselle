@@ -90,7 +90,7 @@ const MapView = () => {
         (position) => {
           setUserLocation([position.coords.latitude, position.coords.longitude]);
         },
-        (error) => {
+        () => {
           // Silently handle geolocation errors - use default location
           // Don't log errors to avoid console noise
           // Error types: PERMISSION_DENIED, POSITION_UNAVAILABLE, TIMEOUT
