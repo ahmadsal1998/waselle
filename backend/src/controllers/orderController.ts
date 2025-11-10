@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import Order from '../models/Order';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
@@ -267,7 +268,7 @@ export const acceptOrder = async (
       return;
     }
 
-    order.driverId = req.user.userId;
+    order.driverId = new mongoose.Types.ObjectId(req.user.userId);
     order.status = 'accepted';
     await order.save();
 
