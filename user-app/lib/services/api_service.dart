@@ -168,7 +168,7 @@ class ApiService {
     required String orderCategory,
     required String senderName,
     required String senderAddress,
-    required String senderPhoneNumber,
+    required int senderPhoneNumber,
     String? deliveryNotes,
     double? estimatedPrice,
   }) async {
@@ -342,6 +342,116 @@ class ApiService {
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('Failed to update location: $e');
+    }
+  }
+
+  // Regions
+  static Future<List<Map<String, dynamic>>> getCities({
+    bool activeOnly = true,
+  }) async {
+    try {
+      Uri uri = Uri.parse('$baseUrl/cities');
+      if (activeOnly) {
+        uri = uri.replace(queryParameters: {'active': 'true'});
+      }
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = _parseResponse(response);
+        final cities = data['cities'];
+        if (cities is List) {
+          return cities
+              .whereType<Map<String, dynamic>>()
+              .toList(growable: false);
+        }
+        throw Exception('Invalid response format for cities data.');
+      } else {
+        throw Exception(
+          'Failed to fetch cities with status ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to fetch cities: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getVillages(
+    String cityId, {
+    bool activeOnly = true,
+  }) async {
+    try {
+      if (cityId.isEmpty) {
+        throw Exception('City id is required to fetch villages.');
+      }
+
+      Uri uri = Uri.parse('$baseUrl/villages');
+      final queryParameters = <String, String>{'cityId': cityId};
+      if (activeOnly) {
+        queryParameters['active'] = 'true';
+      }
+      uri = uri.replace(queryParameters: queryParameters);
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = _parseResponse(response);
+        final villages = data['villages'];
+        if (villages is List) {
+          return villages
+              .whereType<Map<String, dynamic>>()
+              .toList(growable: false);
+        }
+        throw Exception('Invalid response format for villages data.');
+      } else {
+        throw Exception(
+          'Failed to fetch villages with status ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to fetch villages: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getOrderCategories({
+    bool activeOnly = true,
+  }) async {
+    try {
+      Uri uri = Uri.parse('$baseUrl/order-categories');
+      if (activeOnly) {
+        uri = uri.replace(queryParameters: {'active': 'true'});
+      }
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = _parseResponse(response);
+        final categories = data['categories'];
+        if (categories is List) {
+          return categories
+              .whereType<Map<String, dynamic>>()
+              .toList(growable: false);
+        }
+        throw Exception('Invalid response format for order categories data.');
+      } else {
+        throw Exception(
+          'Failed to fetch order categories with status ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to fetch order categories: $e');
     }
   }
 }

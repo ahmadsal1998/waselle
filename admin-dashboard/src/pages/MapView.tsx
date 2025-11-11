@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import { LatLngExpression, LatLngTuple } from 'leaflet';
 import { api } from '../config/api';
@@ -19,6 +19,43 @@ const DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
+
+type OrderStatus = 'pending' | 'accepted' | 'on_the_way' | 'delivered' | 'cancelled';
+
+interface LocationPoint {
+  lat: number;
+  lng: number;
+}
+
+interface Driver {
+  _id: string;
+  name: string;
+  email: string;
+  isAvailable: boolean;
+  location?: LocationPoint | null;
+}
+
+interface DriverReference {
+  _id: string;
+  location?: LocationPoint | null;
+}
+
+interface ApiUser extends Driver {
+  role: string;
+}
+
+interface ApiOrder {
+  _id: string;
+  status: OrderStatus | string;
+  driverId?: DriverReference | null;
+  pickupLocation?: LocationPoint | null;
+  dropoffLocation?: LocationPoint | null;
+}
+
+const TRACKED_ORDER_STATUSES: readonly OrderStatus[] = ['pending', 'accepted', 'on_the_way'];
+
+const isTrackedOrderStatus = (status: ApiOrder['status']): status is OrderStatus =>
+  typeof status === 'string' && TRACKED_ORDER_STATUSES.includes(status as OrderStatus);
 
 // Component to handle map centering
 const MapCenter = ({ center }: { center: LatLngExpression }) => {
@@ -65,19 +102,14 @@ const getRoute = async (
 };
 
 const MapView = () => {
-  const [drivers, setDrivers] = useState<any[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [orders, setOrders] = useState<ApiOrder[]>([]);
   const [userLocation, setUserLocation] = useState<LatLngExpression | null>(null);
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
   const [locationLoading, setLocationLoading] = useState(true);
   const [routes, setRoutes] = useState<Map<string, LatLngTuple[]>>(new Map());
   const [loadingRoutes, setLoadingRoutes] = useState(false);
-
-  useEffect(() => {
-    fetchData();
-    getUserLocation();
-  }, []);
 
   const getUserLocation = () => {
     // Set default location immediately so map can render
@@ -104,50 +136,26 @@ const MapView = () => {
     }
   };
 
-  const fetchData = async () => {
-    try {
-      const [driversRes, ordersRes] = await Promise.all([
-        api.get('/users'),
-        api.get('/orders'),
-      ]);
-
-      const allUsers = driversRes.data.users || [];
-      const allOrders = ordersRes.data.orders || [];
-
-      const filteredDrivers = allUsers.filter((u: any) => u.role === 'driver' && u.location);
-      const filteredOrders = allOrders.filter((o: any) => 
-        ['pending', 'accepted', 'on_the_way'].includes(o.status)
-      );
-
-      setDrivers(filteredDrivers);
-      setOrders(filteredOrders);
-
-      // Calculate routes for orders with assigned drivers
-      await calculateRoutes(filteredOrders, filteredDrivers);
-    } catch (error) {
-      console.error('Error fetching map data:', error);
-    } finally {
-      setDataLoading(false);
-    }
-  };
-
-  const calculateRoutes = async (ordersList: any[], driversList: any[]) => {
+  const calculateRoutes = useCallback(async (ordersList: ApiOrder[], driversList: Driver[]) => {
     setLoadingRoutes(true);
     const routesMap = new Map<string, LatLngTuple[]>();
 
     try {
-      // Process routes for orders that have assigned drivers
       const routePromises = ordersList
-        .filter((order) => {
-          // Only calculate route if order has a driver assigned
-          return order.driverId && order.driverId.location && order.dropoffLocation;
-        })
+        .filter(
+          (order) =>
+            order.driverId?.location &&
+            order.dropoffLocation &&
+            typeof order._id === 'string'
+        )
         .map(async (order) => {
-          const driver = driversList.find((d) => d._id === order.driverId._id);
-          if (!driver || !driver.location) return;
-
-          const driverLoc = driver.location;
+          const driver = driversList.find((candidate) => candidate._id === order.driverId?._id);
+          const driverLoc = driver?.location;
           const customerLoc = order.dropoffLocation;
+
+          if (!driverLoc || !customerLoc) {
+            return;
+          }
 
           try {
             const route = await getRoute(
@@ -169,7 +177,48 @@ const MapView = () => {
     } finally {
       setLoadingRoutes(false);
     }
-  };
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [driversRes, ordersRes] = await Promise.all([
+        api.get<{ users: ApiUser[] }>('/users'),
+        api.get<{ orders: ApiOrder[] }>('/orders'),
+      ]);
+
+      const allUsers = driversRes.data.users ?? [];
+      const allOrders = ordersRes.data.orders ?? [];
+
+      const filteredDrivers = allUsers
+        .filter((user): user is ApiUser => user.role === 'driver')
+        .map<Driver>((driver) => ({
+          _id: driver._id,
+          name: driver.name,
+          email: driver.email,
+          isAvailable: Boolean(driver.isAvailable),
+          location: driver.location ?? null,
+        }));
+
+      const filteredOrders = allOrders.filter(
+        (order): order is ApiOrder & { status: OrderStatus } =>
+          isTrackedOrderStatus(order.status)
+      );
+
+      setDrivers(filteredDrivers);
+      setOrders(filteredOrders);
+
+      await calculateRoutes(filteredOrders, filteredDrivers);
+    } catch (error) {
+      console.error('Error fetching map data:', error);
+    } finally {
+      setDataLoading(false);
+    }
+  }, [calculateRoutes]);
+
+  useEffect(() => {
+    fetchData();
+    getUserLocation();
+  }, [fetchData]);
 
   // Update main loading state when both data and location are ready
   useEffect(() => {

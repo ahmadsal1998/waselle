@@ -6,6 +6,10 @@ import { AuthRequest } from '../middleware/auth';
 import { calculateDistance } from '../utils/distance';
 import { calculateEstimatedPrice } from '../utils/pricing';
 import { emitNewOrder, emitOrderAccepted } from '../services/socketService';
+import OrderCategory from '../models/OrderCategory';
+
+const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export const createOrder = async (
   req: AuthRequest,
@@ -24,17 +28,52 @@ export const createOrder = async (
       deliveryNotes,
     } = req.body;
 
-    if (
-      !vehicleType ||
-      !['car', 'bike'].includes(vehicleType) ||
-      !orderCategory ||
-      !senderName ||
-      !senderAddress ||
-      !senderPhoneNumber
-    ) {
+    if (!vehicleType || !['car', 'bike'].includes(vehicleType)) {
       res.status(400).json({
-        message:
-          'vehicleType, orderCategory, senderName, senderAddress, and senderPhoneNumber are required',
+        message: 'A valid vehicleType is required',
+      });
+      return;
+    }
+
+    if (typeof orderCategory !== 'string' || !orderCategory.trim()) {
+      res.status(400).json({
+        message: 'Order category is required',
+      });
+      return;
+    }
+
+    if (typeof senderName !== 'string' || !senderName.trim()) {
+      res.status(400).json({
+        message: 'Sender name is required',
+      });
+      return;
+    }
+
+    if (typeof senderAddress !== 'string' || !senderAddress.trim()) {
+      res.status(400).json({
+        message: 'Sender address is required',
+      });
+      return;
+    }
+
+    const rawPhoneValue = senderPhoneNumber;
+    const parsedPhoneNumber =
+      typeof rawPhoneValue === 'number'
+        ? rawPhoneValue
+        : typeof rawPhoneValue === 'string'
+        ? Number(rawPhoneValue.replace(/[^\d]/g, ''))
+        : NaN;
+
+    if (!Number.isFinite(parsedPhoneNumber) || parsedPhoneNumber <= 0) {
+      res.status(400).json({
+        message: 'A valid numeric sender phone number is required',
+      });
+      return;
+    }
+
+    if (typeof deliveryNotes !== 'string' || !deliveryNotes.trim()) {
+      res.status(400).json({
+        message: 'Delivery notes are required',
       });
       return;
     }
@@ -66,17 +105,31 @@ export const createOrder = async (
       distanceKm: distance,
     });
 
+    const trimmedCategory = orderCategory.trim();
+
+    const category = await OrderCategory.findOne({
+      name: { $regex: `^${escapeRegExp(trimmedCategory)}$`, $options: 'i' },
+      isActive: true,
+    });
+
+    if (!category) {
+      res.status(400).json({
+        message: 'Selected order category is not available',
+      });
+      return;
+    }
+
     const order = await Order.create({
       customerId: req.user.userId,
       type,
       pickupLocation,
       dropoffLocation,
       vehicleType,
-      orderCategory,
-      senderName,
-      senderAddress,
-      senderPhoneNumber,
-      deliveryNotes,
+      orderCategory: category.name,
+      senderName: senderName.trim(),
+      senderAddress: senderAddress.trim(),
+      senderPhoneNumber: Math.trunc(parsedPhoneNumber),
+      deliveryNotes: deliveryNotes.trim(),
       price: estimatedPrice,
       estimatedPrice,
       distance,

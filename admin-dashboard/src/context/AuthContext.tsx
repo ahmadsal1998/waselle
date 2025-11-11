@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 import { api } from '../config/api';
 
 interface User {
@@ -59,8 +60,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       localStorage.setItem('admin_token', response.data.token);
       setUser(response.data.user);
       setIsAuthenticated(true);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Login failed');
+    } catch (error) {
+      if (axios.isAxiosError<{ message?: string }>(error)) {
+        throw new Error(error.response?.data?.message ?? 'Login failed');
+      }
+      throw new Error('Login failed');
     }
   };
 

@@ -150,4 +150,56 @@ class ApiService {
     );
     return jsonDecode(response.body);
   }
+
+  // Regions
+  static Future<List<Map<String, dynamic>>> getCities({
+    bool activeOnly = true,
+  }) async {
+    Uri uri = Uri.parse('$baseUrl/cities');
+    if (activeOnly) {
+      uri = uri.replace(queryParameters: {'active': 'true'});
+    }
+
+    final response = await http.get(
+      uri,
+      headers: await _getHeaders(),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic> && data['cities'] is List) {
+        return List<Map<String, dynamic>>.from(data['cities'] as List);
+      }
+      return [];
+    }
+
+    throw Exception('Failed to fetch cities (${response.statusCode})');
+  }
+
+  static Future<List<Map<String, dynamic>>> getVillages(
+    String cityId, {
+    bool activeOnly = true,
+  }) async {
+    Uri uri = Uri.parse('$baseUrl/villages');
+    final queryParameters = <String, String>{'cityId': cityId};
+    if (activeOnly) {
+      queryParameters['active'] = 'true';
+    }
+    uri = uri.replace(queryParameters: queryParameters);
+
+    final response = await http.get(
+      uri,
+      headers: await _getHeaders(),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic> && data['villages'] is List) {
+        return List<Map<String, dynamic>>.from(data['villages'] as List);
+      }
+      return [];
+    }
+
+    throw Exception('Failed to fetch villages (${response.statusCode})');
+  }
 }

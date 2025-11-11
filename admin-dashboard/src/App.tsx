@@ -7,6 +7,8 @@ import Orders from './pages/Orders';
 import OrderDetails from './pages/OrderDetails';
 import MapView from './pages/MapView';
 import Settings from './pages/Settings';
+import Cities from './pages/Cities';
+import OrderCategories from './pages/OrderCategories';
 import Layout from './components/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
@@ -50,6 +52,8 @@ function App() {
             <Route path="orders/:orderId" element={<OrderDetails />} />
             <Route path="map" element={<MapView />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="cities" element={<Cities />} />
+            <Route path="order-categories" element={<OrderCategories />} />
           </Route>
         </Routes>
       </Router>

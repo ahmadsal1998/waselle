@@ -21,6 +21,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const List<String> _tabTitles = [
+    'Delivery App',
+    'Profile',
+    'Track Order',
+    'Order History',
+  ];
+
   final MapController _mapController = MapController();
   LatLng? _lastLocation;
   int _currentIndex = 0;
@@ -36,26 +43,23 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initializeApp() async {
     if (!mounted) return;
 
-    final locationProvider =
-        Provider.of<LocationProvider>(context, listen: false);
-    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
-    final driverProvider = Provider.of<DriverProvider>(context, listen: false);
+    final locationProvider = context.read<LocationProvider>();
+    final orderProvider = context.read<OrderProvider>();
+    final driverProvider = context.read<DriverProvider>();
+
     await locationProvider.getCurrentLocation();
-
     if (!mounted) return;
 
-    // Start continuous location updates
     locationProvider.startLocationUpdates();
-
     if (!mounted) return;
 
-    await orderProvider.fetchOrders();
-    await driverProvider.fetchDrivers();
-
+    await Future.wait([
+      orderProvider.fetchOrders(),
+      driverProvider.fetchDrivers(),
+    ]);
     if (!mounted) return;
 
     await SocketService.initialize();
-
     if (!mounted) return;
 
     driverProvider.attachSocketListeners();
@@ -78,298 +82,21 @@ class _HomeScreenState extends State<HomeScreen> {
     if (locationProvider.currentPosition != null) {
       final pos = locationProvider.currentPosition!;
       final loc = LatLng(pos.latitude, pos.longitude);
-      // Animate to user location
       _mapController.move(loc, 15.0);
-      // Also refresh location to get latest position
       locationProvider.getCurrentLocation();
     }
   }
 
   PreferredSizeWidget _buildAppBar() {
-    final titles = ['Delivery App', 'Profile', 'Track Order', 'Order History'];
     return AppBar(
-      title: Text(titles[_currentIndex]),
+      title: Text(_tabTitles[_currentIndex]),
     );
   }
 
   Widget _buildMapView() {
     return Consumer2<LocationProvider, DriverProvider>(
-      builder: (context, locationProvider, driverProvider, _) {
-        // Show loading indicator
-        if (locationProvider.isLoading &&
-            locationProvider.currentPosition == null) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Getting your location...'),
-              ],
-            ),
-          );
-        }
-
-        // Show error message
-        if (locationProvider.errorMessage != null &&
-            locationProvider.currentPosition == null) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.location_off, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(
-                    locationProvider.errorMessage!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () => locationProvider.getCurrentLocation(),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        // Show map if we have location
-        if (locationProvider.currentPosition == null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.location_off, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                const Text('Location not available'),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () => locationProvider.getCurrentLocation(),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Get Location'),
-                ),
-              ],
-            ),
-          );
-        }
-
-        final position = locationProvider.currentPosition!;
-        final currentLocation = LatLng(position.latitude, position.longitude);
-        final driverMarkers = driverProvider.drivers
-            .map(_createDriverMarker)
-            .whereType<Marker>()
-            .toList();
-
-        // Update map center when location changes
-        if (_lastLocation == null ||
-            _lastLocation!.latitude != currentLocation.latitude ||
-            _lastLocation!.longitude != currentLocation.longitude) {
-          _lastLocation = currentLocation;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              _mapController.move(
-                currentLocation,
-                _mapController.camera.zoom,
-              );
-            }
-          });
-        }
-
-        return Stack(
-          children: [
-            FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: currentLocation,
-                initialZoom: 15.0,
-                minZoom: 5.0,
-                maxZoom: 18.0,
-                onTap: (tapPosition, point) {
-                  // Handle map tap if needed
-                },
-              ),
-              children: [
-                Consumer<MapStyleProvider>(
-                  builder: (context, mapStyleProvider, _) {
-                    final subdomains = mapStyleProvider.getSubdomains();
-                    return TileLayer(
-                      urlTemplate: mapStyleProvider.getUrlTemplate(),
-                      userAgentPackageName: 'com.delivery.userapp',
-                      maxZoom: mapStyleProvider.getMaxZoom().toDouble(),
-                      subdomains: subdomains ?? const ['a', 'b', 'c'],
-                      retinaMode: mapStyleProvider.useRetinaTiles()
-                          ? RetinaMode.isHighDensity(context)
-                          : false,
-                    );
-                  },
-                ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: currentLocation,
-                      width: 60,
-                      height: 60,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Outer circle for pulse effect
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.blue.withOpacity(0.2),
-                            ),
-                          ),
-                          // Inner circle
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.blue.withOpacity(0.4),
-                            ),
-                          ),
-                          // Center pin
-                          const Icon(
-                            Icons.location_on,
-                            color: Colors.blue,
-                            size: 30,
-                          ),
-                        ],
-                      ),
-                    ),
-                    ...driverMarkers,
-                  ],
-                ),
-                Consumer<MapStyleProvider>(
-                  builder: (context, mapStyleProvider, _) {
-                    final attribution = mapStyleProvider.getAttribution();
-                    if (attribution != null && attribution.isNotEmpty) {
-                      return RichAttributionWidget(
-                        alignment: AttributionAlignment.bottomRight,
-                        attributions: [
-                          TextSourceAttribution(attribution),
-                        ],
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-              ],
-            ),
-            // Address display at the top
-            Positioned(
-              top: 20,
-              left: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.place,
-                      color: Colors.blue,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        locationProvider.currentAddress ??
-                            '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Locate Me',
-                      onPressed: () => _centerOnUserLocation(locationProvider),
-                      icon: const Icon(Icons.my_location),
-                      color: Colors.blue,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 20,
-              left: 20,
-              right: 20,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const SendRequestScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.send),
-                      label: const Text('Send Request'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
-                        ),
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ReceiveRequestScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.call_received),
-                      label: const Text('Receive Request'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
-                        ),
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
+      builder: (_, locationProvider, driverProvider, __) {
+        return _buildMapContent(locationProvider, driverProvider);
       },
     );
   }
@@ -439,6 +166,336 @@ class _HomeScreenState extends State<HomeScreen> {
           const BottomNavigationBarItem(
             icon: Icon(Icons.history),
             label: 'History',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMapContent(
+    LocationProvider locationProvider,
+    DriverProvider driverProvider,
+  ) {
+    if (_isInitialLoading(locationProvider)) {
+      return _buildLoadingState();
+    }
+
+    if (_hasLocationError(locationProvider)) {
+      return _buildErrorState(locationProvider);
+    }
+
+    if (locationProvider.currentPosition == null) {
+      return _buildNoLocationState(locationProvider);
+    }
+
+    final currentLocation = LatLng(
+      locationProvider.currentPosition!.latitude,
+      locationProvider.currentPosition!.longitude,
+    );
+
+    _syncMapCenter(currentLocation);
+
+    final driverMarkers = _buildDriverMarkers(driverProvider.drivers);
+
+    return Stack(
+      children: [
+        _buildMap(currentLocation, driverMarkers),
+        _buildLocationOverlay(locationProvider, currentLocation),
+        _buildActionButtons(),
+      ],
+    );
+  }
+
+  bool _isInitialLoading(LocationProvider locationProvider) {
+    return locationProvider.isLoading &&
+        locationProvider.currentPosition == null;
+  }
+
+  bool _hasLocationError(LocationProvider locationProvider) {
+    return locationProvider.errorMessage != null &&
+        locationProvider.currentPosition == null;
+  }
+
+  Widget _buildLoadingState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Getting your location...'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(LocationProvider locationProvider) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.location_off, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              locationProvider.errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => locationProvider.getCurrentLocation(),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoLocationState(LocationProvider locationProvider) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.location_off, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text('Location not available'),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => locationProvider.getCurrentLocation(),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Get Location'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _syncMapCenter(LatLng currentLocation) {
+    if (_lastLocation == null ||
+        _lastLocation!.latitude != currentLocation.latitude ||
+        _lastLocation!.longitude != currentLocation.longitude) {
+      _lastLocation = currentLocation;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _mapController.move(
+            currentLocation,
+            _mapController.camera.zoom,
+          );
+        }
+      });
+    }
+  }
+
+  List<Marker> _buildDriverMarkers(List<dynamic> drivers) {
+    return drivers
+        .whereType<Map<String, dynamic>>()
+        .map(_createDriverMarker)
+        .whereType<Marker>()
+        .toList(growable: false);
+  }
+
+  Widget _buildMap(LatLng currentLocation, List<Marker> driverMarkers) {
+    return FlutterMap(
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: currentLocation,
+        initialZoom: 15.0,
+        minZoom: 5.0,
+        maxZoom: 18.0,
+        onTap: (_, __) {},
+      ),
+      children: [
+        _buildTileLayer(),
+        MarkerLayer(
+          markers: [
+            _buildUserMarker(currentLocation),
+            ...driverMarkers,
+          ],
+        ),
+        _buildAttribution(),
+      ],
+    );
+  }
+
+  Widget _buildTileLayer() {
+    return Consumer<MapStyleProvider>(
+      builder: (context, mapStyleProvider, _) {
+        final subdomains = mapStyleProvider.getSubdomains();
+        return TileLayer(
+          urlTemplate: mapStyleProvider.getUrlTemplate(),
+          userAgentPackageName: 'com.delivery.userapp',
+          maxZoom: mapStyleProvider.getMaxZoom().toDouble(),
+          subdomains: subdomains ?? const ['a', 'b', 'c'],
+          retinaMode: mapStyleProvider.useRetinaTiles()
+              ? RetinaMode.isHighDensity(context)
+              : false,
+        );
+      },
+    );
+  }
+
+  Marker _buildUserMarker(LatLng currentLocation) {
+    return Marker(
+      point: currentLocation,
+      width: 60,
+      height: 60,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.blue.withOpacity(0.2),
+            ),
+          ),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.blue.withOpacity(0.4),
+            ),
+          ),
+          const Icon(
+            Icons.location_on,
+            color: Colors.blue,
+            size: 30,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttribution() {
+    return Consumer<MapStyleProvider>(
+      builder: (context, mapStyleProvider, _) {
+        final attribution = mapStyleProvider.getAttribution();
+        if (attribution == null || attribution.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return RichAttributionWidget(
+          alignment: AttributionAlignment.bottomRight,
+          attributions: [
+            TextSourceAttribution(attribution),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLocationOverlay(
+    LocationProvider locationProvider,
+    LatLng currentLocation,
+  ) {
+    return Positioned(
+      top: 20,
+      left: 20,
+      right: 20,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.place,
+              color: Colors.blue,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                locationProvider.currentAddress ??
+                    '${currentLocation.latitude.toStringAsFixed(6)}, ${currentLocation.longitude.toStringAsFixed(6)}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Locate Me',
+              onPressed: () => _centerOnUserLocation(locationProvider),
+              icon: const Icon(Icons.my_location),
+              color: Colors.blue,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Positioned(
+      bottom: 20,
+      left: 20,
+      right: 20,
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SendRequestScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.send),
+              label: const Text('Send Request'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ReceiveRequestScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.call_received),
+              label: const Text('Receive Request'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+            ),
           ),
         ],
       ),

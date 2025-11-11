@@ -6,6 +6,9 @@ import { connectDatabase } from './config/database';
 import authRoutes from './routes/authRoutes';
 import orderRoutes from './routes/orderRoutes';
 import userRoutes from './routes/userRoutes';
+import cityRoutes from './routes/cityRoutes';
+import villageRoutes from './routes/villageRoutes';
+import orderCategoryRoutes from './routes/orderCategoryRoutes';
 import { initializeSocket } from './services/socketService';
 
 dotenv.config();
@@ -58,6 +61,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/cities', cityRoutes);
+app.use('/api/villages', villageRoutes);
+app.use('/api/order-categories', orderCategoryRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

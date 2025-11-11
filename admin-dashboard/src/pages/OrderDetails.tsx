@@ -9,7 +9,7 @@ interface OrderDetail {
   orderCategory?: string;
   senderName?: string;
   senderAddress?: string;
-  senderPhoneNumber?: string;
+  senderPhoneNumber?: number;
   deliveryNotes?: string;
   status: string;
   price?: number;
@@ -190,7 +190,9 @@ const OrderDetails = () => {
               </p>
               <p>
                 <span className="font-medium">Phone Number:</span>{' '}
-                {order.senderPhoneNumber ?? 'N/A'}
+                {order.senderPhoneNumber !== undefined && order.senderPhoneNumber !== null
+                  ? order.senderPhoneNumber.toString()
+                  : 'N/A'}
               </p>
               <p>
                 <span className="font-medium">Delivery Notes:</span>{' '}

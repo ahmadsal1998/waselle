@@ -5,6 +5,7 @@ import 'providers/auth_provider.dart';
 import 'providers/order_provider.dart';
 import 'providers/location_provider.dart';
 import 'providers/map_style_provider.dart';
+import 'providers/region_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'services/socket_service.dart';
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LocationProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
         ChangeNotifierProvider(create: (_) => MapStyleProvider()),
+        ChangeNotifierProvider(create: (_) => RegionProvider()),
       ],
       child: MaterialApp(
         title: 'Delivery Driver App',

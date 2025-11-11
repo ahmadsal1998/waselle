@@ -8,7 +8,7 @@ export interface IOrder extends Document {
   orderCategory: string;
   senderName: string;
   senderAddress: string;
-  senderPhoneNumber: string;
+  senderPhoneNumber: number;
   deliveryNotes?: string;
   pickupLocation: {
     lat: number;
@@ -66,9 +66,9 @@ const OrderSchema: Schema = new Schema(
       trim: true,
     },
     senderPhoneNumber: {
-      type: String,
+      type: Number,
       required: [true, 'Sender phone number is required'],
-      trim: true,
+      min: 0,
     },
     deliveryNotes: {
       type: String,

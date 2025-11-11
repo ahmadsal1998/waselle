@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import type { FormEvent } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -29,16 +31,22 @@ const Login = () => {
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError('');
     setLoading(true);
 
     try {
       await login(email, password);
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
+    } catch (err) {
+      if (axios.isAxiosError<{ message?: string }>(err)) {
+        setError(err.response?.data?.message ?? 'Login failed');
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Login failed');
+      }
     } finally {
       setLoading(false);
     }

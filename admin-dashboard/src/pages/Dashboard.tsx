@@ -23,6 +23,24 @@ interface Stats {
   pendingOrders: number;
 }
 
+type UserRole = 'customer' | 'driver' | 'admin';
+
+interface ApiUser {
+  role: UserRole | string;
+}
+
+type OrderStatus = 'pending' | 'accepted' | 'on_the_way' | 'delivered' | 'cancelled';
+
+interface ApiOrder {
+  status: OrderStatus | string;
+}
+
+const isAllowedStatus = (
+  status: ApiOrder['status'],
+  allowed: readonly OrderStatus[]
+): status is OrderStatus =>
+  typeof status === 'string' && allowed.includes(status as OrderStatus);
+
 const Dashboard = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,23 +52,30 @@ const Dashboard = () => {
   const fetchStats = async () => {
     try {
       const [usersRes, ordersRes] = await Promise.all([
-        api.get('/users'),
-        api.get('/orders'),
+        api.get<{ users: ApiUser[] }>('/users'),
+        api.get<{ orders: ApiOrder[] }>('/orders'),
       ]);
 
-      const users = usersRes.data.users;
-      const orders = ordersRes.data.orders;
+      const users = usersRes.data.users ?? [];
+      const orders = ordersRes.data.orders ?? [];
+
+      const activeStatuses: readonly OrderStatus[] = ['accepted', 'on_the_way'];
+      const completedStatuses: readonly OrderStatus[] = ['delivered'];
+      const pendingStatuses: readonly OrderStatus[] = ['pending'];
 
       const statsData: Stats = {
-        totalUsers: users.filter((u: any) => u.role === 'customer').length,
-        totalDrivers: users.filter((u: any) => u.role === 'driver').length,
+        totalUsers: users.filter((user) => user.role === 'customer').length,
+        totalDrivers: users.filter((user) => user.role === 'driver').length,
         totalOrders: orders.length,
-        activeOrders: orders.filter((o: any) =>
-          ['accepted', 'on_the_way'].includes(o.status)
+        activeOrders: orders.filter(
+          (order) => isAllowedStatus(order.status, activeStatuses)
         ).length,
-        completedOrders: orders.filter((o: any) => o.status === 'delivered')
-          .length,
-        pendingOrders: orders.filter((o: any) => o.status === 'pending').length,
+        completedOrders: orders.filter(
+          (order) => isAllowedStatus(order.status, completedStatuses)
+        ).length,
+        pendingOrders: orders.filter(
+          (order) => isAllowedStatus(order.status, pendingStatuses)
+        ).length,
       };
 
       setStats(statsData);

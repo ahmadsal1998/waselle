@@ -10,6 +10,8 @@ const Layout = () => {
     { path: '/users', label: 'Users', icon: '👥' },
     { path: '/drivers', label: 'Drivers', icon: '🚗' },
     { path: '/orders', label: 'Orders', icon: '📦' },
+    { path: '/cities', label: 'Cities & Villages', icon: '🏙️' },
+    { path: '/order-categories', label: 'Order Categories', icon: '🗂️' },
     { path: '/map', label: 'Map View', icon: '🗺️' },
     { path: '/settings', label: 'Settings', icon: '⚙️' },
   ];

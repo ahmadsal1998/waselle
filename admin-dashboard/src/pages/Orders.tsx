@@ -17,7 +17,7 @@ interface Order {
   orderCategory?: string;
   senderName?: string;
   senderAddress?: string;
-  senderPhoneNumber?: string;
+  senderPhoneNumber?: number;
   deliveryNotes?: string;
   status: string;
   price: number;

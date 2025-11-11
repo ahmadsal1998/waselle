@@ -2,12 +2,44 @@ import 'package:flutter/foundation.dart';
 import '../services/api_service.dart';
 import '../services/socket_service.dart';
 
+class OrderCategoryModel {
+  final String id;
+  final String name;
+  final String description;
+  final bool isActive;
+
+  OrderCategoryModel({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.isActive,
+  });
+
+  factory OrderCategoryModel.fromJson(Map<String, dynamic> json) {
+    return OrderCategoryModel(
+      id: json['_id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      isActive: json['isActive'] == true,
+    );
+  }
+}
+
 class OrderProvider with ChangeNotifier {
   List<Map<String, dynamic>> _orders = [];
   Map<String, dynamic>? _activeOrder;
 
+  List<OrderCategoryModel> _orderCategories = [];
+  bool _orderCategoriesLoaded = false;
+  bool _isLoadingOrderCategories = false;
+  String? _orderCategoriesError;
+
   List<Map<String, dynamic>> get orders => _orders;
   Map<String, dynamic>? get activeOrder => _activeOrder;
+
+  List<OrderCategoryModel> get orderCategories => _orderCategories;
+  bool get isLoadingOrderCategories => _isLoadingOrderCategories;
+  String? get orderCategoriesError => _orderCategoriesError;
 
   OrderProvider() {
     _setupSocketListeners();
@@ -30,6 +62,39 @@ class OrderProvider with ChangeNotifier {
       _updateOrderInList(data);
       notifyListeners();
     });
+  }
+
+  Future<void> loadOrderCategories({bool forceRefresh = false}) async {
+    if (_isLoadingOrderCategories) return;
+    if (!forceRefresh && _orderCategoriesLoaded) return;
+
+    _isLoadingOrderCategories = true;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.getOrderCategories(activeOnly: true);
+      _orderCategories = response
+          .map((item) => OrderCategoryModel.fromJson(item))
+          .where((category) => category.isActive && category.name.isNotEmpty)
+          .toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+      _orderCategoriesError = null;
+      _orderCategoriesLoaded = true;
+    } catch (e) {
+      _orderCategories = [];
+      _orderCategoriesError = e.toString();
+    } finally {
+      _isLoadingOrderCategories = false;
+      notifyListeners();
+    }
+  }
+
+  OrderCategoryModel? categoryById(String id) {
+    try {
+      return _orderCategories.firstWhere((category) => category.id == id);
+    } catch (_) {
+      return null;
+    }
   }
 
   void _updateOrderInList(Map<String, dynamic> updatedOrder) {
@@ -69,7 +134,7 @@ class OrderProvider with ChangeNotifier {
     required String orderCategory,
     required String senderName,
     required String senderAddress,
-    required String senderPhoneNumber,
+    required int senderPhoneNumber,
     String? deliveryNotes,
     double? estimatedPrice,
   }) async {
