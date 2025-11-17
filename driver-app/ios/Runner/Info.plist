@@ -48,6 +48,16 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs access to your location to track your position for delivery orders and navigation.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs access to your location to track your position for delivery orders and navigation.</string>
+	<string>This app needs continuous access to your location to track your position for delivery orders and navigation, even when the app is in the background.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app needs continuous access to your location to track your position for delivery orders and navigation, even when the app is in the background.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to your camera to take profile pictures.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to your photo library to select profile pictures.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 </dict>
 </plist>

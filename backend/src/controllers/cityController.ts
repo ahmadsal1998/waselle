@@ -97,7 +97,7 @@ export const getCities = async (req: Request, res: Response): Promise<void> => {
 export const updateCity = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, isActive } = req.body;
+    const { name, isActive, serviceCenter } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ message: 'Invalid city id' });
@@ -106,7 +106,8 @@ export const updateCity = async (req: AuthRequest, res: Response): Promise<void>
 
     if (
       (name === undefined || (typeof name === 'string' && !name.trim())) &&
-      typeof isActive !== 'boolean'
+      typeof isActive !== 'boolean' &&
+      serviceCenter === undefined
     ) {
       res.status(400).json({ message: 'No valid fields provided for update' });
       return;
@@ -147,6 +148,91 @@ export const updateCity = async (req: AuthRequest, res: Response): Promise<void>
           village.isActive = false;
         });
         villagesDeactivated = true;
+      }
+    }
+
+    // Handle service center configuration
+    if (serviceCenter !== undefined) {
+      if (serviceCenter === null) {
+        // Remove service center configuration
+        city.serviceCenter = undefined;
+      } else if (typeof serviceCenter === 'object') {
+        // Validate service center configuration
+        if (serviceCenter.center) {
+          if (
+            typeof serviceCenter.center.lat !== 'number' ||
+            typeof serviceCenter.center.lng !== 'number' ||
+            serviceCenter.center.lat < -90 ||
+            serviceCenter.center.lat > 90 ||
+            serviceCenter.center.lng < -180 ||
+            serviceCenter.center.lng > 180
+          ) {
+            res.status(400).json({
+              message:
+                'Service center center must have valid lat (-90 to 90) and lng (-180 to 180)',
+            });
+            return;
+          }
+        }
+
+        if (
+          serviceCenter.serviceAreaRadiusKm !== undefined &&
+          (typeof serviceCenter.serviceAreaRadiusKm !== 'number' ||
+            serviceCenter.serviceAreaRadiusKm < 1 ||
+            serviceCenter.serviceAreaRadiusKm > 500)
+        ) {
+          res.status(400).json({
+            message: 'Service area radius must be a number between 1 and 500',
+          });
+          return;
+        }
+
+        if (
+          serviceCenter.internalOrderRadiusKm !== undefined &&
+          (typeof serviceCenter.internalOrderRadiusKm !== 'number' ||
+            serviceCenter.internalOrderRadiusKm < 1 ||
+            serviceCenter.internalOrderRadiusKm > 100)
+        ) {
+          res.status(400).json({
+            message: 'Internal order radius must be a number between 1 and 100',
+          });
+          return;
+        }
+
+        if (
+          serviceCenter.externalOrderRadiusKm !== undefined &&
+          (typeof serviceCenter.externalOrderRadiusKm !== 'number' ||
+            serviceCenter.externalOrderRadiusKm < 1 ||
+            serviceCenter.externalOrderRadiusKm > 100)
+        ) {
+          res.status(400).json({
+            message: 'External order radius must be a number between 1 and 100',
+          });
+          return;
+        }
+
+        // Update service center configuration
+        if (!city.serviceCenter) {
+          city.serviceCenter = {
+            center: { lat: 0, lng: 0 },
+            serviceAreaRadiusKm: 20,
+            internalOrderRadiusKm: 5,
+            externalOrderRadiusKm: 10,
+          };
+        }
+
+        if (serviceCenter.center) {
+          city.serviceCenter.center = serviceCenter.center;
+        }
+        if (serviceCenter.serviceAreaRadiusKm !== undefined) {
+          city.serviceCenter.serviceAreaRadiusKm = serviceCenter.serviceAreaRadiusKm;
+        }
+        if (serviceCenter.internalOrderRadiusKm !== undefined) {
+          city.serviceCenter.internalOrderRadiusKm = serviceCenter.internalOrderRadiusKm;
+        }
+        if (serviceCenter.externalOrderRadiusKm !== undefined) {
+          city.serviceCenter.externalOrderRadiusKm = serviceCenter.externalOrderRadiusKm;
+        }
       }
     }
 

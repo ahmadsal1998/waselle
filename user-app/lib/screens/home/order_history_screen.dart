@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:delivery_user_app/l10n/app_localizations.dart';
 
-import '../../providers/order_provider.dart';
+import '../../view_models/order_view_model.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -14,7 +15,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   bool _isLoading = false;
   bool _isInitialized = false;
 
-  Future<void> _loadOrders(OrderProvider orderProvider) async {
+  Future<void> _loadOrders(OrderViewModel orderProvider) async {
     setState(() => _isLoading = true);
     await orderProvider.fetchOrders();
     if (mounted) {
@@ -27,14 +28,14 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     super.didChangeDependencies();
     if (!_isInitialized) {
       _isInitialized = true;
-      final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+      final orderProvider = Provider.of<OrderViewModel>(context, listen: false);
       _loadOrders(orderProvider);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<OrderProvider>(
+    return Consumer<OrderViewModel>(
       builder: (context, orderProvider, _) {
         final orders = orderProvider.orders;
 
@@ -42,19 +43,21 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
+        final l10n = AppLocalizations.of(context)!;
+        
         if (orders.isEmpty) {
           return RefreshIndicator(
             onRefresh: () => _loadOrders(orderProvider),
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 120),
-                Icon(Icons.inbox, size: 80, color: Colors.grey),
-                SizedBox(height: 16),
+              children: [
+                const SizedBox(height: 120),
+                const Icon(Icons.inbox, size: 80, color: Colors.grey),
+                const SizedBox(height: 16),
                 Center(
                   child: Text(
-                    'No orders yet',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                    l10n.noOrdersYet,
+                    style: const TextStyle(fontSize: 18, color: Colors.grey),
                   ),
                 ),
               ],
@@ -69,12 +72,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             itemCount: orders.length,
             itemBuilder: (context, index) {
               final order = orders[index];
-              final status = order['status']?.toString().toUpperCase() ?? 'UNKNOWN';
+              final status =
+                  order['status']?.toString().toUpperCase() ?? 'UNKNOWN';
               final price = order['price']?.toString() ?? '--';
               final createdAt = DateTime.tryParse(order['createdAt'] ?? '');
               final createdText = createdAt != null
                   ? '${createdAt.day}/${createdAt.month}/${createdAt.year} ${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}'
-                  : 'Unknown date';
+                  : l10n.unknownDate;
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -90,7 +94,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Order #${order['_id']?.toString().substring(0, 6) ?? '---'}',
+                            l10n.orderNumber(order['_id']?.toString().substring(0, 6) ?? '---'),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -119,7 +123,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          const Icon(Icons.call_made, color: Colors.blue, size: 20),
+                          const Icon(Icons.call_made,
+                              color: Colors.blue, size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -132,7 +137,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.call_received, color: Colors.green, size: 20),
+                          const Icon(Icons.call_received,
+                              color: Colors.green, size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -147,7 +153,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Price: \$$price',
+                            '${l10n.price}: \$$price',
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -194,10 +200,11 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     final latValue = location['lat'];
     final lngValue = location['lng'];
     if (latValue == null || lngValue == null) return 'Unknown location';
-    final lat = latValue is num ? latValue.toDouble() : double.tryParse('$latValue');
-    final lng = lngValue is num ? lngValue.toDouble() : double.tryParse('$lngValue');
+    final lat =
+        latValue is num ? latValue.toDouble() : double.tryParse('$latValue');
+    final lng =
+        lngValue is num ? lngValue.toDouble() : double.tryParse('$lngValue');
     if (lat == null || lng == null) return 'Unknown location';
     return '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
   }
 }
-

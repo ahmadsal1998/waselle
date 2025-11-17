@@ -1,41 +1,21 @@
-import { useEffect, useState } from 'react';
-import { api } from '../config/api';
-
-interface Driver {
-  _id: string;
-  name: string;
-  email: string;
-  isAvailable: boolean;
-  role: 'customer' | 'driver' | 'admin';
-  vehicleType?: 'car' | 'bike';
-  location?: {
-    lat: number;
-    lng: number;
-  };
-  createdAt: string;
-}
+import { useDrivers } from '@/store/drivers/useDrivers';
 
 const Drivers = () => {
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { drivers, isLoading, error } = useDrivers();
 
-  useEffect(() => {
-    fetchDrivers();
-  }, []);
-
-  const fetchDrivers = async () => {
-    try {
-      const response = await api.get('/users');
-      setDrivers(response.data.users.filter((u: Driver) => u.role === 'driver'));
-    } catch (error) {
-      console.error('Error fetching drivers:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return <div className="text-center py-12">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-3xl font-bold text-gray-900">Drivers Management</h1>
+        <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-md">
+          {error}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -78,14 +58,13 @@ const Drivers = () => {
                       </div>
                       {driver.location && (
                         <div className="text-xs text-gray-400">
-                          Location: {driver.location.lat.toFixed(4)},{' '}
-                          {driver.location.lng.toFixed(4)}
+                          Location: {driver.location.lat.toFixed(4)}, {driver.location.lng.toFixed(4)}
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="text-sm text-gray-500">
-                    Joined: {new Date(driver.createdAt).toLocaleDateString()}
+                    Joined: {driver.createdAt ? new Date(driver.createdAt).toLocaleDateString() : 'N/A'}
                   </div>
                 </div>
               </div>

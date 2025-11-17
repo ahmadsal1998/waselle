@@ -1,36 +1,21 @@
-import { useEffect, useState } from 'react';
-import { api } from '../config/api';
-
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  role: string;
-  isAvailable: boolean;
-  createdAt: string;
-}
+import { useUsers } from '@/store/users/useUsers';
 
 const Users = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { users, isLoading, error } = useUsers({ role: 'customer' });
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const response = await api.get('/users');
-      setUsers(response.data.users.filter((u: User) => u.role === 'customer'));
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return <div className="text-center py-12">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
+        <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-md">
+          {error}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -48,14 +33,12 @@ const Users = () => {
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {user.name}
-                      </div>
+                      <div className="text-sm font-medium text-gray-900">{user.name}</div>
                       <div className="text-sm text-gray-500">{user.email}</div>
                     </div>
                   </div>
                   <div className="text-sm text-gray-500">
-                    Joined: {new Date(user.createdAt).toLocaleDateString()}
+                    Joined: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                   </div>
                 </div>
               </div>

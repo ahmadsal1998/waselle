@@ -1,27 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/map_style_provider.dart';
+import 'package:delivery_driver_app/l10n/app_localizations.dart';
+import '../../view_models/map_style_view_model.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(l10n.settings),
       ),
-      body: Consumer<MapStyleProvider>(
-        builder: (context, mapStyleProvider, _) {
-          final styles = mapStyleProvider.availableStyles;
-          final selectedId = mapStyleProvider.currentStyle.id;
+      body: Consumer<MapStyleViewModel>(
+        builder: (context, mapStyleViewModel, _) {
+          final styles = mapStyleViewModel.availableStyles;
+          final selectedId = mapStyleViewModel.currentStyle.id;
 
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              const Text(
-                'Map Style',
-                style: TextStyle(
+              Text(
+                l10n.mapStyle,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -41,7 +44,7 @@ class SettingsScreen extends StatelessWidget {
                       : null,
                   onChanged: (value) async {
                     if (value != null) {
-                      await mapStyleProvider.setStyle(value);
+                      await mapStyleViewModel.setStyle(value);
                     }
                   },
                 ),

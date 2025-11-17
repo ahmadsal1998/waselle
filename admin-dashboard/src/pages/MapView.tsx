@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
-import { LatLngExpression, LatLngTuple } from 'leaflet';
-import { api } from '../config/api';
+import { LatLngExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useMapData } from '@/store/map/useMapData';
 
 // Fix for default marker icons in React-Leaflet
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -20,43 +20,6 @@ const DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-type OrderStatus = 'pending' | 'accepted' | 'on_the_way' | 'delivered' | 'cancelled';
-
-interface LocationPoint {
-  lat: number;
-  lng: number;
-}
-
-interface Driver {
-  _id: string;
-  name: string;
-  email: string;
-  isAvailable: boolean;
-  location?: LocationPoint | null;
-}
-
-interface DriverReference {
-  _id: string;
-  location?: LocationPoint | null;
-}
-
-interface ApiUser extends Driver {
-  role: string;
-}
-
-interface ApiOrder {
-  _id: string;
-  status: OrderStatus | string;
-  driverId?: DriverReference | null;
-  pickupLocation?: LocationPoint | null;
-  dropoffLocation?: LocationPoint | null;
-}
-
-const TRACKED_ORDER_STATUSES: readonly OrderStatus[] = ['pending', 'accepted', 'on_the_way'];
-
-const isTrackedOrderStatus = (status: ApiOrder['status']): status is OrderStatus =>
-  typeof status === 'string' && TRACKED_ORDER_STATUSES.includes(status as OrderStatus);
-
 // Component to handle map centering
 const MapCenter = ({ center }: { center: LatLngExpression }) => {
   const map = useMap();
@@ -66,168 +29,10 @@ const MapCenter = ({ center }: { center: LatLngExpression }) => {
   return null;
 };
 
-// Route service to get route from OSRM
-const getRoute = async (
-  startLat: number,
-  startLng: number,
-  endLat: number,
-  endLng: number
-): Promise<LatLngTuple[]> => {
-  try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-      const route = data.routes[0];
-      const geometry = route.geometry;
-
-      if (geometry && geometry.coordinates) {
-        // GeoJSON format is [lng, lat], convert to [lat, lng] for Leaflet
-        return geometry.coordinates.map((coord: number[]) => [
-          coord[1],
-          coord[0],
-        ]) as LatLngTuple[];
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching route:', error);
-  }
-
-  // Fallback: return straight line if routing fails
-  return [
-    [startLat, startLng],
-    [endLat, endLng],
-  ] as LatLngTuple[];
-};
-
 const MapView = () => {
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [orders, setOrders] = useState<ApiOrder[]>([]);
-  const [userLocation, setUserLocation] = useState<LatLngExpression | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [locationLoading, setLocationLoading] = useState(true);
-  const [routes, setRoutes] = useState<Map<string, LatLngTuple[]>>(new Map());
-  const [loadingRoutes, setLoadingRoutes] = useState(false);
+  const { drivers, customers, orders, routes, isLoading, loadingRoutes, mapCenter } = useMapData();
 
-  const getUserLocation = () => {
-    // Set default location immediately so map can render
-    setUserLocation([51.505, -0.09]); // Default location (London)
-    setLocationLoading(false);
-
-    // Try to get user's location, but don't block rendering
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation([position.coords.latitude, position.coords.longitude]);
-        },
-        () => {
-          // Silently handle geolocation errors - use default location
-          // Don't log errors to avoid console noise
-          // Error types: PERMISSION_DENIED, POSITION_UNAVAILABLE, TIMEOUT
-        },
-        {
-          timeout: 5000,
-          enableHighAccuracy: false,
-          maximumAge: 300000, // Use cached location if available
-        }
-      );
-    }
-  };
-
-  const calculateRoutes = useCallback(async (ordersList: ApiOrder[], driversList: Driver[]) => {
-    setLoadingRoutes(true);
-    const routesMap = new Map<string, LatLngTuple[]>();
-
-    try {
-      const routePromises = ordersList
-        .filter(
-          (order) =>
-            order.driverId?.location &&
-            order.dropoffLocation &&
-            typeof order._id === 'string'
-        )
-        .map(async (order) => {
-          const driver = driversList.find((candidate) => candidate._id === order.driverId?._id);
-          const driverLoc = driver?.location;
-          const customerLoc = order.dropoffLocation;
-
-          if (!driverLoc || !customerLoc) {
-            return;
-          }
-
-          try {
-            const route = await getRoute(
-              driverLoc.lat,
-              driverLoc.lng,
-              customerLoc.lat,
-              customerLoc.lng
-            );
-            routesMap.set(order._id, route);
-          } catch (error) {
-            console.error(`Error calculating route for order ${order._id}:`, error);
-          }
-        });
-
-      await Promise.all(routePromises);
-      setRoutes(routesMap);
-    } catch (error) {
-      console.error('Error calculating routes:', error);
-    } finally {
-      setLoadingRoutes(false);
-    }
-  }, []);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [driversRes, ordersRes] = await Promise.all([
-        api.get<{ users: ApiUser[] }>('/users'),
-        api.get<{ orders: ApiOrder[] }>('/orders'),
-      ]);
-
-      const allUsers = driversRes.data.users ?? [];
-      const allOrders = ordersRes.data.orders ?? [];
-
-      const filteredDrivers = allUsers
-        .filter((user): user is ApiUser => user.role === 'driver')
-        .map<Driver>((driver) => ({
-          _id: driver._id,
-          name: driver.name,
-          email: driver.email,
-          isAvailable: Boolean(driver.isAvailable),
-          location: driver.location ?? null,
-        }));
-
-      const filteredOrders = allOrders.filter(
-        (order): order is ApiOrder & { status: OrderStatus } =>
-          isTrackedOrderStatus(order.status)
-      );
-
-      setDrivers(filteredDrivers);
-      setOrders(filteredOrders);
-
-      await calculateRoutes(filteredOrders, filteredDrivers);
-    } catch (error) {
-      console.error('Error fetching map data:', error);
-    } finally {
-      setDataLoading(false);
-    }
-  }, [calculateRoutes]);
-
-  useEffect(() => {
-    fetchData();
-    getUserLocation();
-  }, [fetchData]);
-
-  // Update main loading state when both data and location are ready
-  useEffect(() => {
-    if (!dataLoading && !locationLoading) {
-      setLoading(false);
-    }
-  }, [dataLoading, locationLoading]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-gray-900">Map View</h1>
@@ -241,26 +46,17 @@ const MapView = () => {
     );
   }
 
-  // Use default location if userLocation is not set
-  const mapCenter = userLocation || [51.505, -0.09];
-
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900">Map View</h1>
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        <MapContainer
-          center={mapCenter}
-          zoom={2}
-          style={{ height: '600px', width: '100%' }}
-          scrollWheelZoom={true}
-        >
+        <MapContainer center={mapCenter} zoom={2} style={{ height: '600px', width: '100%' }} scrollWheelZoom>
           <MapCenter center={mapCenter} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* Route Polylines - Draw routes between drivers and customers */}
           {Array.from(routes.entries()).map(([orderId, routePoints]) => {
             const order = orders.find((o) => o._id === orderId);
             if (!order || routePoints.length < 2) return null;
@@ -278,35 +74,71 @@ const MapView = () => {
             );
           })}
 
-          {/* Driver Markers */}
           {drivers.map((driver) => {
             if (!driver.location) return null;
             return (
               <Marker
                 key={`driver-${driver._id}`}
                 position={[driver.location.lat, driver.location.lng]}
+                icon={L.icon({
+                  ...DefaultIcon.options,
+                  iconUrl:
+                    'data:image/svg+xml;base64,' +
+                    btoa(`
+                      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
+                        <path fill="#10B981" d="M12.5 0C5.596 0 0 5.596 0 12.5c0 12.5 12.5 28.5 12.5 28.5s12.5-16 12.5-28.5C25 5.596 19.404 0 12.5 0z"/>
+                        <text x="12.5" y="18" text-anchor="middle" fill="white" font-size="12" font-weight="bold">D</text>
+                      </svg>
+                    `),
+                })}
               >
                 <Popup>
                   <div>
-                    <h3 className="font-bold">{driver.name}</h3>
+                    <h3 className="font-bold">Driver: {driver.name}</h3>
                     <p className="text-sm text-gray-600">{driver.email}</p>
                     <p className="text-sm">
                       Status:{' '}
-                      <span
-                        className={`font-semibold ${
-                          driver.isAvailable ? 'text-green-600' : 'text-gray-600'
-                        }`}
-                      >
+                      <span className={`font-semibold ${driver.isAvailable ? 'text-green-600' : 'text-gray-600'}`}>
                         {driver.isAvailable ? 'Available' : 'Offline'}
                       </span>
                     </p>
+                    {driver.vehicleType && (
+                      <p className="text-sm text-gray-600">Vehicle: {driver.vehicleType}</p>
+                    )}
                   </div>
                 </Popup>
               </Marker>
             );
           })}
 
-          {/* Order Markers */}
+          {customers.map((customer) => {
+            if (!customer.location) return null;
+            return (
+              <Marker
+                key={`customer-${customer._id}`}
+                position={[customer.location.lat, customer.location.lng]}
+                icon={L.icon({
+                  ...DefaultIcon.options,
+                  iconUrl:
+                    'data:image/svg+xml;base64,' +
+                    btoa(`
+                      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
+                        <path fill="#8B5CF6" d="M12.5 0C5.596 0 0 5.596 0 12.5c0 12.5 12.5 28.5 12.5 28.5s12.5-16 12.5-28.5C25 5.596 19.404 0 12.5 0z"/>
+                        <text x="12.5" y="18" text-anchor="middle" fill="white" font-size="12" font-weight="bold">U</text>
+                      </svg>
+                    `),
+                })}
+              >
+                <Popup>
+                  <div>
+                    <h3 className="font-bold">Customer: {customer.name}</h3>
+                    <p className="text-sm text-gray-600">{customer.email}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+
           {orders.map((order) => {
             const pickup = order.pickupLocation;
             const dropoff = order.dropoffLocation;
@@ -318,7 +150,9 @@ const MapView = () => {
                     position={[pickup.lat, pickup.lng]}
                     icon={L.icon({
                       ...DefaultIcon.options,
-                      iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+                      iconUrl:
+                        'data:image/svg+xml;base64,' +
+                        btoa(`
                         <svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
                           <path fill="#FF6B6B" d="M12.5 0C5.596 0 0 5.596 0 12.5c0 12.5 12.5 28.5 12.5 28.5s12.5-16 12.5-28.5C25 5.596 19.404 0 12.5 0z"/>
                           <text x="12.5" y="18" text-anchor="middle" fill="white" font-size="12" font-weight="bold">P</text>
@@ -340,7 +174,9 @@ const MapView = () => {
                     position={[dropoff.lat, dropoff.lng]}
                     icon={L.icon({
                       ...DefaultIcon.options,
-                      iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+                      iconUrl:
+                        'data:image/svg+xml;base64,' +
+                        btoa(`
                         <svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
                           <path fill="#4ECDC4" d="M12.5 0C5.596 0 0 5.596 0 12.5c0 12.5 12.5 28.5 12.5 28.5s12.5-16 12.5-28.5C25 5.596 19.404 0 12.5 0z"/>
                           <text x="12.5" y="18" text-anchor="middle" fill="white" font-size="12" font-weight="bold">D</text>
@@ -363,10 +199,14 @@ const MapView = () => {
         </MapContainer>
       </div>
       <div className="bg-white p-4 rounded-lg shadow">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-            <span className="text-sm">Available Drivers</span>
+            <span className="text-sm">Drivers</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
+            <span className="text-sm">Customers</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-red-500 rounded-full"></div>

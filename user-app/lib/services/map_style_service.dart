@@ -1,27 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
-
-/// Map style configuration
-class MapStyle {
-  final String id;
-  final String name;
-  final String urlTemplate;
-  final String? attribution;
-  final String? apiKey;
-  final int maxZoom;
-  final List<String>? subdomains;
-  final bool supportsRetina;
-
-  const MapStyle({
-    required this.id,
-    required this.name,
-    required this.urlTemplate,
-    this.attribution,
-    this.apiKey,
-    this.maxZoom = 19,
-    this.subdomains,
-    this.supportsRetina = false,
-  });
-}
+import '../models/map_style.dart';
 
 /// Service for managing map styles
 class MapStyleService {
@@ -39,7 +17,8 @@ class MapStyleService {
     MapStyle(
       id: 'carto_dark',
       name: 'Carto Dark Matter',
-      urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      urlTemplate:
+          'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
       attribution: '© OpenStreetMap contributors © CARTO',
       maxZoom: 20,
       subdomains: const ['a', 'b', 'c', 'd'],
@@ -48,7 +27,8 @@ class MapStyleService {
     MapStyle(
       id: 'carto_light',
       name: 'Carto Positron',
-      urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      urlTemplate:
+          'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
       attribution: '© OpenStreetMap contributors © CARTO',
       maxZoom: 20,
       subdomains: const ['a', 'b', 'c', 'd'],
@@ -57,8 +37,10 @@ class MapStyleService {
     MapStyle(
       id: 'stamen_toner',
       name: 'Stamen Toner',
-      urlTemplate: 'https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}{r}.png',
-      attribution: 'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.',
+      urlTemplate:
+          'https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}{r}.png',
+      attribution:
+          'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.',
       maxZoom: 20,
       subdomains: const ['a', 'b', 'c', 'd'],
       supportsRetina: true,
@@ -66,8 +48,10 @@ class MapStyleService {
     MapStyle(
       id: 'stamen_terrain',
       name: 'Stamen Terrain',
-      urlTemplate: 'https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png',
-      attribution: 'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.',
+      urlTemplate:
+          'https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png',
+      attribution:
+          'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.',
       maxZoom: 18,
       subdomains: const ['a', 'b', 'c', 'd'],
       supportsRetina: true,
@@ -75,8 +59,10 @@ class MapStyleService {
     MapStyle(
       id: 'stamen_watercolor',
       name: 'Stamen Watercolor',
-      urlTemplate: 'https://stamen-tiles-{s}.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg',
-      attribution: 'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.',
+      urlTemplate:
+          'https://stamen-tiles-{s}.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg',
+      attribution:
+          'Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.',
       maxZoom: 18,
       subdomains: const ['a', 'b', 'c', 'd'],
     ),
@@ -109,14 +95,14 @@ class MapStyleService {
   static Future<MapStyle> loadSelectedStyle() async {
     final prefs = await SharedPreferences.getInstance();
     final styleId = prefs.getString(_prefsKey);
-    
+
     if (styleId != null) {
       final style = getStyleById(styleId);
       if (style != null) {
         return style;
       }
     }
-    
+
     return getDefaultStyle();
   }
 
@@ -126,4 +112,3 @@ class MapStyleService {
     await prefs.setString(_prefsKey, styleId);
   }
 }
-

@@ -1,0 +1,424 @@
+{
+  "@@locale": "en",
+  "appTitle": "Delivery Driver App",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "driverLogin": "Driver Login",
+  "@driverLogin": {
+    "description": "Login screen title"
+  },
+  "signInToStart": "Sign in to start accepting deliveries",
+  "@signInToStart": {
+    "description": "Login screen subtitle"
+  },
+  "email": "Email",
+  "@email": {
+    "description": "Email field label"
+  },
+  "password": "Password",
+  "@password": {
+    "description": "Password field label"
+  },
+  "signIn": "Sign In",
+  "@signIn": {
+    "description": "Sign in button text"
+  },
+  "signUp": "Sign Up",
+  "@signUp": {
+    "description": "Sign up button text"
+  },
+  "dontHaveAccount": "Don't have an account? Sign Up",
+  "@dontHaveAccount": {
+    "description": "Sign up link text"
+  },
+  "pleaseEnterEmail": "Please enter your email",
+  "@pleaseEnterEmail": {
+    "description": "Email validation error"
+  },
+  "pleaseEnterValidEmail": "Please enter a valid email",
+  "@pleaseEnterValidEmail": {
+    "description": "Email format validation error"
+  },
+  "pleaseEnterPassword": "Please enter your password",
+  "@pleaseEnterPassword": {
+    "description": "Password validation error"
+  },
+  "loginFailed": "Login failed. Please try again.",
+  "@loginFailed": {
+    "description": "Login error message"
+  },
+  "driverRegistration": "Driver Registration",
+  "@driverRegistration": {
+    "description": "Registration screen title"
+  },
+  "fullName": "Full Name",
+  "@fullName": {
+    "description": "Full name field label"
+  },
+  "pleaseEnterName": "Please enter your name",
+  "@pleaseEnterName": {
+    "description": "Name validation error"
+  },
+  "selectVehicleType": "Select your vehicle type",
+  "@selectVehicleType": {
+    "description": "Vehicle type dropdown label"
+  },
+  "pleaseSelectVehicleType": "Please select your vehicle type",
+  "@pleaseSelectVehicleType": {
+    "description": "Vehicle type validation error"
+  },
+  "car": "Car",
+  "@car": {
+    "description": "Car vehicle type"
+  },
+  "bike": "Bike",
+  "@bike": {
+    "description": "Bike vehicle type"
+  },
+  "phoneNumber": "Phone Number",
+  "@phoneNumber": {
+    "description": "Phone number field label"
+  },
+  "pleaseEnterPhoneNumber": "Please enter your phone number",
+  "@pleaseEnterPhoneNumber": {
+    "description": "Phone number validation error"
+  },
+  "passwordMustBe6Chars": "Password must be at least 6 characters",
+  "@passwordMustBe6Chars": {
+    "description": "Password length validation error"
+  },
+  "registrationFailed": "Registration failed. Please try again.",
+  "@registrationFailed": {
+    "description": "Registration error message"
+  },
+  "driverDashboard": "Driver Dashboard",
+  "@driverDashboard": {
+    "description": "Dashboard screen title"
+  },
+  "available": "Available",
+  "@available": {
+    "description": "Available status text"
+  },
+  "active": "Active",
+  "@active": {
+    "description": "Active orders tab"
+  },
+  "history": "History",
+  "@history": {
+    "description": "Order history tab"
+  },
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile tab"
+  },
+  "noAvailableOrders": "No available orders",
+  "@noAvailableOrders": {
+    "description": "Empty state message for available orders"
+  },
+  "refresh": "Refresh",
+  "@refresh": {
+    "description": "Refresh button text"
+  },
+  "order": "Order",
+  "@order": {
+    "description": "Order label"
+  },
+  "orderNumber": "Order #{id}",
+  "@orderNumber": {
+    "description": "Order number format",
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "type": "Type",
+  "@type": {
+    "description": "Order type label"
+  },
+  "vehicle": "Vehicle",
+  "@vehicle": {
+    "description": "Vehicle label"
+  },
+  "price": "Price",
+  "@price": {
+    "description": "Price label"
+  },
+  "distance": "Distance",
+  "@distance": {
+    "description": "Distance label"
+  },
+  "accept": "Accept",
+  "@accept": {
+    "description": "Accept button text"
+  },
+  "orderAcceptedSuccessfully": "Order accepted successfully!",
+  "@orderAcceptedSuccessfully": {
+    "description": "Order acceptance success message"
+  },
+  "failedToAcceptOrder": "Failed to accept order",
+  "@failedToAcceptOrder": {
+    "description": "Order acceptance error message"
+  },
+  "noActiveOrder": "No active order",
+  "@noActiveOrder": {
+    "description": "Empty state message for active orders"
+  },
+  "activeOrder": "Active Order",
+  "@activeOrder": {
+    "description": "Active order title"
+  },
+  "status": "Status",
+  "@status": {
+    "description": "Status label"
+  },
+  "category": "Category",
+  "@category": {
+    "description": "Category label"
+  },
+  "estimated": "Estimated",
+  "@estimated": {
+    "description": "Estimated price label"
+  },
+  "created": "Created",
+  "@created": {
+    "description": "Created date label"
+  },
+  "sender": "Sender",
+  "@sender": {
+    "description": "Sender section title"
+  },
+  "name": "Name",
+  "@name": {
+    "description": "Name label"
+  },
+  "phone": "Phone",
+  "@phone": {
+    "description": "Phone label"
+  },
+  "address": "Address",
+  "@address": {
+    "description": "Address label"
+  },
+  "notes": "Notes",
+  "@notes": {
+    "description": "Notes section title"
+  },
+  "openLiveMap": "Open Live Map",
+  "@openLiveMap": {
+    "description": "Open map button text"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+  "mapStyle": "Map Style",
+  "@mapStyle": {
+    "description": "Map style section title"
+  },
+  "mapStyleValue": "Map style: {style}",
+  "@mapStyleValue": {
+    "description": "Map style display text",
+    "placeholders": {
+      "style": {
+        "type": "String"
+      }
+    }
+  },
+  "logout": "Logout",
+  "@logout": {
+    "description": "Logout button text"
+  },
+  "noUserData": "No user data",
+  "@noUserData": {
+    "description": "No user data message"
+  },
+  "unknown": "Unknown",
+  "@unknown": {
+    "description": "Unknown value"
+  },
+  "nA": "N/A",
+  "@nA": {
+    "description": "Not available abbreviation"
+  },
+  "failedToUpdateAvailability": "Failed to update availability. Please try again.",
+  "@failedToUpdateAvailability": {
+    "description": "Availability update error message"
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Language label"
+  },
+  "english": "English",
+  "@english": {
+    "description": "English language name"
+  },
+  "arabic": "Arabic",
+  "@arabic": {
+    "description": "Arabic language name"
+  },
+  "selectLanguage": "Select Language",
+  "@selectLanguage": {
+    "description": "Language selection dialog title"
+  },
+  "verifyEmail": "Verify Email",
+  "@verifyEmail": {
+    "description": "OTP verification screen title"
+  },
+  "verifyYourEmail": "Verify Your Email",
+  "@verifyYourEmail": {
+    "description": "OTP verification title"
+  },
+  "otpSentMessage": "We sent a verification code to\n{email}",
+  "@otpSentMessage": {
+    "description": "OTP sent message",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "verify": "Verify",
+  "@verify": {
+    "description": "Verify button text"
+  },
+  "pleaseEnterValidOtp": "Please enter a valid 6-digit OTP",
+  "@pleaseEnterValidOtp": {
+    "description": "OTP validation error"
+  },
+  "invalidOtp": "Invalid OTP. Please try again.",
+  "@invalidOtp": {
+    "description": "Invalid OTP error message"
+  },
+  "orderDetails": "Order Details",
+  "@orderDetails": {
+    "description": "Order details screen title"
+  },
+  "orderNotFound": "Order not found",
+  "@orderNotFound": {
+    "description": "Order not found message"
+  },
+  "centerOnDriver": "Center on Driver",
+  "@centerOnDriver": {
+    "description": "Center on driver button tooltip"
+  },
+  "statusValue": "Status: {status}",
+  "@statusValue": {
+    "description": "Status display format",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "priceValue": "Price: {price}",
+  "@priceValue": {
+    "description": "Price display format",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "distanceToCustomer": "Distance to customer: {distance} km",
+  "@distanceToCustomer": {
+    "description": "Distance to customer format",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "startDelivery": "Start Delivery",
+  "@startDelivery": {
+    "description": "Start delivery button text"
+  },
+  "markAsDelivered": "Mark as Delivered",
+  "@markAsDelivered": {
+    "description": "Mark as delivered button text"
+  },
+  "orderStatusUpdated": "Order status updated to {status}",
+  "@orderStatusUpdated": {
+    "description": "Order status update success message",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "noOrderHistory": "No order history",
+  "@noOrderHistory": {
+    "description": "Empty state title for order history"
+  },
+  "orderHistoryMessage": "Completed orders will appear here once you start delivering.",
+  "@orderHistoryMessage": {
+    "description": "Empty state message for order history"
+  },
+  "statusValueColon": "Status: {status}",
+  "@statusValueColon": {
+    "description": "Status display in list",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "priceValueColon": "Price: {price}",
+  "@priceValueColon": {
+    "description": "Price display in list",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "typeValueColon": "Type: {type}",
+  "@typeValueColon": {
+    "description": "Type display in list",
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "kilometers": "{distance} km",
+  "@kilometers": {
+    "description": "Distance in kilometers",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "nis": "{price} NIS",
+  "@nis": {
+    "description": "Price in NIS",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "selectImageSource": "Select Image Source",
+  "@selectImageSource": {
+    "description": "Dialog title for selecting image source"
+  },
+  "profilePictureUpdated": "Profile picture updated successfully",
+  "@profilePictureUpdated": {
+    "description": "Success message when profile picture is updated"
+  },
+  "failedToUpdateProfilePicture": "Failed to update profile picture",
+  "@failedToUpdateProfilePicture": {
+    "description": "Error message when profile picture update fails"
+  },
+  "camera": "Camera",
+  "@camera": {
+    "description": "Camera option for image source"
+  },
+  "gallery": "Gallery",
+  "@gallery": {
+    "description": "Gallery option for image source"
+  }
+}
+

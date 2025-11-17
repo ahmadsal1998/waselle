@@ -1,26 +1,30 @@
-const STATIC_PRICING: Record<'bike' | 'car', number> = {
-  bike: 10,
-  car: 15,
-};
+import Settings from '../models/Settings';
 
 interface EstimateParams {
-  vehicleType: 'car' | 'bike';
+  vehicleType: 'car' | 'bike' | 'cargo';
   distanceKm?: number | null;
 }
 
-export const calculateEstimatedPrice = ({
+export const calculateEstimatedPrice = async ({
   vehicleType,
   distanceKm,
-}: EstimateParams): number => {
-  const basePrice = STATIC_PRICING[vehicleType];
+}: EstimateParams): Promise<number> => {
+  const settings = await Settings.getSettings();
+  const vehicleConfig = settings.vehicleTypes[vehicleType];
 
-  if (basePrice === undefined) {
+  if (!vehicleConfig) {
     throw new Error(`Unsupported vehicle type: ${vehicleType}`);
   }
 
+  if (!vehicleConfig.enabled) {
+    throw new Error(`Vehicle type ${vehicleType} is not enabled`);
+  }
+
+  const basePrice = vehicleConfig.basePrice;
+
   if (distanceKm && distanceKm > 0) {
     // Placeholder for future distance-based calculation.
-    // Currently returns static price per requirements.
+    // Currently returns base price per requirements.
     return basePrice;
   }
 

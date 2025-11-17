@@ -1,9 +1,13 @@
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'api_service.dart';
+
+import '../repositories/api_service.dart';
 
 class SocketService {
-  static IO.Socket? _socket;
+  static io.Socket? _socket;
+  static final Map<String, List<void Function(dynamic)>> _queuedListeners = {};
+
+  static io.Socket? get socket => _socket;
 
   static Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
@@ -11,23 +15,44 @@ class SocketService {
 
     if (token == null) return;
 
-    _socket = IO.io(
+    if (_socket != null) {
+      _socket!.auth = {'token': token};
+      if (!_socket!.connected) {
+        _socket!.connect();
+      }
+      return;
+    }
+
+    _socket = io.io(
       ApiService.socketUrl,
-      IO.OptionBuilder()
-          .setTransports(['websocket'])
-          .setAuth({'token': token})
-          .build(),
+      <String, dynamic>{
+        'transports': ['websocket'],
+        'auth': {'token': token},
+        'reconnection': true,
+        'reconnectionAttempts': 10,
+        'reconnectionDelay': 1000,
+        'autoConnect': true,
+      },
     );
 
+    _socket!.on('connect', (_) => _attachQueuedListeners());
+    _attachQueuedListeners();
     _socket!.connect();
   }
 
   static void disconnect() {
     _socket?.disconnect();
+    _socket?.close();
     _socket = null;
   }
 
-  static void on(String event, Function(dynamic) callback) {
+  static void on(String event, void Function(dynamic) callback) {
+    final callbacks = _queuedListeners.putIfAbsent(
+      event,
+      () => <void Function(dynamic)>[],
+    );
+    callbacks.add(callback);
+    _socket?.off(event, callback);
     _socket?.on(event, callback);
   }
 
@@ -36,6 +61,36 @@ class SocketService {
   }
 
   static void off(String event) {
-    _socket?.off(event);
+    final callbacks = _queuedListeners.remove(event);
+    if (callbacks == null) {
+      _socket?.off(event);
+      return;
+    }
+    for (final callback in callbacks) {
+      _socket?.off(event, callback);
+    }
+  }
+
+  static void removeListener(
+    String event,
+    void Function(dynamic) callback,
+  ) {
+    final callbacks = _queuedListeners[event];
+    if (callbacks == null) return;
+    callbacks.remove(callback);
+    if (callbacks.isEmpty) {
+      _queuedListeners.remove(event);
+    }
+    _socket?.off(event, callback);
+  }
+
+  static void _attachQueuedListeners() {
+    if (_socket == null) return;
+    _queuedListeners.forEach((event, callbacks) {
+      for (final callback in callbacks) {
+        _socket!.off(event, callback);
+        _socket!.on(event, callback);
+      }
+    });
   }
 }

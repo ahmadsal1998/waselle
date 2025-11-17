@@ -2,19 +2,25 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IUser extends Document {
   name: string;
-  email: string;
-  password: string;
+  email?: string;
+  password?: string;
   role: 'customer' | 'driver' | 'admin';
-  vehicleType?: 'car' | 'bike';
+  vehicleType?: 'car' | 'bike' | 'cargo';
   location?: {
     lat: number;
     lng: number;
   };
   isAvailable: boolean;
-  phoneNumber?: string;
+  phone?: string;
+  countryCode?: string;
+  address?: string; // Kept for backward compatibility (formatted string)
+  city?: string; // Separate city component
+  village?: string; // Separate village component
+  streetDetails?: string; // Separate street/details component
   isEmailVerified: boolean;
   otpCode?: string;
   otpExpires?: Date;
+  profilePicture?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,14 +34,25 @@ const UserSchema: Schema = new Schema(
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: [
+        function (this: IUser) {
+          return this.role !== 'customer' || !this.phone;
+        },
+        'Email is required for drivers and admins, or if phone is not provided',
+      ],
       unique: true,
+      sparse: true, // Allow multiple null values
       lowercase: true,
       trim: true,
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: [
+        function (this: IUser) {
+          return this.role !== 'customer' || !!this.email;
+        },
+        'Password is required for email-based accounts',
+      ],
       minlength: 6,
     },
     role: {
@@ -45,7 +62,7 @@ const UserSchema: Schema = new Schema(
     },
     vehicleType: {
       type: String,
-      enum: ['car', 'bike'],
+      enum: ['car', 'bike', 'cargo'],
       required: [
         function (this: IUser) {
           return this.role === 'driver';
@@ -61,13 +78,40 @@ const UserSchema: Schema = new Schema(
       type: Boolean,
       default: false,
     },
-    phoneNumber: {
+    phone: {
+      type: String,
+      unique: true,
+      sparse: true, // Allow multiple null values
+      trim: true,
+    },
+    countryCode: {
+      type: String,
+      trim: true,
+    },
+    address: {
+      type: String,
+      trim: true,
+      // Optional - can be generated from components if not provided
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+    village: {
+      type: String,
+      trim: true,
+    },
+    streetDetails: {
       type: String,
       trim: true,
     },
     isEmailVerified: {
       type: Boolean,
-      default: false,
+      default: function(this: IUser) {
+        // Customers are verified by default (especially phone-based customers)
+        // Email-based customers will need to verify via OTP
+        return this.role === 'customer';
+      },
     },
     otpCode: {
       type: String,
@@ -75,10 +119,23 @@ const UserSchema: Schema = new Schema(
     otpExpires: {
       type: Date,
     },
+    profilePicture: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+// Custom validation: at least email or phone must be provided
+UserSchema.pre('validate', function (next) {
+  if (!this.email && !this.phone) {
+    this.invalidate('email', 'Either email or phone must be provided');
+    this.invalidate('phone', 'Either email or phone must be provided');
+  }
+  next();
+});
 
 export default mongoose.model<IUser>('User', UserSchema);

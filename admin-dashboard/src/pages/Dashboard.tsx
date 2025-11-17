@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-import { api } from '../config/api';
 import {
   BarChart,
   Bar,
@@ -13,81 +11,24 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-
-interface Stats {
-  totalUsers: number;
-  totalDrivers: number;
-  totalOrders: number;
-  activeOrders: number;
-  completedOrders: number;
-  pendingOrders: number;
-}
-
-type UserRole = 'customer' | 'driver' | 'admin';
-
-interface ApiUser {
-  role: UserRole | string;
-}
-
-type OrderStatus = 'pending' | 'accepted' | 'on_the_way' | 'delivered' | 'cancelled';
-
-interface ApiOrder {
-  status: OrderStatus | string;
-}
-
-const isAllowedStatus = (
-  status: ApiOrder['status'],
-  allowed: readonly OrderStatus[]
-): status is OrderStatus =>
-  typeof status === 'string' && allowed.includes(status as OrderStatus);
+import { useDashboardStats } from '@/store/dashboard/useDashboardStats';
 
 const Dashboard = () => {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { stats, isLoading, error } = useDashboardStats();
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const [usersRes, ordersRes] = await Promise.all([
-        api.get<{ users: ApiUser[] }>('/users'),
-        api.get<{ orders: ApiOrder[] }>('/orders'),
-      ]);
-
-      const users = usersRes.data.users ?? [];
-      const orders = ordersRes.data.orders ?? [];
-
-      const activeStatuses: readonly OrderStatus[] = ['accepted', 'on_the_way'];
-      const completedStatuses: readonly OrderStatus[] = ['delivered'];
-      const pendingStatuses: readonly OrderStatus[] = ['pending'];
-
-      const statsData: Stats = {
-        totalUsers: users.filter((user) => user.role === 'customer').length,
-        totalDrivers: users.filter((user) => user.role === 'driver').length,
-        totalOrders: orders.length,
-        activeOrders: orders.filter(
-          (order) => isAllowedStatus(order.status, activeStatuses)
-        ).length,
-        completedOrders: orders.filter(
-          (order) => isAllowedStatus(order.status, completedStatuses)
-        ).length,
-        pendingOrders: orders.filter(
-          (order) => isAllowedStatus(order.status, pendingStatuses)
-        ).length,
-      };
-
-      setStats(statsData);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return <div className="text-center py-12">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+        <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-md">
+          {error}
+        </div>
+      </div>
+    );
   }
 
   if (!stats) {
@@ -113,12 +54,8 @@ const Dashboard = () => {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Total Users
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {stats.totalUsers}
-                  </dd>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Users</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.totalUsers}</dd>
                 </dl>
               </div>
             </div>
@@ -133,12 +70,8 @@ const Dashboard = () => {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Total Drivers
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {stats.totalDrivers}
-                  </dd>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Drivers</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.totalDrivers}</dd>
                 </dl>
               </div>
             </div>
@@ -153,12 +86,8 @@ const Dashboard = () => {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Total Orders
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {stats.totalOrders}
-                  </dd>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Orders</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.totalOrders}</dd>
                 </dl>
               </div>
             </div>
@@ -173,12 +102,8 @@ const Dashboard = () => {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Active Orders
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {stats.activeOrders}
-                  </dd>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Active Orders</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.activeOrders}</dd>
                 </dl>
               </div>
             </div>
@@ -196,9 +121,7 @@ const Dashboard = () => {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) =>
-                  `${name} ${(percent * 100).toFixed(0)}%`
-                }
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"

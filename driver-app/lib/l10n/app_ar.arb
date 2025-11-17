@@ -1,0 +1,178 @@
+{
+  "@@locale": "ar",
+  "appTitle": "تطبيق سائق التوصيل",
+  "driverLogin": "تسجيل دخول السائق",
+  "signInToStart": "سجل الدخول لبدء قبول الطلبات",
+  "email": "البريد الإلكتروني",
+  "password": "كلمة المرور",
+  "signIn": "تسجيل الدخول",
+  "signUp": "إنشاء حساب",
+  "dontHaveAccount": "ليس لديك حساب؟ سجل الآن",
+  "pleaseEnterEmail": "الرجاء إدخال البريد الإلكتروني",
+  "pleaseEnterValidEmail": "الرجاء إدخال بريد إلكتروني صحيح",
+  "pleaseEnterPassword": "الرجاء إدخال كلمة المرور",
+  "loginFailed": "فشل تسجيل الدخول. الرجاء المحاولة مرة أخرى.",
+  "driverRegistration": "تسجيل السائق",
+  "fullName": "الاسم الكامل",
+  "pleaseEnterName": "الرجاء إدخال الاسم",
+  "selectVehicleType": "اختر نوع المركبة",
+  "pleaseSelectVehicleType": "الرجاء اختيار نوع المركبة",
+  "car": "سيارة",
+  "bike": "دراجة",
+  "phoneNumber": "رقم الهاتف",
+  "pleaseEnterPhoneNumber": "الرجاء إدخال رقم الهاتف",
+  "passwordMustBe6Chars": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+  "registrationFailed": "فشل التسجيل. الرجاء المحاولة مرة أخرى.",
+  "driverDashboard": "لوحة تحكم السائق",
+  "available": "متاح",
+  "active": "نشط",
+  "history": "السجل",
+  "profile": "الملف الشخصي",
+  "noAvailableOrders": "لا توجد طلبات متاحة",
+  "refresh": "تحديث",
+  "order": "طلب",
+  "orderNumber": "طلب رقم {id}",
+  "@orderNumber": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "type": "النوع",
+  "vehicle": "المركبة",
+  "price": "السعر",
+  "distance": "المسافة",
+  "accept": "قبول",
+  "orderAcceptedSuccessfully": "تم قبول الطلب بنجاح!",
+  "failedToAcceptOrder": "فشل قبول الطلب",
+  "noActiveOrder": "لا يوجد طلب نشط",
+  "activeOrder": "طلب نشط",
+  "status": "الحالة",
+  "category": "الفئة",
+  "estimated": "مقدر",
+  "created": "تم الإنشاء",
+  "sender": "المرسل",
+  "name": "الاسم",
+  "phone": "الهاتف",
+  "address": "العنوان",
+  "notes": "ملاحظات",
+  "openLiveMap": "فتح الخريطة المباشرة",
+  "settings": "الإعدادات",
+  "mapStyle": "نمط الخريطة",
+  "mapStyleValue": "نمط الخريطة: {style}",
+  "@mapStyleValue": {
+    "placeholders": {
+      "style": {
+        "type": "String"
+      }
+    }
+  },
+  "logout": "تسجيل الخروج",
+  "noUserData": "لا توجد بيانات المستخدم",
+  "unknown": "غير معروف",
+  "nA": "غير متاح",
+  "failedToUpdateAvailability": "فشل تحديث الحالة. الرجاء المحاولة مرة أخرى.",
+  "language": "اللغة",
+  "english": "الإنجليزية",
+  "arabic": "العربية",
+  "selectLanguage": "اختر اللغة",
+  "verifyEmail": "التحقق من البريد الإلكتروني",
+  "verifyYourEmail": "التحقق من بريدك الإلكتروني",
+  "otpSentMessage": "أرسلنا رمز التحقق إلى\n{email}",
+  "@otpSentMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "verify": "تحقق",
+  "pleaseEnterValidOtp": "الرجاء إدخال رمز التحقق المكون من 6 أرقام",
+  "invalidOtp": "رمز التحقق غير صحيح. الرجاء المحاولة مرة أخرى.",
+  "orderDetails": "تفاصيل الطلب",
+  "orderNotFound": "الطلب غير موجود",
+  "centerOnDriver": "التمركز على السائق",
+  "statusValue": "الحالة: {status}",
+  "@statusValue": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "priceValue": "السعر: {price}",
+  "@priceValue": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "distanceToCustomer": "المسافة إلى العميل: {distance} كم",
+  "@distanceToCustomer": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "startDelivery": "بدء التوصيل",
+  "markAsDelivered": "تمييز كمكتمل",
+  "orderStatusUpdated": "تم تحديث حالة الطلب إلى {status}",
+  "@orderStatusUpdated": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "noOrderHistory": "لا يوجد سجل طلبات",
+  "orderHistoryMessage": "ستظهر الطلبات المكتملة هنا بمجرد بدء التوصيل.",
+  "statusValueColon": "الحالة: {status}",
+  "@statusValueColon": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "priceValueColon": "السعر: {price}",
+  "@priceValueColon": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "typeValueColon": "النوع: {type}",
+  "@typeValueColon": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "kilometers": "{distance} كم",
+  "@kilometers": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "nis": "{price} شيكل",
+  "@nis": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "selectImageSource": "اختر مصدر الصورة",
+  "profilePictureUpdated": "تم تحديث صورة الملف الشخصي بنجاح",
+  "failedToUpdateProfilePicture": "فشل في تحديث صورة الملف الشخصي",
+  "camera": "الكاميرا",
+  "gallery": "المعرض"
+}
+

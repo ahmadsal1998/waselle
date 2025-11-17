@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/map_style_provider.dart';
+import 'package:delivery_user_app/l10n/app_localizations.dart';
+import '../../view_models/auth_view_model.dart';
+import '../../view_models/locale_view_model.dart';
+import '../../view_models/map_style_view_model.dart';
 import '../../services/socket_service.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -20,8 +22,9 @@ class ProfileScreen extends StatelessWidget {
       return content;
     }
 
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(l10n.profile)),
       body: content,
     );
   }
@@ -34,12 +37,14 @@ class _ProfileContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, _) {
-        final user = authProvider.user;
+    final l10n = AppLocalizations.of(context)!;
+    
+    return Consumer<AuthViewModel>(
+      builder: (context, authViewModel, _) {
+        final user = authViewModel.user;
 
         if (user == null) {
-          return const Center(child: Text('No user data'));
+          return Center(child: Text(l10n.noUserData));
         }
 
         return ListView(
@@ -51,7 +56,7 @@ class _ProfileContent extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              user['name'] ?? 'Unknown',
+              user['name'] ?? l10n.unknown,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
@@ -65,25 +70,75 @@ class _ProfileContent extends StatelessWidget {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.history),
-              title: const Text('Order History'),
+              title: Text(l10n.orderHistory),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 // Navigate to order history
               },
             ),
             const Divider(),
-            Consumer<MapStyleProvider>(
-              builder: (context, mapStyleProvider, _) {
-                return ExpansionTile(
-                  leading: const Icon(Icons.map),
-                  title: const Text('Map Style'),
+            Consumer<LocaleViewModel>(
+              builder: (context, localeViewModel, _) {
+                return ListTile(
+                  leading: const Icon(Icons.language),
+                  title: Text(l10n.language),
                   subtitle: Text(
-                    mapStyleProvider.currentStyle.name,
+                    localeViewModel.isArabic ? l10n.arabic : l10n.english,
                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
-                  children: mapStyleProvider.availableStyles.map((style) {
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: Text(l10n.selectLanguage),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              RadioListTile<Locale>(
+                                title: Text(l10n.english),
+                                value: const Locale('en'),
+                                groupValue: localeViewModel.locale,
+                                onChanged: (Locale? value) {
+                                  if (value != null) {
+                                    localeViewModel.setLocale(value);
+                                    Navigator.of(context).pop();
+                                  }
+                                },
+                              ),
+                              RadioListTile<Locale>(
+                                title: Text(l10n.arabic),
+                                value: const Locale('ar'),
+                                groupValue: localeViewModel.locale,
+                                onChanged: (Locale? value) {
+                                  if (value != null) {
+                                    localeViewModel.setLocale(value);
+                                    Navigator.of(context).pop();
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+            Consumer<MapStyleViewModel>(
+              builder: (context, mapStyleViewModel, _) {
+                return ExpansionTile(
+                  leading: const Icon(Icons.map),
+                  title: Text(l10n.mapStyle),
+                  subtitle: Text(
+                    mapStyleViewModel.currentStyle.name,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                  children: mapStyleViewModel.availableStyles.map((style) {
                     final isSelected =
-                        mapStyleProvider.currentStyle.id == style.id;
+                        mapStyleViewModel.currentStyle.id == style.id;
                     return ListTile(
                       title: Text(style.name),
                       leading: Icon(
@@ -93,7 +148,7 @@ class _ProfileContent extends StatelessWidget {
                         color: isSelected ? Colors.blue : null,
                       ),
                       onTap: () {
-                        mapStyleProvider.setStyle(style.id);
+                        mapStyleViewModel.setStyle(style.id);
                       },
                     );
                   }).toList(),
@@ -102,7 +157,7 @@ class _ProfileContent extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
+              title: Text(l10n.settings),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 // Navigate to settings
@@ -110,9 +165,9 @@ class _ProfileContent extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
+              title: Text(l10n.logout),
               onTap: () async {
-                await authProvider.logout();
+                await authViewModel.logout();
                 SocketService.disconnect();
                 if (!showAppBar) {
                   // When embedded, ensure outer listeners (e.g. AuthWrapper) react to logout.

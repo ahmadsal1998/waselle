@@ -1,162 +1,27 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { api } from '../config/api';
-
-interface OrderCategory {
-  _id: string;
-  name: string;
-  description?: string;
-  isActive: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface CategoryFormState {
-  name: string;
-  description: string;
-}
-
-const initialFormState: CategoryFormState = {
-  name: '',
-  description: '',
-};
+import { useOrderCategoriesManager } from '@/store/orderCategories/useOrderCategoriesManager';
 
 const OrderCategories = () => {
-  const [categories, setCategories] = useState<OrderCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showInactive, setShowInactive] = useState(false);
+  const {
+    filteredCategories,
+    isLoading,
+    error,
+    searchTerm,
+    setSearchTerm,
+    showInactive,
+    setShowInactive,
+    isModalOpen,
+    openModal,
+    closeModal,
+    formState,
+    setFormState,
+    editingCategory,
+    isSaving,
+    handleSubmit,
+    handleToggleStatus,
+    handleDelete,
+  } = useOrderCategoriesManager();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formState, setFormState] = useState(initialFormState);
-  const [editingCategory, setEditingCategory] = useState<OrderCategory | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const fetchCategories = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await api.get('/order-categories');
-      const fetched: OrderCategory[] = response.data.categories ?? [];
-      setCategories(fetched);
-    } catch (err: any) {
-      console.error('Failed to fetch order categories:', err);
-      setError(err.response?.data?.message ?? 'Failed to fetch order categories');
-      setCategories([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchCategories();
-  }, [fetchCategories]);
-
-  const filteredCategories = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-    return categories
-      .filter((category) => (showInactive ? true : category.isActive))
-      .filter((category) =>
-        normalizedSearch
-          ? category.name.toLowerCase().includes(normalizedSearch) ||
-            (category.description ?? '').toLowerCase().includes(normalizedSearch)
-          : true
-      )
-      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-  }, [categories, searchTerm, showInactive]);
-
-  const openModal = (category?: OrderCategory) => {
-    if (category) {
-      setEditingCategory(category);
-      setFormState({
-        name: category.name,
-        description: category.description ?? '',
-      });
-    } else {
-      setEditingCategory(null);
-      setFormState(initialFormState);
-    }
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    if (isSaving) return;
-    setIsModalOpen(false);
-    setEditingCategory(null);
-    setFormState(initialFormState);
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmedName = formState.name.trim();
-
-    if (!trimmedName) {
-      setError('Category name is required');
-      return;
-    }
-
-    setIsSaving(true);
-    setError(null);
-
-    try {
-      if (editingCategory) {
-        const response = await api.patch(`/order-categories/${editingCategory._id}`, {
-          name: trimmedName,
-          description: formState.description.trim() || null,
-        });
-        const updated: OrderCategory = response.data.category;
-        setCategories((prev) =>
-          prev.map((item) => (item._id === updated._id ? updated : item))
-        );
-      } else {
-        const response = await api.post('/order-categories', {
-          name: trimmedName,
-          description: formState.description.trim() || undefined,
-        });
-        const created: OrderCategory = response.data.category;
-        setCategories((prev) => [...prev, created]);
-      }
-      closeModal();
-      await fetchCategories();
-    } catch (err: any) {
-      console.error('Failed to save order category:', err);
-      setError(err.response?.data?.message ?? 'Failed to save order category');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleToggleStatus = async (category: OrderCategory) => {
-    try {
-      const response = await api.patch(`/order-categories/${category._id}`, {
-        isActive: !category.isActive,
-      });
-      const updated: OrderCategory = response.data.category;
-      setCategories((prev) =>
-        prev.map((item) => (item._id === updated._id ? updated : item))
-      );
-    } catch (err: any) {
-      console.error('Failed to update category status:', err);
-      window.alert(err.response?.data?.message ?? 'Failed to update category status.');
-    }
-  };
-
-  const handleDelete = async (category: OrderCategory) => {
-    const confirmed = window.confirm(
-      `Delete order category "${category.name}"? This action cannot be undone.`
-    );
-    if (!confirmed) return;
-
-    try {
-      await api.delete(`/order-categories/${category._id}`);
-      setCategories((prev) => prev.filter((item) => item._id !== category._id));
-    } catch (err: any) {
-      console.error('Failed to delete category:', err);
-      window.alert(err.response?.data?.message ?? 'Failed to delete category.');
-    }
-  };
-
-  return (
+return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -204,7 +69,7 @@ const OrderCategories = () => {
           </div>
         )}
 
-        {loading ? (
+        {isLoading ? (
           <div className="text-center text-gray-500 py-8">Loading categories...</div>
         ) : filteredCategories.length === 0 ? (
           <div className="text-center text-gray-500 py-8">

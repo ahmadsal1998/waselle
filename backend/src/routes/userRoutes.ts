@@ -5,6 +5,7 @@ import {
   getAllUsers,
   getUserById,
   getAvailableDrivers,
+  updateProfilePicture,
 } from '../controllers/userController';
 import { authenticate, authorize } from '../middleware/auth';
 
@@ -12,6 +13,7 @@ const router = Router();
 
 router.patch('/location', authenticate, updateLocation);
 router.patch('/availability', authenticate, updateAvailability);
+router.patch('/profile-picture', authenticate, updateProfilePicture);
 router.get('/', authenticate, authorize('admin'), getAllUsers);
 router.get('/drivers', authenticate, getAvailableDrivers);
 router.get('/:userId', authenticate, getUserById);

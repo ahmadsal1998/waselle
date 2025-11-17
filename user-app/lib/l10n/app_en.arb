@@ -1,0 +1,533 @@
+{
+  "@@locale": "en",
+  "appTitle": "Delivery User App",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "welcomeBack": "Welcome Back",
+  "@welcomeBack": {
+    "description": "Login screen welcome message"
+  },
+  "signInToContinue": "Sign in to continue",
+  "@signInToContinue": {
+    "description": "Login screen subtitle"
+  },
+  "email": "Email",
+  "@email": {
+    "description": "Email field label"
+  },
+  "password": "Password",
+  "@password": {
+    "description": "Password field label"
+  },
+  "signIn": "Sign In",
+  "@signIn": {
+    "description": "Sign in button text"
+  },
+  "signUp": "Sign Up",
+  "@signUp": {
+    "description": "Sign up button text"
+  },
+  "dontHaveAccount": "Don't have an account? Sign Up",
+  "@dontHaveAccount": {
+    "description": "Sign up link text"
+  },
+  "pleaseEnterEmail": "Please enter your email",
+  "@pleaseEnterEmail": {
+    "description": "Email validation error"
+  },
+  "pleaseEnterValidEmail": "Please enter a valid email",
+  "@pleaseEnterValidEmail": {
+    "description": "Email format validation error"
+  },
+  "pleaseEnterPassword": "Please enter your password",
+  "@pleaseEnterPassword": {
+    "description": "Password validation error"
+  },
+  "loginFailed": "Login failed. Please try again.",
+  "@loginFailed": {
+    "description": "Login error message"
+  },
+  "fullName": "Full Name",
+  "@fullName": {
+    "description": "Full name field label"
+  },
+  "pleaseEnterName": "Please enter your name",
+  "@pleaseEnterName": {
+    "description": "Name validation error"
+  },
+  "phoneNumber": "Phone Number",
+  "@phoneNumber": {
+    "description": "Phone number field label"
+  },
+  "pleaseEnterPhoneNumber": "Please enter your phone number",
+  "@pleaseEnterPhoneNumber": {
+    "description": "Phone number validation error"
+  },
+  "passwordMustBe6Chars": "Password must be at least 6 characters",
+  "@passwordMustBe6Chars": {
+    "description": "Password length validation error"
+  },
+  "registrationFailed": "Registration failed. Please try again.",
+  "@registrationFailed": {
+    "description": "Registration error message"
+  },
+  "verifyEmail": "Verify Email",
+  "@verifyEmail": {
+    "description": "OTP verification screen title"
+  },
+  "verifyYourEmail": "Verify Your Email",
+  "@verifyYourEmail": {
+    "description": "OTP verification title"
+  },
+  "otpSentMessage": "We sent a verification code to\n{email}",
+  "@otpSentMessage": {
+    "description": "OTP sent message",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "verify": "Verify",
+  "@verify": {
+    "description": "Verify button text"
+  },
+  "pleaseEnterValidOtp": "Please enter a valid 6-digit OTP",
+  "@pleaseEnterValidOtp": {
+    "description": "OTP validation error"
+  },
+  "invalidOtp": "Invalid OTP. Please try again.",
+  "@invalidOtp": {
+    "description": "Invalid OTP error message"
+  },
+  "discover": "Discover",
+  "@discover": {
+    "description": "Discover tab title"
+  },
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile tab title"
+  },
+  "trackOrder": "Track Order",
+  "@trackOrder": {
+    "description": "Track order tab title"
+  },
+  "orderHistory": "Order History",
+  "@orderHistory": {
+    "description": "Order history tab title"
+  },
+  "trackOrders": "Track Orders",
+  "@trackOrders": {
+    "description": "Track orders screen title"
+  },
+  "sendRequest": "Send Request",
+  "@sendRequest": {
+    "description": "Send request screen title"
+  },
+  "receiveRequest": "Receive Request",
+  "@receiveRequest": {
+    "description": "Receive request screen title"
+  },
+  "sendDelivery": "Send Delivery",
+  "@sendDelivery": {
+    "description": "Send delivery button text"
+  },
+  "noUserData": "No user data",
+  "@noUserData": {
+    "description": "No user data message"
+  },
+  "unknown": "Unknown",
+  "@unknown": {
+    "description": "Unknown value"
+  },
+  "mapStyle": "Map Style",
+  "@mapStyle": {
+    "description": "Map style section title"
+  },
+  "mapStyleValue": "Map style: {style}",
+  "@mapStyleValue": {
+    "description": "Map style display text",
+    "placeholders": {
+      "style": {
+        "type": "String"
+      }
+    }
+  },
+  "logout": "Logout",
+  "@logout": {
+    "description": "Logout button text"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Language label"
+  },
+  "english": "English",
+  "@english": {
+    "description": "English language name"
+  },
+  "arabic": "Arabic",
+  "@arabic": {
+    "description": "Arabic language name"
+  },
+  "selectLanguage": "Select Language",
+  "@selectLanguage": {
+    "description": "Language selection dialog title"
+  },
+  "noOrdersYet": "No orders yet",
+  "@noOrdersYet": {
+    "description": "Empty state message for order history"
+  },
+  "order": "Order",
+  "@order": {
+    "description": "Order label"
+  },
+  "orderNumber": "Order #{id}",
+  "@orderNumber": {
+    "description": "Order number format",
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "status": "Status",
+  "@status": {
+    "description": "Status label"
+  },
+  "price": "Price",
+  "@price": {
+    "description": "Price label"
+  },
+  "refresh": "Refresh",
+  "@refresh": {
+    "description": "Refresh button text"
+  },
+  "noActiveOrders": "No active orders",
+  "@noActiveOrders": {
+    "description": "Empty state message for active orders"
+  },
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Loading message"
+  },
+  "unknownDate": "Unknown date",
+  "@unknownDate": {
+    "description": "Unknown date text"
+  },
+  "created": "Created",
+  "@created": {
+    "description": "Created date label"
+  },
+  "deliveryDetails": "Delivery Details",
+  "@deliveryDetails": {
+    "description": "Delivery details section title"
+  },
+  "chooseHowToSend": "Choose how you would like to send your package.",
+  "@chooseHowToSend": {
+    "description": "Delivery details subtitle"
+  },
+  "pickupLocation": "Pickup Location",
+  "@pickupLocation": {
+    "description": "Pickup location section title"
+  },
+  "tellUsWhereToCollect": "Tell us where to collect your package.",
+  "@tellUsWhereToCollect": {
+    "description": "Pickup location subtitle"
+  },
+  "senderDetails": "Sender Details",
+  "@senderDetails": {
+    "description": "Sender details section title"
+  },
+  "whoShouldDriverContact": "Who should the driver contact on arrival?",
+  "@whoShouldDriverContact": {
+    "description": "Sender details subtitle"
+  },
+  "deliveryNotes": "Delivery Notes",
+  "@deliveryNotes": {
+    "description": "Delivery notes section title"
+  },
+  "shareHelpfulTips": "Share any helpful tips for the driver.",
+  "@shareHelpfulTips": {
+    "description": "Delivery notes subtitle"
+  },
+  "estimatedCost": "Estimated Cost",
+  "@estimatedCost": {
+    "description": "Estimated cost section title"
+  },
+  "weUpdateAsYouComplete": "We update this as you complete the form.",
+  "@weUpdateAsYouComplete": {
+    "description": "Estimated cost subtitle"
+  },
+  "bike": "Bike",
+  "@bike": {
+    "description": "Bike vehicle type"
+  },
+  "car": "Car",
+  "@car": {
+    "description": "Car vehicle type"
+  },
+  "cargo": "Cargo",
+  "@cargo": {
+    "description": "Cargo vehicle type"
+  },
+  "soon": "Soon",
+  "@soon": {
+    "description": "Coming soon badge"
+  },
+  "comingSoon": "Coming soon",
+  "@comingSoon": {
+    "description": "Coming soon tooltip"
+  },
+  "locatingYou": "Locating you...",
+  "@locatingYou": {
+    "description": "Location loading message"
+  },
+  "weUseCurrentLocation": "We use your current location to pre-fill pickup details.",
+  "@weUseCurrentLocation": {
+    "description": "Location explanation"
+  },
+  "fetchingLocation": "Fetching location...",
+  "@fetchingLocation": {
+    "description": "Fetching location message"
+  },
+  "retryLocation": "Retry location",
+  "@retryLocation": {
+    "description": "Retry location button"
+  },
+  "pickupFromYourLocation": "Pickup from your location",
+  "@pickupFromYourLocation": {
+    "description": "Pickup location header"
+  },
+  "updating": "Updating...",
+  "@updating": {
+    "description": "Updating message"
+  },
+  "refreshLocation": "Refresh location",
+  "@refreshLocation": {
+    "description": "Refresh location button"
+  },
+  "selectOrderType": "Select the order type",
+  "@selectOrderType": {
+    "description": "Order type dropdown hint"
+  },
+  "orderType": "Order Type",
+  "@orderType": {
+    "description": "Order type field label"
+  },
+  "pleaseWaitForCategories": "Please wait for categories to load",
+  "@pleaseWaitForCategories": {
+    "description": "Categories loading validation error"
+  },
+  "noOrderCategoriesAvailable": "No order categories available at the moment",
+  "@noOrderCategoriesAvailable": {
+    "description": "No categories available validation error"
+  },
+  "pleaseSelectOrderType": "Please select the order type",
+  "@pleaseSelectOrderType": {
+    "description": "Order type validation error"
+  },
+  "retry": "Retry",
+  "@retry": {
+    "description": "Retry button"
+  },
+  "noCategoriesTryLater": "No order categories available. Please try again later.",
+  "@noCategoriesTryLater": {
+    "description": "No categories available message"
+  },
+  "city": "City",
+  "@city": {
+    "description": "City field label"
+  },
+  "noActiveCitiesAvailable": "No active cities available at the moment",
+  "@noActiveCitiesAvailable": {
+    "description": "No cities available validation error"
+  },
+  "pleaseSelectCity": "Please select a city",
+  "@pleaseSelectCity": {
+    "description": "City validation error"
+  },
+  "loadingVillages": "Loading villages...",
+  "@loadingVillages": {
+    "description": "Loading villages label"
+  },
+  "village": "Village",
+  "@village": {
+    "description": "Village field label"
+  },
+  "selectCityFirst": "Select a city first",
+  "@selectCityFirst": {
+    "description": "Village validation error - no city selected"
+  },
+  "noActiveVillagesForCity": "No active villages available for this city",
+  "@noActiveVillagesForCity": {
+    "description": "No villages available validation error"
+  },
+  "pleaseSelectVillage": "Please select a village",
+  "@pleaseSelectVillage": {
+    "description": "Village validation error"
+  },
+  "senderName": "Sender Name",
+  "@senderName": {
+    "description": "Sender name field label"
+  },
+  "pleaseEnterSenderName": "Please enter the sender name",
+  "@pleaseEnterSenderName": {
+    "description": "Sender name validation error"
+  },
+  "streetAddressDetails": "Street Address / Details",
+  "@streetAddressDetails": {
+    "description": "Street address field label"
+  },
+  "streetBuildingFloorApartment": "Street, building, floor, apartment...",
+  "@streetBuildingFloorApartment": {
+    "description": "Street address hint"
+  },
+  "pleaseEnterSenderAddress": "Please enter the sender address",
+  "@pleaseEnterSenderAddress": {
+    "description": "Sender address validation error"
+  },
+  "provideDirections": "Provide directions, building access codes, or other details.",
+  "@provideDirections": {
+    "description": "Delivery notes hint"
+  },
+  "pleaseEnterDeliveryNotes": "Please enter delivery notes",
+  "@pleaseEnterDeliveryNotes": {
+    "description": "Delivery notes validation error"
+  },
+  "liveCostPreview": "Live cost preview",
+  "@liveCostPreview": {
+    "description": "Live cost preview title"
+  },
+  "selectVehicleAndEnterAddress": "Select a vehicle and enter your pickup address to see the estimate.",
+  "@selectVehicleAndEnterAddress": {
+    "description": "Estimate placeholder message"
+  },
+  "estimateNote": "The displayed cost is an estimate and may vary based on actual distance.",
+  "@estimateNote": {
+    "description": "Estimate disclaimer"
+  },
+  "deliveryStartsFrom": "Delivery starts from",
+  "@deliveryStartsFrom": {
+    "description": "Delivery price prefix text"
+  },
+  "submitting": "Submitting...",
+  "@submitting": {
+    "description": "Submitting button text"
+  },
+  "submitRequest": "Submit Request",
+  "@submitRequest": {
+    "description": "Submit request button text"
+  },
+  "unableToCalculateEstimate": "Unable to calculate estimated delivery cost.",
+  "@unableToCalculateEstimate": {
+    "description": "Estimate calculation error"
+  },
+  "pleaseSelectDeliveryVehicle": "Please select a delivery vehicle.",
+  "@pleaseSelectDeliveryVehicle": {
+    "description": "Vehicle selection error"
+  },
+  "pleaseSelectYourCity": "Please select your city.",
+  "@pleaseSelectYourCity": {
+    "description": "City selection error"
+  },
+  "pleaseSelectYourVillage": "Please select your village.",
+  "@pleaseSelectYourVillage": {
+    "description": "Village selection error"
+  },
+  "pleaseEnterValidPhoneNumber": "Please enter a valid 10-digit phone number.",
+  "@pleaseEnterValidPhoneNumber": {
+    "description": "Phone number validation error"
+  },
+  "waitForEstimatedCost": "Please wait for the estimated cost before submitting.",
+  "@waitForEstimatedCost": {
+    "description": "Wait for estimate error"
+  },
+  "pleaseSelectOrderCategory": "Please select the order category.",
+  "@pleaseSelectOrderCategory": {
+    "description": "Order category selection error"
+  },
+  "orderCategoryNoLongerAvailable": "The selected order category is no longer available. Please choose another.",
+  "@orderCategoryNoLongerAvailable": {
+    "description": "Order category unavailable error"
+  },
+  "waitingForLocation": "Waiting for your current location. Please enable location services and try again.",
+  "@waitingForLocation": {
+    "description": "Location waiting error"
+  },
+  "orderCreatedSuccessfully": "Order created successfully!",
+  "@orderCreatedSuccessfully": {
+    "description": "Order creation success message"
+  },
+  "failedToCreateOrder": "Failed to create order",
+  "@failedToCreateOrder": {
+    "description": "Order creation failure message"
+  },
+  "vehicle": "Vehicle",
+  "@vehicle": {
+    "description": "Vehicle label"
+  },
+  "type": "Type",
+  "@type": {
+    "description": "Type label"
+  },
+  "category": "Category",
+  "@category": {
+    "description": "Category label"
+  },
+  "distance": "Distance",
+  "@distance": {
+    "description": "Distance label"
+  },
+  "kilometers": "{distance} km",
+  "@kilometers": {
+    "description": "Distance in kilometers",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "nis": "{price} NIS",
+  "@nis": {
+    "description": "Price in NIS",
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryType": "Delivery Type",
+  "@deliveryType": {
+    "description": "Delivery type field label"
+  },
+  "internalDelivery": "Internal Delivery",
+  "@internalDelivery": {
+    "description": "Internal delivery option"
+  },
+  "externalDelivery": "External Delivery",
+  "@externalDelivery": {
+    "description": "External delivery option"
+  },
+  "selectDeliveryType": "Select delivery type",
+  "@selectDeliveryType": {
+    "description": "Delivery type selection hint"
+  },
+  "pleaseSelectDeliveryType": "Please select a delivery type",
+  "@pleaseSelectDeliveryType": {
+    "description": "Delivery type validation error"
+  },
+  "internalDeliveryDescription": "Delivery within 2 km radius (configurable by admin)",
+  "@internalDeliveryDescription": {
+    "description": "Internal delivery description"
+  },
+  "externalDeliveryDescription": "Delivery within 10 km radius (configurable by admin)",
+  "@externalDeliveryDescription": {
+    "description": "External delivery description"
+  }
+}
+

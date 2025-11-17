@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
+import 'package:delivery_driver_app/l10n/app_localizations.dart';
+import '../../view_models/auth_view_model.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String email;
@@ -22,17 +23,19 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   }
 
   Future<void> _verifyOTP() async {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (_otpController.text.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid 6-digit OTP')),
+        SnackBar(content: Text(l10n.pleaseEnterValidOtp)),
       );
       return;
     }
 
     setState(() => _isLoading = true);
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.verifyOTP(
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    final success = await authViewModel.verifyOtp(
       email: widget.email,
       otp: _otpController.text,
     );
@@ -45,15 +48,17 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid OTP. Please try again.')),
+        SnackBar(content: Text(l10n.invalidOtp)),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify Email')),
+      appBar: AppBar(title: Text(l10n.verifyEmail)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -63,14 +68,14 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
             children: [
               const Icon(Icons.email, size: 80, color: Colors.green),
               const SizedBox(height: 24),
-              const Text(
-                'Verify Your Email',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              Text(
+                l10n.verifyYourEmail,
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                'We sent a verification code to\n${widget.email}',
+                l10n.otpSentMessage(widget.email),
                 style: const TextStyle(fontSize: 16, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
@@ -95,9 +100,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Verify',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
+                    : Text(
+                        l10n.verify,
+                        style: const TextStyle(fontSize: 16, color: Colors.white),
                       ),
               ),
             ],

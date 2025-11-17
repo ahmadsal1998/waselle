@@ -1,62 +1,24 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../config/api';
-
-interface Order {
-  _id: string;
-  customerId: {
-    name: string;
-    email: string;
-  };
-  driverId?: {
-    name: string;
-    email: string;
-  };
-  type: 'send' | 'receive';
-  vehicleType?: 'car' | 'bike';
-  orderCategory?: string;
-  senderName?: string;
-  senderAddress?: string;
-  senderPhoneNumber?: number;
-  deliveryNotes?: string;
-  status: string;
-  price: number;
-  estimatedPrice?: number;
-  createdAt: string;
-}
+import { useOrders } from '@/store/orders/useOrders';
+import { getOrderStatusBadgeClass } from '@/utils/status';
+import { formatCurrency, formatDate } from '@/utils/formatters';
 
 const Orders = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { orders, isLoading, error } = useOrders();
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  const fetchOrders = async () => {
-    try {
-      const response = await api.get('/orders');
-      setOrders(response.data.orders);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      accepted: 'bg-blue-100 text-blue-800',
-      on_the_way: 'bg-purple-100 text-purple-800',
-      delivered: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
-
-  if (loading) {
+  if (isLoading) {
     return <div className="text-center py-12">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-3xl font-bold text-gray-900">Orders Management</h1>
+        <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-md">
+          {error}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -107,10 +69,10 @@ const Orders = () => {
                     {order._id.substring(0, 8)}...
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {order.customerId.name}
+                    {order.customerId?.name ?? 'Unknown'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {order.driverId?.name || 'N/A'}
+                    {order.driverId?.name ?? 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {order.type}
@@ -119,14 +81,11 @@ const Orders = () => {
                     {order.vehicleType ?? 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {order.estimatedPrice !== undefined &&
-                    order.estimatedPrice !== null
-                      ? `${order.estimatedPrice.toFixed(2)} NIS`
-                      : 'N/A'}
+                    {formatCurrency(order.estimatedPrice)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getOrderStatusBadgeClass(
                         order.status
                       )}`}
                     >
@@ -134,10 +93,10 @@ const Orders = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {`${order.price.toFixed(2)} NIS`}
+                    {formatCurrency(order.price)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(order.createdAt).toLocaleDateString()}
+                    {formatDate(order.createdAt, 'N/A')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <Link

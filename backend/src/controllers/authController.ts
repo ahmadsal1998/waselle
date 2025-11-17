@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/User';
 import { generateToken } from '../utils/jwt';
-import { generateAndSendOTP } from '../utils/otp';
+import { generateAndSendOTP, generateOTP } from '../utils/otp';
 import { AuthRequest } from '../middleware/auth';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -28,7 +28,17 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Generate OTP
-    const otp = await generateAndSendOTP(email);
+    let otp: string;
+    try {
+      otp = await generateAndSendOTP(email);
+    } catch (error: any) {
+      console.error('Error generating/sending OTP:', error);
+      // Still generate OTP even if email fails (for development/testing)
+      otp = generateOTP();
+      console.warn(`⚠️  Email sending failed. Generated OTP for ${email}: ${otp}`);
+      console.warn(`⚠️  Error: ${error.message}`);
+    }
+    
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Create user
@@ -49,6 +59,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       userId: user._id,
     });
   } catch (error: any) {
+    console.error('Registration error:', error);
     res.status(500).json({ message: error.message || 'Registration failed' });
   }
 };
@@ -98,6 +109,8 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         role: user.role,
         vehicleType: user.vehicleType,
+        isAvailable: user.isAvailable,
+        profilePicture: user.profilePicture,
       },
     });
   } catch (error: any) {
@@ -142,6 +155,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         role: user.role,
         isAvailable: user.isAvailable,
         vehicleType: user.vehicleType,
+        profilePicture: user.profilePicture,
       },
     });
   } catch (error: any) {
@@ -164,13 +178,25 @@ export const resendOTP = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const otp = await generateAndSendOTP(email);
+    // Generate OTP
+    let otp: string;
+    try {
+      otp = await generateAndSendOTP(email);
+    } catch (error: any) {
+      console.error('Error generating/sending OTP:', error);
+      // Still generate OTP even if email fails (for development/testing)
+      otp = generateOTP();
+      console.warn(`⚠️  Email sending failed. Generated OTP for ${email}: ${otp}`);
+      console.warn(`⚠️  Error: ${error.message}`);
+    }
+    
     user.otpCode = otp;
     user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
     res.status(200).json({ message: 'OTP resent successfully' });
   } catch (error: any) {
+    console.error('Resend OTP error:', error);
     res.status(500).json({ message: error.message || 'Failed to resend OTP' });
   }
 };
@@ -180,13 +206,37 @@ export const getCurrentUser = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = await User.findById(req.user?.userId).select('-password');
+    if (!req.user) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    const user = await User.findById(req.user.userId).select('-password -otpCode -otpExpires');
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
     }
 
-    res.status(200).json({ user });
+    // Return user data with all fields including phone, countryCode, address, profilePicture
+    const userData: any = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      countryCode: user.countryCode,
+      address: user.address,
+      city: user.city,
+      village: user.village,
+      streetDetails: user.streetDetails,
+      role: user.role,
+      vehicleType: user.vehicleType,
+      isAvailable: user.isAvailable,
+      location: user.location,
+      profilePicture: user.profilePicture,
+      createdAt: user.createdAt,
+    };
+
+    res.status(200).json({ user: userData });
   } catch (error: any) {
     res.status(500).json({ message: error.message || 'Failed to get user' });
   }

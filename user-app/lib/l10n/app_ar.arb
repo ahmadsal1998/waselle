@@ -1,0 +1,165 @@
+{
+  "@@locale": "ar",
+  "appTitle": "تطبيق المستخدم للتوصيل",
+  "welcomeBack": "مرحباً بعودتك",
+  "signInToContinue": "سجل الدخول للمتابعة",
+  "email": "البريد الإلكتروني",
+  "password": "كلمة المرور",
+  "signIn": "تسجيل الدخول",
+  "signUp": "إنشاء حساب",
+  "dontHaveAccount": "ليس لديك حساب؟ سجل الآن",
+  "pleaseEnterEmail": "الرجاء إدخال البريد الإلكتروني",
+  "pleaseEnterValidEmail": "الرجاء إدخال بريد إلكتروني صحيح",
+  "pleaseEnterPassword": "الرجاء إدخال كلمة المرور",
+  "loginFailed": "فشل تسجيل الدخول. الرجاء المحاولة مرة أخرى.",
+  "fullName": "الاسم الكامل",
+  "pleaseEnterName": "الرجاء إدخال الاسم",
+  "phoneNumber": "رقم الهاتف",
+  "pleaseEnterPhoneNumber": "الرجاء إدخال رقم الهاتف",
+  "passwordMustBe6Chars": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+  "registrationFailed": "فشل التسجيل. الرجاء المحاولة مرة أخرى.",
+  "verifyEmail": "التحقق من البريد الإلكتروني",
+  "verifyYourEmail": "التحقق من بريدك الإلكتروني",
+  "otpSentMessage": "أرسلنا رمز التحقق إلى\n{email}",
+  "@otpSentMessage": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "verify": "تحقق",
+  "pleaseEnterValidOtp": "الرجاء إدخال رمز التحقق المكون من 6 أرقام",
+  "invalidOtp": "رمز التحقق غير صحيح. الرجاء المحاولة مرة أخرى.",
+  "discover": "الرئيسية",
+  "profile": "الملف الشخصي",
+  "trackOrder": "تتبع الطلب",
+  "orderHistory": "سجل الطلبات",
+  "trackOrders": "تتبع الطلبات",
+  "sendRequest": "إرسال طلب",
+  "receiveRequest": "استلام إحضار",
+  "sendDelivery": "إرسال طلب",
+  "noUserData": "لا توجد بيانات المستخدم",
+  "unknown": "غير معروف",
+  "mapStyle": "نمط الخريطة",
+  "mapStyleValue": "نمط الخريطة: {style}",
+  "@mapStyleValue": {
+    "placeholders": {
+      "style": {
+        "type": "String"
+      }
+    }
+  },
+  "logout": "تسجيل الخروج",
+  "settings": "الإعدادات",
+  "language": "اللغة",
+  "english": "الإنجليزية",
+  "arabic": "العربية",
+  "selectLanguage": "اختر اللغة",
+  "noOrdersYet": "لا توجد طلبات بعد",
+  "order": "طلب",
+  "orderNumber": "طلب رقم {id}",
+  "@orderNumber": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "status": "الحالة",
+  "price": "السعر",
+  "refresh": "تحديث",
+  "noActiveOrders": "لا توجد طلبات نشطة",
+  "loading": "جاري التحميل...",
+  "unknownDate": "تاريخ غير معروف",
+  "created": "تم الإنشاء",
+  "deliveryDetails": "تفاصيل التوصيل",
+  "chooseHowToSend": "اختر كيف تريد إرسال الطرد الخاص بك.",
+  "pickupLocation": "موقع الاستلام",
+  "tellUsWhereToCollect": "أخبرنا أين نجمع الطرد الخاص بك.",
+  "senderDetails": "تفاصيل المرسل",
+  "whoShouldDriverContact": "من يجب أن يتواصل السائق معه عند الوصول؟",
+  "deliveryNotes": "ملاحظات التوصيل",
+  "shareHelpfulTips": "شارك أي نصائح مفيدة للسائق.",
+  "estimatedCost": "التكلفة المقدرة",
+  "weUpdateAsYouComplete": "نقوم بتحديث هذا أثناء إكمال النموذج.",
+  "bike": "دراجة",
+  "car": "سيارة",
+  "cargo": "شاحنة",
+  "soon": "قريباً",
+  "comingSoon": "قريباً",
+  "locatingYou": "جاري تحديد موقعك...",
+  "weUseCurrentLocation": "نستخدم موقعك الحالي لملء تفاصيل الاستلام مسبقاً.",
+  "fetchingLocation": "جاري جلب الموقع...",
+  "retryLocation": "إعادة محاولة الموقع",
+  "pickupFromYourLocation": "الاستلام من موقعك",
+  "updating": "جاري التحديث...",
+  "refreshLocation": "تحديث الموقع",
+  "selectOrderType": "اختر نوع الطلب",
+  "orderType": "نوع الطلب",
+  "pleaseWaitForCategories": "الرجاء الانتظار حتى يتم تحميل الفئات",
+  "noOrderCategoriesAvailable": "لا توجد فئات طلبات متاحة في الوقت الحالي",
+  "pleaseSelectOrderType": "الرجاء اختيار نوع الطلب",
+  "retry": "إعادة المحاولة",
+  "noCategoriesTryLater": "لا توجد فئات طلبات متاحة. الرجاء المحاولة مرة أخرى لاحقاً.",
+  "city": "المدينة",
+  "noActiveCitiesAvailable": "لا توجد مدن نشطة متاحة في الوقت الحالي",
+  "pleaseSelectCity": "الرجاء اختيار مدينة",
+  "loadingVillages": "جاري تحميل القرى...",
+  "village": "القرية",
+  "selectCityFirst": "اختر مدينة أولاً",
+  "noActiveVillagesForCity": "لا توجد قرى نشطة متاحة لهذه المدينة",
+  "pleaseSelectVillage": "الرجاء اختيار قرية",
+  "senderName": "اسم المرسل",
+  "pleaseEnterSenderName": "الرجاء إدخال اسم المرسل",
+  "streetAddressDetails": "عنوان الشارع / التفاصيل",
+  "streetBuildingFloorApartment": "الشارع، المبنى، الطابق، الشقة...",
+  "pleaseEnterSenderAddress": "الرجاء إدخال عنوان المرسل",
+  "provideDirections": "قدم الاتجاهات، رموز الوصول للمبنى، أو تفاصيل أخرى.",
+  "pleaseEnterDeliveryNotes": "الرجاء إدخال ملاحظات التوصيل",
+  "liveCostPreview": "معاينة التكلفة المباشرة",
+  "selectVehicleAndEnterAddress": "اختر مركبة وأدخل عنوان الاستلام لرؤية التقدير.",
+  "estimateNote": "التكلفة المعروضة تقديرية وقد تختلف حسب المسافة الفعلية.",
+  "deliveryStartsFrom": "يبدأ التوصيل بــ",
+  "submitting": "جاري الإرسال...",
+  "submitRequest": "إرسال الطلب",
+  "unableToCalculateEstimate": "تعذر حساب التكلفة المقدرة للتوصيل.",
+  "pleaseSelectDeliveryVehicle": "الرجاء اختيار مركبة التوصيل.",
+  "pleaseSelectYourCity": "الرجاء اختيار مدينتك.",
+  "pleaseSelectYourVillage": "الرجاء اختيار قريتك.",
+  "pleaseEnterValidPhoneNumber": "الرجاء إدخال رقم هاتف صحيح مكون من 10 أرقام.",
+  "waitForEstimatedCost": "الرجاء الانتظار للحصول على التكلفة المقدرة قبل الإرسال.",
+  "pleaseSelectOrderCategory": "الرجاء اختيار فئة الطلب.",
+  "orderCategoryNoLongerAvailable": "فئة الطلب المختارة لم تعد متاحة. الرجاء اختيار أخرى.",
+  "waitingForLocation": "في انتظار موقعك الحالي. الرجاء تفعيل خدمات الموقع والمحاولة مرة أخرى.",
+  "orderCreatedSuccessfully": "تم إنشاء الطلب بنجاح!",
+  "failedToCreateOrder": "فشل إنشاء الطلب",
+  "vehicle": "المركبة",
+  "type": "النوع",
+  "category": "الفئة",
+  "distance": "المسافة",
+  "kilometers": "{distance} كم",
+  "@kilometers": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "nis": "{price} شيكل",
+  "@nis": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryType": "نوع التوصيل",
+  "internalDelivery": "توصيل داخلي",
+  "externalDelivery": "توصيل خارجي",
+  "selectDeliveryType": "اختر نوع التوصيل",
+  "pleaseSelectDeliveryType": "الرجاء اختيار نوع التوصيل",
+  "internalDeliveryDescription": "التوصيل ضمن دائرة نصف قطرها 2 كم (قابل للتعديل من قبل المدير)",
+  "externalDeliveryDescription": "التوصيل ضمن دائرة نصف قطرها 10 كم (قابل للتعديل من قبل المدير)"
+}
+

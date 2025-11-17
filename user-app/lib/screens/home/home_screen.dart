@@ -1,328 +1,374 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../../providers/location_provider.dart';
-import '../../providers/order_provider.dart';
-import '../../providers/map_style_provider.dart';
-import '../../providers/driver_provider.dart';
-import '../../services/socket_service.dart';
-import 'send_request_screen.dart';
-import 'receive_request_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:delivery_user_app/l10n/app_localizations.dart';
+
+import '../../repositories/home_repository.dart';
+import '../../view_models/driver_view_model.dart';
+import '../../view_models/home_view_model.dart';
+import '../../view_models/location_view_model.dart';
+import '../../view_models/map_style_view_model.dart';
+import '../../view_models/order_view_model.dart';
+import '../../view_models/auth_view_model.dart';
+import 'order_history_screen.dart';
 import 'order_tracking_screen.dart';
 import 'profile_screen.dart';
-import 'order_history_screen.dart';
+import 'receive_request_screen.dart';
+import 'send_request_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  static const List<String> _tabTitles = [
-    'Delivery App',
-    'Profile',
-    'Track Order',
-    'Order History',
-  ];
-
-  final MapController _mapController = MapController();
-  LatLng? _lastLocation;
-  int _currentIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeApp();
-    });
-  }
-
-  Future<void> _initializeApp() async {
-    if (!mounted) return;
-
-    final locationProvider = context.read<LocationProvider>();
-    final orderProvider = context.read<OrderProvider>();
-    final driverProvider = context.read<DriverProvider>();
-
-    await locationProvider.getCurrentLocation();
-    if (!mounted) return;
-
-    locationProvider.startLocationUpdates();
-    if (!mounted) return;
-
-    await Future.wait([
-      orderProvider.fetchOrders(),
-      driverProvider.fetchDrivers(),
-    ]);
-    if (!mounted) return;
-
-    await SocketService.initialize();
-    if (!mounted) return;
-
-    driverProvider.attachSocketListeners();
-  }
-
-  @override
-  void dispose() {
-    // Stop location updates before disposing
-    try {
-      final locationProvider =
-          Provider.of<LocationProvider>(context, listen: false);
-      locationProvider.stopLocationUpdates();
-    } catch (e) {
-      // Ignore errors if context is no longer available
-    }
-    super.dispose();
-  }
-
-  void _centerOnUserLocation(LocationProvider locationProvider) {
-    if (locationProvider.currentPosition != null) {
-      final pos = locationProvider.currentPosition!;
-      final loc = LatLng(pos.latitude, pos.longitude);
-      _mapController.move(loc, 15.0);
-      locationProvider.getCurrentLocation();
-    }
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      title: Text(_tabTitles[_currentIndex]),
-    );
-  }
-
-  Widget _buildMapView() {
-    return Consumer2<LocationProvider, DriverProvider>(
-      builder: (_, locationProvider, driverProvider, __) {
-        return _buildMapContent(locationProvider, driverProvider);
-      },
-    );
+  static List<String> _tabTitles(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      l10n.discover,
+      l10n.profile,
+      l10n.trackOrder,
+      l10n.orderHistory,
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _buildAppBar(),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          _buildMapView(),
-          const ProfileScreen(showAppBar: false),
-          const OrderTrackingScreen(showAppBar: false),
-          const OrderHistoryScreen(),
-        ],
+    return ChangeNotifierProvider<HomeViewModel>(
+      create: (context) => HomeViewModel(
+        repository: HomeRepository(
+          locationViewModel: context.read<LocationViewModel>(),
+          orderViewModel: context.read<OrderViewModel>(),
+          driverViewModel: context.read<DriverViewModel>(),
+          authViewModel: context.read<AuthViewModel>(),
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() => _currentIndex = index);
-        },
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor:
-            Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+      child: const _HomeScreenView(),
+    );
+  }
+}
+
+class _HomeScreenView extends StatelessWidget {
+  const _HomeScreenView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<HomeViewModel>(
+      builder: (context, viewModel, _) {
+        final l10n = AppLocalizations.of(context)!;
+        final tabTitles = HomeScreen._tabTitles(context);
+        return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          appBar: _HomeAppBar(
+            title: tabTitles[viewModel.currentTabIndex],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+          body: IndexedStack(
+            index: viewModel.currentTabIndex,
+            children: [
+              _MapTab(viewModel: viewModel),
+              const ProfileScreen(showAppBar: false),
+              const OrderTrackingScreen(showAppBar: false),
+              const OrderHistoryScreen(),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Consumer<OrderProvider>(
-              builder: (context, orderProvider, _) {
-                final hasActiveOrder = orderProvider.activeOrder != null;
-                final isSelected = _currentIndex == 2;
-                final iconColor = isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).iconTheme.color?.withOpacity(0.7) ??
-                        Theme.of(context).colorScheme.onSurface.withOpacity(0.7);
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Icon(Icons.track_changes, color: iconColor),
-                    if (hasActiveOrder)
-                      Positioned(
-                        right: -6,
-                        top: -2,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.secondary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
+          bottomNavigationBar: _HomeNavigationBar(
+            currentIndex: viewModel.currentTabIndex,
+            onDestinationSelected: viewModel.onTabSelected,
+            hasActiveOrder: viewModel.hasActiveOrder,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const _HomeAppBar({
+    required this.title,
+  });
+
+  final String title;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return AppBar(
+      backgroundColor: colorScheme.surface,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: true,
+      title: Text(
+        title,
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
-            label: 'Track',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
-          ),
-        ],
       ),
     );
   }
+}
 
-  Widget _buildMapContent(
-    LocationProvider locationProvider,
-    DriverProvider driverProvider,
-  ) {
-    if (_isInitialLoading(locationProvider)) {
-      return _buildLoadingState();
-    }
+class _HomeNavigationBar extends StatelessWidget {
+  const _HomeNavigationBar({
+    required this.currentIndex,
+    required this.onDestinationSelected,
+    required this.hasActiveOrder,
+  });
 
-    if (_hasLocationError(locationProvider)) {
-      return _buildErrorState(locationProvider);
-    }
+  final int currentIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final bool hasActiveOrder;
 
-    if (locationProvider.currentPosition == null) {
-      return _buildNoLocationState(locationProvider);
-    }
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    final currentLocation = LatLng(
-      locationProvider.currentPosition!.latitude,
-      locationProvider.currentPosition!.longitude,
+    return NavigationBar(
+      selectedIndex: currentIndex,
+      animationDuration: const Duration(milliseconds: 400),
+      height: 72,
+      backgroundColor: colorScheme.surfaceVariant.withOpacity(0.92),
+      indicatorColor: colorScheme.primaryContainer,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      onDestinationSelected: onDestinationSelected,
+      destinations: [
+        NavigationDestination(
+          icon: const Icon(Icons.map_outlined),
+          selectedIcon: const Icon(Icons.map),
+          label: l10n.discover,
+        ),
+        NavigationDestination(
+          icon: const Icon(Icons.person_outline),
+          selectedIcon: const Icon(Icons.person),
+          label: l10n.profile,
+        ),
+        NavigationDestination(
+          icon: _TrackNavIcon(
+            hasActiveOrder: hasActiveOrder,
+            isSelected: false,
+          ),
+          selectedIcon: _TrackNavIcon(
+            hasActiveOrder: hasActiveOrder,
+            isSelected: true,
+          ),
+          label: l10n.trackOrder,
+        ),
+        NavigationDestination(
+          icon: const Icon(Icons.history_outlined),
+          selectedIcon: const Icon(Icons.history),
+          label: l10n.orderHistory,
+        ),
+      ],
     );
+  }
+}
 
-    _syncMapCenter(currentLocation);
+class _MapTab extends StatelessWidget {
+  const _MapTab({required this.viewModel});
 
-    final driverMarkers = _buildDriverMarkers(driverProvider.drivers);
+  final HomeViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      child: _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    if (viewModel.isInitialLoading) {
+      return const _CenteredStatusCard(
+        icon: Icons.explore,
+        title: 'Initializing',
+        subtitle: 'Hang tight while we find couriers around you.',
+        showLoader: true,
+      );
+    }
+
+    if (viewModel.hasBlockingLocationError) {
+      return _CenteredStatusCard(
+        icon: Icons.location_off_rounded,
+        title: 'Location Disabled',
+        subtitle: viewModel.locationErrorMessage ??
+            'We could not access your location. Please enable location services.',
+        primaryActionLabel: 'Try Again',
+        onPrimaryAction: viewModel.retryLocation,
+      );
+    }
+
+    if (viewModel.showNoLocationState) {
+      return _CenteredStatusCard(
+        icon: Icons.my_location,
+        title: 'Location Not Found',
+        subtitle:
+            'Tap the button below to refresh your location and explore drivers nearby.',
+        primaryActionLabel: 'Get Location',
+        onPrimaryAction: viewModel.retryLocation,
+      );
+    }
+
+    final location = viewModel.currentLocation!;
+    final driverMarkers = viewModel.driverMarkers;
 
     return Stack(
       children: [
-        _buildMap(currentLocation, driverMarkers),
-        _buildLocationOverlay(locationProvider, currentLocation),
-        _buildActionButtons(),
+        _buildMap(context, location, driverMarkers),
+        _MapTopOverlay(
+          address: viewModel.currentAddress,
+          onLocateMe: () {
+            viewModel.recenterMap();
+            viewModel.retryLocation();
+          },
+          isUpdating: viewModel.isLocationLoading,
+        ),
+        _MapBottomActions(
+          onSendRequest: () => _navigateTo(context, const SendRequestScreen()),
+          onReceiveRequest: () =>
+              _navigateTo(context, const ReceiveRequestScreen()),
+          onDriversRefresh: viewModel.refreshDrivers,
+          isRefreshingDrivers: viewModel.isDriverLoading,
+        ),
       ],
     );
   }
 
-  bool _isInitialLoading(LocationProvider locationProvider) {
-    return locationProvider.isLoading &&
-        locationProvider.currentPosition == null;
-  }
-
-  bool _hasLocationError(LocationProvider locationProvider) {
-    return locationProvider.errorMessage != null &&
-        locationProvider.currentPosition == null;
-  }
-
-  Widget _buildLoadingState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('Getting your location...'),
-        ],
+  Widget _buildMap(
+    BuildContext context,
+    LatLng location,
+    List<DriverMarkerData> drivers,
+  ) {
+    return FlutterMap(
+      mapController: viewModel.mapController,
+      options: MapOptions(
+        initialCenter: location,
+        initialZoom: 15,
+        minZoom: 5,
+        maxZoom: 18,
       ),
+      children: [
+        _MapTileLayer(),
+        MarkerLayer(
+          markers: [
+            _buildUserMarker(context, location),
+            ...drivers.map(_buildDriverMarker),
+          ],
+        ),
+        const _MapAttribution(),
+      ],
     );
   }
 
-  Widget _buildErrorState(LocationProvider locationProvider) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.location_off, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              locationProvider.errorMessage!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
+  Marker _buildUserMarker(BuildContext context, LatLng location) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Marker(
+      point: location,
+      width: 68,
+      height: 68,
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [
+              colorScheme.primary.withOpacity(0.4),
+              colorScheme.primary.withOpacity(0.1),
+            ],
+          ),
+        ),
+        child: Center(
+          child: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: colorScheme.primary,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.primary.withOpacity(0.35),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => locationProvider.getCurrentLocation(),
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+            child: Icon(
+              Icons.my_location,
+              size: 24,
+              color: colorScheme.onPrimary,
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildNoLocationState(LocationProvider locationProvider) {
-    return Center(
+  Marker _buildDriverMarker(DriverMarkerData driver) {
+    final baseColor = driver.isAvailable ? Colors.green : Colors.orange;
+
+    return Marker(
+      point: driver.position,
+      width: 96,
+      height: 88,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.location_off, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
-          const Text('Location not available'),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => locationProvider.getCurrentLocation(),
-            icon: const Icon(Icons.refresh),
-            label: const Text('Get Location'),
+          if (driver.name != null && driver.name!.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Text(
+                driver.name!,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.1,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: baseColor.withOpacity(0.18),
+            ),
+            child: Icon(
+              Icons.delivery_dining_rounded,
+              color: baseColor,
+              size: 28,
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _syncMapCenter(LatLng currentLocation) {
-    if (_lastLocation == null ||
-        _lastLocation!.latitude != currentLocation.latitude ||
-        _lastLocation!.longitude != currentLocation.longitude) {
-      _lastLocation = currentLocation;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _mapController.move(
-            currentLocation,
-            _mapController.camera.zoom,
-          );
-        }
-      });
-    }
-  }
-
-  List<Marker> _buildDriverMarkers(List<dynamic> drivers) {
-    return drivers
-        .whereType<Map<String, dynamic>>()
-        .map(_createDriverMarker)
-        .whereType<Marker>()
-        .toList(growable: false);
-  }
-
-  Widget _buildMap(LatLng currentLocation, List<Marker> driverMarkers) {
-    return FlutterMap(
-      mapController: _mapController,
-      options: MapOptions(
-        initialCenter: currentLocation,
-        initialZoom: 15.0,
-        minZoom: 5.0,
-        maxZoom: 18.0,
-        onTap: (_, __) {},
-      ),
-      children: [
-        _buildTileLayer(),
-        MarkerLayer(
-          markers: [
-            _buildUserMarker(currentLocation),
-            ...driverMarkers,
-          ],
-        ),
-        _buildAttribution(),
-      ],
+  void _navigateTo(BuildContext context, Widget screen) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => screen),
     );
   }
+}
 
-  Widget _buildTileLayer() {
-    return Consumer<MapStyleProvider>(
+class _MapTileLayer extends StatelessWidget {
+  const _MapTileLayer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<MapStyleViewModel>(
       builder: (context, mapStyleProvider, _) {
         final subdomains = mapStyleProvider.getSubdomains();
         return TileLayer(
@@ -337,43 +383,14 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+}
 
-  Marker _buildUserMarker(LatLng currentLocation) {
-    return Marker(
-      point: currentLocation,
-      width: 60,
-      height: 60,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.blue.withOpacity(0.2),
-            ),
-          ),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.blue.withOpacity(0.4),
-            ),
-          ),
-          const Icon(
-            Icons.location_on,
-            color: Colors.blue,
-            size: 30,
-          ),
-        ],
-      ),
-    );
-  }
+class _MapAttribution extends StatelessWidget {
+  const _MapAttribution();
 
-  Widget _buildAttribution() {
-    return Consumer<MapStyleProvider>(
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<MapStyleViewModel>(
       builder: (context, mapStyleProvider, _) {
         final attribution = mapStyleProvider.getAttribution();
         if (attribution == null || attribution.isEmpty) {
@@ -388,184 +405,359 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+}
 
-  Widget _buildLocationOverlay(
-    LocationProvider locationProvider,
-    LatLng currentLocation,
-  ) {
-    return Positioned(
-      top: 20,
-      left: 20,
-      right: 20,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+class _MapTopOverlay extends StatelessWidget {
+  const _MapTopOverlay({
+    required this.address,
+    required this.onLocateMe,
+    required this.isUpdating,
+  });
+
+  final String? address;
+  final VoidCallback onLocateMe;
+  final bool isUpdating;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SafeArea(
+      minimum: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: colorScheme.surface.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.place_rounded,
+                  color: colorScheme.onPrimaryContainer,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Current location',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: colorScheme.primary,
+                            letterSpacing: 0.3,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      address ?? 'Locating...',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.tonalIcon(
+                onPressed: onLocateMe,
+                icon: Icon(
+                  Icons.my_location_rounded,
+                  color: colorScheme.primary,
+                  size: 20,
+                ),
+                label: isUpdating
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.primary,
+                        ),
+                      )
+                    : const Text('Locate'),
+                style: FilledButton.styleFrom(
+                  backgroundColor:
+                      colorScheme.primaryContainer.withOpacity(0.7),
+                  foregroundColor: colorScheme.onPrimaryContainer,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
+      ),
+    );
+  }
+}
+
+class _MapBottomActions extends StatelessWidget {
+  const _MapBottomActions({
+    required this.onSendRequest,
+    required this.onReceiveRequest,
+    required this.onDriversRefresh,
+    required this.isRefreshingDrivers,
+  });
+
+  final VoidCallback onSendRequest;
+  final VoidCallback onReceiveRequest;
+  final Future<void> Function() onDriversRefresh;
+  final bool isRefreshingDrivers;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    return SafeArea(
+      minimum: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.place,
-              color: Colors.blue,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                locationProvider.currentAddress ??
-                    '${currentLocation.latitude.toStringAsFixed(6)}, ${currentLocation.longitude.toStringAsFixed(6)}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onSendRequest,
+                    icon: const Icon(Icons.send),
+                    label: Text(l10n.sendDelivery),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                  ),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onReceiveRequest,
+                    icon: const Icon(Icons.call_received_rounded),
+                    label: Text(l10n.receiveRequest),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      backgroundColor: colorScheme.primaryContainer,
+                      foregroundColor: colorScheme.onPrimaryContainer,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            IconButton(
-              tooltip: 'Locate Me',
-              onPressed: () => _centerOnUserLocation(locationProvider),
-              icon: const Icon(Icons.my_location),
-              color: Colors.blue,
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed:
+                    isRefreshingDrivers ? null : () => onDriversRefresh(),
+                icon: isRefreshingDrivers
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.primary,
+                        ),
+                      )
+                    : const Icon(Icons.refresh_outlined),
+                label: const Text('Refresh Nearby Drivers'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
+                  side: BorderSide(color: colorScheme.outlineVariant),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildActionButtons() {
-    return Positioned(
-      bottom: 20,
-      left: 20,
-      right: 20,
-      child: Row(
-        children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const SendRequestScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.send),
-              label: const Text('Send Request'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
-                ),
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
+class _CenteredStatusCard extends StatelessWidget {
+  const _CenteredStatusCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.primaryActionLabel,
+    this.onPrimaryAction,
+    this.showLoader = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String? primaryActionLabel;
+  final Future<void> Function()? onPrimaryAction;
+  final bool showLoader;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 12),
               ),
+            ],
+            border: Border.all(
+              color: colorScheme.outlineVariant.withOpacity(0.5),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ReceiveRequestScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.call_received),
-              label: const Text('Receive Request'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 32,
+                backgroundColor: colorScheme.primaryContainer,
+                child: Icon(
+                  icon,
+                  color: colorScheme.onPrimaryContainer,
+                  size: 32,
                 ),
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
               ),
-            ),
+              const SizedBox(height: 20),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (showLoader) ...[
+                const SizedBox(height: 24),
+                const CircularProgressIndicator(),
+              ],
+              if (primaryActionLabel != null && onPrimaryAction != null) ...[
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: onPrimaryAction,
+                  icon: const Icon(Icons.refresh),
+                  label: Text(primaryActionLabel!),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
+}
 
-  Marker? _createDriverMarker(Map<String, dynamic> driver) {
-    final location = driver['location'];
-    if (location is! Map<String, dynamic>) return null;
+class _TrackNavIcon extends StatelessWidget {
+  const _TrackNavIcon({
+    required this.hasActiveOrder,
+    required this.isSelected,
+  });
 
-    final lat = _parseToDouble(location['lat']);
-    final lng = _parseToDouble(location['lng']);
-    if (lat == null || lng == null) return null;
+  final bool hasActiveOrder;
+  final bool isSelected;
 
-    final isAvailable = driver['isAvailable'] == true;
-    final color = isAvailable ? Colors.green : Colors.orange;
-    final name = driver['name']?.toString();
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final iconColor = isSelected
+        ? colorScheme.primary
+        : Theme.of(context).iconTheme.color ?? colorScheme.onSurfaceVariant;
 
-    return Marker(
-      point: LatLng(lat, lng),
-      width: 80,
-      height: 80,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (name != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(
+          isSelected ? Icons.route : Icons.route_outlined,
+          color: iconColor,
+        ),
+        if (hasActiveOrder)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: Container(
+              width: 10,
+              height: 10,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(8),
+                color: colorScheme.secondary,
+                shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: colorScheme.secondary.withOpacity(0.4),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          const SizedBox(height: 4),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color.withOpacity(0.2),
-            ),
-            child: Icon(
-              Icons.delivery_dining,
-              color: color,
-              size: 24,
             ),
           ),
-        ],
-      ),
+      ],
     );
-  }
-
-  double? _parseToDouble(dynamic value) {
-    if (value == null) return null;
-    if (value is num) return value.toDouble();
-    return double.tryParse(value.toString());
   }
 }

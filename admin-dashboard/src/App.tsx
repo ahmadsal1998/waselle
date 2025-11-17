@@ -1,16 +1,16 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Users from './pages/Users';
-import Drivers from './pages/Drivers';
-import Orders from './pages/Orders';
-import OrderDetails from './pages/OrderDetails';
-import MapView from './pages/MapView';
-import Settings from './pages/Settings';
-import Cities from './pages/Cities';
-import OrderCategories from './pages/OrderCategories';
-import Layout from './components/Layout';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from '@/pages/Login';
+import Dashboard from '@/pages/Dashboard';
+import Users from '@/pages/Users';
+import Drivers from '@/pages/Drivers';
+import Orders from '@/pages/Orders';
+import OrderDetails from '@/pages/OrderDetails';
+import MapView from '@/pages/MapView';
+import Settings from '@/pages/Settings';
+import Cities from '@/pages/Cities';
+import OrderCategories from '@/pages/OrderCategories';
+import Layout from '@/components/layout/Layout';
+import { AuthProvider, useAuth } from '@/store/auth';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();

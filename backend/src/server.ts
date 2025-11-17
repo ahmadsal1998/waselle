@@ -9,6 +9,7 @@ import userRoutes from './routes/userRoutes';
 import cityRoutes from './routes/cityRoutes';
 import villageRoutes from './routes/villageRoutes';
 import orderCategoryRoutes from './routes/orderCategoryRoutes';
+import settingsRoutes from './routes/settingsRoutes';
 import { initializeSocket } from './services/socketService';
 
 dotenv.config();
@@ -64,6 +65,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/cities', cityRoutes);
 app.use('/api/villages', villageRoutes);
 app.use('/api/order-categories', orderCategoryRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -78,7 +80,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
   try {

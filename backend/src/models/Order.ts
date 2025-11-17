@@ -4,10 +4,14 @@ export interface IOrder extends Document {
   customerId: mongoose.Types.ObjectId;
   driverId?: mongoose.Types.ObjectId;
   type: 'send' | 'receive';
-  vehicleType: 'car' | 'bike';
+  deliveryType: 'internal' | 'external';
+  vehicleType: 'car' | 'bike' | 'cargo';
   orderCategory: string;
   senderName: string;
-  senderAddress: string;
+  senderAddress: string; // Kept for backward compatibility (formatted string)
+  senderCity?: string; // Separate city component
+  senderVillage?: string; // Separate village component
+  senderStreetDetails?: string; // Separate street/details component
   senderPhoneNumber: number;
   deliveryNotes?: string;
   pickupLocation: {
@@ -45,9 +49,14 @@ const OrderSchema: Schema = new Schema(
       enum: ['send', 'receive'],
       required: [true, 'Order type is required'],
     },
+    deliveryType: {
+      type: String,
+      enum: ['internal', 'external'],
+      required: [true, 'Delivery type is required'],
+    },
     vehicleType: {
       type: String,
-      enum: ['car', 'bike'],
+      enum: ['car', 'bike', 'cargo'],
       required: [true, 'Vehicle type is required'],
     },
     orderCategory: {
@@ -62,7 +71,19 @@ const OrderSchema: Schema = new Schema(
     },
     senderAddress: {
       type: String,
-      required: [true, 'Sender address is required'],
+      trim: true,
+      // Optional - can be generated from components if not provided
+    },
+    senderCity: {
+      type: String,
+      trim: true,
+    },
+    senderVillage: {
+      type: String,
+      trim: true,
+    },
+    senderStreetDetails: {
+      type: String,
       trim: true,
     },
     senderPhoneNumber: {

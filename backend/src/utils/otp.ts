@@ -25,7 +25,7 @@ export const sendOTP = async (email: string, otp: string): Promise<void> => {
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
     
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: fromEmail,
       to: email,
       subject: 'Delivery System - OTP Verification',
@@ -39,10 +39,28 @@ export const sendOTP = async (email: string, otp: string): Promise<void> => {
         </div>
       `,
     });
-    console.log(`✅ OTP sent to ${email}`);
-  } catch (error) {
+    console.log(`✅ OTP sent to ${email}`, result);
+  } catch (error: any) {
     console.error('❌ Error sending OTP:', error);
-    throw new Error('Failed to send OTP email');
+    // Log detailed error information
+    if (error?.message) {
+      console.error('Error message:', error.message);
+    }
+    if (error?.response?.body) {
+      console.error('Resend API error:', JSON.stringify(error.response.body, null, 2));
+    }
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to send OTP email';
+    if (error?.message?.includes('from')) {
+      errorMessage = 'Invalid sender email. Please verify RESEND_FROM_EMAIL in .env file. For testing, use: onboarding@resend.dev';
+    } else if (error?.response?.body?.message) {
+      errorMessage = `Failed to send OTP: ${error.response.body.message}`;
+    } else if (error?.message) {
+      errorMessage = `Failed to send OTP: ${error.message}`;
+    }
+    
+    throw new Error(errorMessage);
   }
 };
 

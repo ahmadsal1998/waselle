@@ -1,335 +1,47 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api } from '../config/api';
-
-interface City {
-  _id: string;
-  name: string;
-  isActive: boolean;
-  villagesCount?: number;
-}
-
-interface Village {
-  _id: string;
-  cityId: string;
-  name: string;
-  isActive: boolean;
-}
-
-interface CityFormState {
-  name: string;
-}
-
-interface VillageFormState {
-  name: string;
-}
-
-const initialCityForm: CityFormState = { name: '' };
-const initialVillageForm: VillageFormState = { name: '' };
+import { useCitiesManager } from '@/store/cities/useCitiesManager';
 
 const Cities = () => {
-  const [cities, setCities] = useState<City[]>([]);
-  const [selectedCityId, setSelectedCityId] = useState<string>('');
-  const [villages, setVillages] = useState<Village[]>([]);
+  const {
+    citySearch,
+    setCitySearch,
+    showInactiveCities,
+    setShowInactiveCities,
+    citiesError,
+    loadingCities,
+    filteredCities,
+    selectedCityId,
+    setSelectedCityId,
+    openCityModal,
+    handleToggleCityStatus,
+    handleDeleteCity,
+    selectedCity,
+    openVillageModal,
+    villagesError,
+    villageSearch,
+    setVillageSearch,
+    showInactiveVillages,
+    setShowInactiveVillages,
+    loadingVillages,
+    filteredVillages,
+    handleToggleVillageStatus,
+    handleDeleteVillage,
+    isCityModalOpen,
+    closeCityModal,
+    editingCity,
+    cityForm,
+    setCityForm,
+    handleCitySubmit,
+    isSavingCity,
+    isVillageModalOpen,
+    closeVillageModal,
+    editingVillage,
+    villageForm,
+    setVillageForm,
+    handleVillageSubmit,
+    isSavingVillage,
+  } = useCitiesManager();
 
-  const [loadingCities, setLoadingCities] = useState(true);
-  const [loadingVillages, setLoadingVillages] = useState(false);
-  const [citiesError, setCitiesError] = useState<string | null>(null);
-  const [villagesError, setVillagesError] = useState<string | null>(null);
-
-  const [citySearch, setCitySearch] = useState('');
-  const [villageSearch, setVillageSearch] = useState('');
-  const [showInactiveCities, setShowInactiveCities] = useState(false);
-  const [showInactiveVillages, setShowInactiveVillages] = useState(false);
-
-  const [isCityModalOpen, setIsCityModalOpen] = useState(false);
-  const [cityForm, setCityForm] = useState(initialCityForm);
-  const [editingCity, setEditingCity] = useState<City | null>(null);
-  const [isSavingCity, setIsSavingCity] = useState(false);
-
-  const [isVillageModalOpen, setIsVillageModalOpen] = useState(false);
-  const [villageForm, setVillageForm] = useState(initialVillageForm);
-  const [editingVillage, setEditingVillage] = useState<Village | null>(null);
-  const [isSavingVillage, setIsSavingVillage] = useState(false);
-
-  const selectedCity = useMemo(
-    () => cities.find((city) => city._id === selectedCityId) ?? null,
-    [cities, selectedCityId]
-  );
-
-  const fetchCities = useCallback(async (options: { maintainSelection?: boolean } = {}) => {
-    const { maintainSelection = true } = options;
-    setLoadingCities(true);
-    setCitiesError(null);
-    try {
-      const response = await api.get('/cities');
-      const fetchedCities: City[] = response.data.cities ?? [];
-      setCities(fetchedCities);
-      setSelectedCityId((previousSelected) => {
-        if (
-          maintainSelection &&
-          previousSelected &&
-          fetchedCities.some((city) => city._id === previousSelected)
-        ) {
-          return previousSelected;
-        }
-        const firstActive = fetchedCities.find((city) => city.isActive);
-        return firstActive?._id ?? fetchedCities[0]?._id ?? '';
-      });
-    } catch (err: any) {
-      console.error('Failed to fetch cities:', err);
-      setCitiesError(err.response?.data?.message ?? 'Failed to fetch cities');
-      setCities([]);
-      setSelectedCityId('');
-    } finally {
-      setLoadingCities(false);
-    }
-  }, []);
-
-  const fetchVillages = useCallback(
-    async (cityId: string) => {
-      if (!cityId) return;
-      setLoadingVillages(true);
-      setVillagesError(null);
-      try {
-        const response = await api.get('/villages', {
-          params: { cityId },
-        });
-        setVillages(response.data.villages ?? []);
-      } catch (err: any) {
-        console.error('Failed to fetch villages:', err);
-        setVillagesError(err.response?.data?.message ?? 'Failed to fetch villages');
-        setVillages([]);
-      } finally {
-        setLoadingVillages(false);
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    void fetchCities();
-  }, [fetchCities]);
-
-  useEffect(() => {
-    if (!selectedCityId) {
-      setVillages([]);
-      setVillagesError(null);
-      return;
-    }
-    void fetchVillages(selectedCityId);
-  }, [selectedCityId, fetchVillages]);
-
-  useEffect(() => {
-    if (!showInactiveCities && selectedCity && !selectedCity.isActive) {
-      const nextActive = cities.find((city) => city.isActive && city._id !== selectedCity._id);
-      setSelectedCityId(nextActive ? nextActive._id : '');
-    }
-  }, [showInactiveCities, selectedCity, cities]);
-
-  const filteredCities = useMemo(() => {
-    const normalizedQuery = citySearch.trim().toLowerCase();
-    return [...cities]
-      .filter((city) => (showInactiveCities ? true : city.isActive))
-      .filter((city) =>
-        normalizedQuery ? city.name.toLowerCase().includes(normalizedQuery) : true
-      )
-      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-  }, [cities, citySearch, showInactiveCities]);
-
-  const filteredVillages = useMemo(() => {
-    const normalizedQuery = villageSearch.trim().toLowerCase();
-    return [...villages]
-      .filter((village) => (showInactiveVillages ? true : village.isActive))
-      .filter((village) =>
-        normalizedQuery ? village.name.toLowerCase().includes(normalizedQuery) : true
-      )
-      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-  }, [villages, villageSearch, showInactiveVillages]);
-
-  const openCityModal = (city?: City) => {
-    if (city) {
-      setEditingCity(city);
-      setCityForm({ name: city.name });
-    } else {
-      setEditingCity(null);
-      setCityForm(initialCityForm);
-    }
-    setIsCityModalOpen(true);
-  };
-
-  const closeCityModal = () => {
-    if (isSavingCity) return;
-    setIsCityModalOpen(false);
-    setCityForm(initialCityForm);
-    setEditingCity(null);
-  };
-
-  const handleCitySubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmedName = cityForm.name.trim();
-    if (!trimmedName) {
-      setCitiesError('City name is required');
-      return;
-    }
-
-    setIsSavingCity(true);
-    setCitiesError(null);
-
-    try {
-      if (editingCity) {
-        const response = await api.patch(`/cities/${editingCity._id}`, {
-          name: trimmedName,
-        });
-        const updatedCity: City = response.data.city;
-        setCities((prev) =>
-          prev.map((city) => (city._id === updatedCity._id ? updatedCity : city))
-        );
-      } else {
-        const response = await api.post('/cities', { name: trimmedName });
-        const newCity: City = response.data.city;
-        setCities((prev) => [...prev, newCity]);
-        setSelectedCityId(newCity._id);
-      }
-      closeCityModal();
-      await fetchCities();
-    } catch (err: any) {
-      console.error('Failed to save city:', err);
-      setCitiesError(err.response?.data?.message ?? 'Failed to save city');
-    } finally {
-      setIsSavingCity(false);
-    }
-  };
-
-  const handleToggleCityStatus = async (city: City) => {
-    try {
-      const response = await api.patch(`/cities/${city._id}`, {
-        isActive: !city.isActive,
-      });
-      const updatedCity: City = response.data.city;
-      setCities((prev) =>
-        prev.map((item) => (item._id === updatedCity._id ? updatedCity : item))
-      );
-      if (updatedCity._id === selectedCityId) {
-        await fetchVillages(updatedCity._id);
-      }
-      if (response.data.villagesDeactivated && !showInactiveVillages) {
-        setVillages((prev) => prev.filter((village) => village.isActive));
-      }
-      await fetchCities();
-      if (response.data.villagesDeactivated) {
-        window.alert(
-          'City deactivated. All associated villages were automatically marked as inactive.'
-        );
-      }
-    } catch (err: any) {
-      console.error('Failed to update city status:', err);
-      window.alert(err.response?.data?.message ?? 'Failed to update city status.');
-    }
-  };
-
-  const handleDeleteCity = async (city: City) => {
-    const confirmed = window.confirm(
-      `Delete ${city.name}? This will remove the city and all related villages.`
-    );
-    if (!confirmed) return;
-
-    try {
-      await api.delete(`/cities/${city._id}`);
-      await fetchCities({ maintainSelection: false });
-    } catch (err: any) {
-      console.error('Failed to delete city:', err);
-      window.alert(err.response?.data?.message ?? 'Failed to delete city.');
-    }
-  };
-
-  const openVillageModal = (village?: Village) => {
-    if (!selectedCityId) {
-      window.alert('Please select a city first.');
-      return;
-    }
-
-    if (village) {
-      setEditingVillage(village);
-      setVillageForm({ name: village.name });
-    } else {
-      setEditingVillage(null);
-      setVillageForm(initialVillageForm);
-    }
-    setIsVillageModalOpen(true);
-  };
-
-  const closeVillageModal = () => {
-    if (isSavingVillage) return;
-    setIsVillageModalOpen(false);
-    setVillageForm(initialVillageForm);
-    setEditingVillage(null);
-    setVillagesError(null);
-  };
-
-  const handleVillageSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!selectedCityId) {
-      setVillagesError('Please select a city first.');
-      return;
-    }
-
-    const trimmedName = villageForm.name.trim();
-    if (!trimmedName) {
-      setVillagesError('Village name is required.');
-      return;
-    }
-
-    setIsSavingVillage(true);
-    setVillagesError(null);
-
-    try {
-      if (editingVillage) {
-        await api.patch(`/villages/${editingVillage._id}`, {
-          name: trimmedName,
-        });
-      } else {
-        await api.post('/villages', {
-          cityId: selectedCityId,
-          name: trimmedName,
-        });
-      }
-
-      await Promise.all([fetchVillages(selectedCityId), fetchCities()]);
-      closeVillageModal();
-    } catch (err: any) {
-      console.error('Failed to save village:', err);
-      setVillagesError(err.response?.data?.message ?? 'Failed to save village.');
-    } finally {
-      setIsSavingVillage(false);
-    }
-  };
-
-  const handleToggleVillageStatus = async (village: Village) => {
-    try {
-      await api.patch(`/villages/${village._id}`, {
-        isActive: !village.isActive,
-      });
-      await Promise.all([fetchVillages(village.cityId), fetchCities()]);
-    } catch (err: any) {
-      console.error('Failed to update village status:', err);
-      window.alert(err.response?.data?.message ?? 'Failed to update village status.');
-    }
-  };
-
-  const handleDeleteVillage = async (village: Village) => {
-    const confirmed = window.confirm(`Delete village ${village.name}?`);
-    if (!confirmed) return;
-
-    try {
-      await api.delete(`/villages/${village._id}`);
-      await Promise.all([fetchVillages(village.cityId), fetchCities()]);
-    } catch (err: any) {
-      console.error('Failed to delete village:', err);
-      window.alert(err.response?.data?.message ?? 'Failed to delete village.');
-    }
-  };
-
-  return (
+return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -593,7 +305,7 @@ const Cities = () => {
 
       {isCityModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-900">
                 {editingCity ? 'Edit City' : 'Add City'}
@@ -602,7 +314,7 @@ const Cities = () => {
                 ✕
               </button>
             </div>
-            <form onSubmit={handleCitySubmit} className="px-6 py-5 space-y-4">
+            <form onSubmit={handleCitySubmit} className="px-6 py-5 space-y-4 max-h-[80vh] overflow-y-auto">
               <div>
                 <label htmlFor="cityName" className="block text-sm font-medium text-gray-700">
                   City Name
@@ -619,7 +331,187 @@ const Cities = () => {
                   autoFocus
                 />
               </div>
-              <div className="flex justify-end space-x-3 pt-2">
+
+              <div className="pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-gray-900">Service Center Configuration</h3>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={cityForm.serviceCenter !== null && cityForm.serviceCenter !== undefined}
+                      onChange={(event) => {
+                        if (event.target.checked) {
+                          setCityForm((prev) => ({
+                            ...prev,
+                            serviceCenter: {
+                              center: { lat: 0, lng: 0 },
+                              serviceAreaRadiusKm: 20,
+                              internalOrderRadiusKm: 5,
+                              externalOrderRadiusKm: 10,
+                            },
+                          }));
+                        } else {
+                          setCityForm((prev) => ({ ...prev, serviceCenter: null }));
+                        }
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    Enable Service Center
+                  </label>
+                </div>
+
+                {cityForm.serviceCenter && (
+                  <div className="space-y-4 mt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="serviceCenterLat" className="block text-xs font-medium text-gray-700 mb-1">
+                          Center Latitude
+                        </label>
+                        <input
+                          id="serviceCenterLat"
+                          type="number"
+                          step="0.000001"
+                          min="-90"
+                          max="90"
+                          value={cityForm.serviceCenter.center.lat}
+                          onChange={(event) =>
+                            setCityForm((prev) => ({
+                              ...prev,
+                              serviceCenter: prev.serviceCenter
+                                ? {
+                                    ...prev.serviceCenter,
+                                    center: {
+                                      ...prev.serviceCenter.center,
+                                      lat: Number(event.target.value),
+                                    },
+                                  }
+                                : undefined,
+                            }))
+                          }
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          placeholder="0.0"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="serviceCenterLng" className="block text-xs font-medium text-gray-700 mb-1">
+                          Center Longitude
+                        </label>
+                        <input
+                          id="serviceCenterLng"
+                          type="number"
+                          step="0.000001"
+                          min="-180"
+                          max="180"
+                          value={cityForm.serviceCenter.center.lng}
+                          onChange={(event) =>
+                            setCityForm((prev) => ({
+                              ...prev,
+                              serviceCenter: prev.serviceCenter
+                                ? {
+                                    ...prev.serviceCenter,
+                                    center: {
+                                      ...prev.serviceCenter.center,
+                                      lng: Number(event.target.value),
+                                    },
+                                  }
+                                : undefined,
+                            }))
+                          }
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          placeholder="0.0"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="serviceAreaRadius" className="block text-xs font-medium text-gray-700 mb-1">
+                        Service Area Radius (km)
+                      </label>
+                      <input
+                        id="serviceAreaRadius"
+                        type="number"
+                        step="0.1"
+                        min="1"
+                        max="500"
+                        value={cityForm.serviceCenter.serviceAreaRadiusKm}
+                        onChange={(event) =>
+                          setCityForm((prev) => ({
+                            ...prev,
+                            serviceCenter: prev.serviceCenter
+                              ? {
+                                  ...prev.serviceCenter,
+                                  serviceAreaRadiusKm: Number(event.target.value),
+                                }
+                              : undefined,
+                          }))
+                        }
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                        placeholder="20"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">Coverage radius for this city (1-500 km)</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="internalOrderRadius" className="block text-xs font-medium text-gray-700 mb-1">
+                          Internal Orders Radius (km)
+                        </label>
+                        <input
+                          id="internalOrderRadius"
+                          type="number"
+                          step="0.1"
+                          min="1"
+                          max="100"
+                          value={cityForm.serviceCenter.internalOrderRadiusKm}
+                          onChange={(event) =>
+                            setCityForm((prev) => ({
+                              ...prev,
+                              serviceCenter: prev.serviceCenter
+                                ? {
+                                    ...prev.serviceCenter,
+                                    internalOrderRadiusKm: Number(event.target.value),
+                                  }
+                                : undefined,
+                            }))
+                          }
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          placeholder="5"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">For orders inside city</p>
+                      </div>
+                      <div>
+                        <label htmlFor="externalOrderRadius" className="block text-xs font-medium text-gray-700 mb-1">
+                          External Orders Radius (km)
+                        </label>
+                        <input
+                          id="externalOrderRadius"
+                          type="number"
+                          step="0.1"
+                          min="1"
+                          max="100"
+                          value={cityForm.serviceCenter.externalOrderRadiusKm}
+                          onChange={(event) =>
+                            setCityForm((prev) => ({
+                              ...prev,
+                              serviceCenter: prev.serviceCenter
+                                ? {
+                                    ...prev.serviceCenter,
+                                    externalOrderRadiusKm: Number(event.target.value),
+                                  }
+                                : undefined,
+                            }))
+                          }
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          placeholder="10"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">For orders outside city</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-2 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={closeCityModal}
