@@ -94,6 +94,11 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
     user.otpExpires = undefined;
     await user.save();
 
+    if (!user.email) {
+      res.status(400).json({ message: 'User email is missing' });
+      return;
+    }
+
     const token = generateToken({
       userId: user._id.toString(),
       role: user.role,
@@ -130,6 +135,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     if (!user.isEmailVerified) {
       res.status(401).json({ message: 'Please verify your email first' });
+      return;
+    }
+
+    if (!user.password) {
+      res.status(401).json({ message: 'Invalid credentials' });
+      return;
+    }
+
+    if (!user.email) {
+      res.status(401).json({ message: 'User email is missing' });
       return;
     }
 
