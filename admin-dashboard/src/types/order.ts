@@ -24,10 +24,10 @@ export interface Order {
   dropoffLocation?: LocationPoint | null;
 }
 
-export interface OrderDetail extends Order {
+export interface OrderDetail extends Omit<Order, 'customerId' | 'driverId' | 'price' | 'estimatedPrice'> {
   price?: number;
   estimatedPrice?: number;
   updatedAt: string;
-  customerId?: (Order['customerId'] & { phoneNumber?: string }) | null;
-  driverId?: (Order['driverId'] & { phoneNumber?: string }) | null;
+  customerId?: (Pick<BaseUser, '_id' | 'name' | 'email'> & { phoneNumber?: string }) | null;
+  driverId?: (Pick<Driver, '_id' | 'name' | 'email'> & { phoneNumber?: string }) | null;
 }

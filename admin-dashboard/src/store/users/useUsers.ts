@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getUsers } from '@/services/userService';
-import type { ApiUser } from '@/types';
+import type { ApiUser, UserRole } from '@/types';
 
 export interface UseUsersOptions {
-  role?: ApiUser['role'];
+  role?: UserRole;
 }
 
 export const useUsers = (options: UseUsersOptions = {}) => {

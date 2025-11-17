@@ -82,7 +82,7 @@ export const useMapData = () => {
         .map((driver) => normalizeDriver(driver));
 
       const customerUsers = usersResponse
-        .filter((user) => user.role === 'customer' && user.location)
+        .filter((user) => (user.role as string) === 'customer' && user.location !== undefined)
         .map((customer) => normalizeCustomer(customer));
 
       const trackedOrders = ordersResponse.filter((order) => isTrackedStatus(order.status));
