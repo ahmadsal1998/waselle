@@ -168,6 +168,45 @@ class ApiService {
     }
   }
 
+  // Verify Firebase ID token with backend
+  static Future<Map<String, dynamic>> verifyFirebaseToken({
+    required String idToken,
+    required String phoneNumber,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/verify-firebase-token'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'idToken': idToken,
+          'phoneNumber': phoneNumber,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return _parseResponse(response);
+      } else {
+        try {
+          final responseData = _parseResponse(response);
+          throw Exception(responseData['message'] ?? 'Firebase token verification failed');
+        } catch (e) {
+          if (e is Exception) rethrow;
+          throw Exception(
+              'Firebase token verification failed with status ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (e is http.ClientException ||
+          e.toString().contains('Connection refused') ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Network is unreachable')) {
+        throw Exception(
+            'Unable to connect to server. Please check your internet connection or ensure the backend server is running on port 5001.');
+      }
+      rethrow;
+    }
+  }
+
 
   // Orders
   static Future<Map<String, dynamic>> createOrder({

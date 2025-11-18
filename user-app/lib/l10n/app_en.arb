@@ -80,6 +80,10 @@
   "@verifyYourEmail": {
     "description": "OTP verification title"
   },
+  "verifyYourPhone": "Verify Your Phone",
+  "@verifyYourPhone": {
+    "description": "Phone OTP verification title"
+  },
   "otpSentMessage": "We sent a verification code to\n{email}",
   "@otpSentMessage": {
     "description": "OTP sent message",

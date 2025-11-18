@@ -50,6 +50,20 @@ class AuthRepository {
     return _asMap(response);
   }
 
+  Future<Map<String, dynamic>> verifyFirebaseToken({
+    required String idToken,
+    required String phoneNumber,
+  }) async {
+    final response = await ApiClient.post(
+      '/auth/verify-firebase-token',
+      body: {
+        'idToken': idToken,
+        'phoneNumber': phoneNumber,
+      },
+    );
+    return _asMap(response);
+  }
+
   Future<Map<String, dynamic>> getCurrentUser() async {
     final response = await ApiClient.get('/auth/me');
     return _asMap(response);

@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { connectDatabase } from './config/database';
-import './config/firebase'; // Initialize Firebase Admin SDK
+import { initializeFirebase } from './utils/firebase';
 import authRoutes from './routes/authRoutes';
 import orderRoutes from './routes/orderRoutes';
 import userRoutes from './routes/userRoutes';
@@ -14,6 +14,14 @@ import settingsRoutes from './routes/settingsRoutes';
 import { initializeSocket } from './services/socketService';
 
 dotenv.config();
+
+// Initialize Firebase Admin SDK
+try {
+  initializeFirebase();
+} catch (error) {
+  console.warn('⚠️  Firebase Admin SDK initialization failed. Firebase features will not work.');
+  console.warn('⚠️  Make sure FIREBASE_SERVICE_ACCOUNT_PATH or FIREBASE_SERVICE_ACCOUNT_KEY is set in .env');
+}
 
 const app = express();
 const server = createServer(app);

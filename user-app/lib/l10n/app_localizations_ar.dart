@@ -69,6 +69,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get verifyYourEmail => 'التحقق من بريدك الإلكتروني';
 
   @override
+  String get verifyYourPhone => 'التحقق من هاتفك';
+
+  @override
   String otpSentMessage(String email) {
     return 'أرسلنا رمز التحقق إلى\n$email';
   }
@@ -101,7 +104,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sendRequest => 'إرسال طلب';
 
   @override
-  String get receiveRequest => 'إحضار طلب';
+  String get receiveRequest => 'استلام إحضار';
 
   @override
   String get sendDelivery => 'إرسال طلب';
@@ -312,7 +315,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get estimateNote => 'التكلفة المعروضة تقديرية وقد تختلف حسب المسافة الفعلية.';
 
   @override
-  String get deliveryStartsFrom => 'يبدأ التوصيل من';
+  String get deliveryStartsFrom => 'يبدأ التوصيل بــ';
 
   @override
   String get submitting => 'جاري الإرسال...';

@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/api_service.dart';
 import '../services/socket_service.dart';
+import '../services/firebase_auth_service.dart';
 
 class AuthViewModel with ChangeNotifier {
   bool _isAuthenticated = false;
   Map<String, dynamic>? _user;
+  final FirebaseAuthService _firebaseAuth = FirebaseAuthService();
 
   bool get isAuthenticated => _isAuthenticated;
   Map<String, dynamic>? get user => _user;
@@ -13,6 +16,8 @@ class AuthViewModel with ChangeNotifier {
   bool _isLoading = true;
 
   bool get isLoading => _isLoading;
+
+  String? _verificationId; // Store Firebase verification ID
 
   AuthViewModel() {
     _checkAuthStatus();
@@ -86,15 +91,76 @@ class AuthViewModel with ChangeNotifier {
     }
   }
 
+  // Send OTP using Firebase Phone Authentication
+  Future<bool> sendOTP(String phoneNumber) async {
+    _errorMessage = null;
+    _verificationId = null;
+    notifyListeners();
+
+    final completer = Completer<bool>();
+
+    try {
+      _firebaseAuth.sendOTPWithCallback(
+        phoneNumber,
+        (verificationId) {
+          _verificationId = verificationId;
+          if (!completer.isCompleted) {
+            completer.complete(true);
+          }
+        },
+        (error) {
+          _errorMessage = error;
+          if (!completer.isCompleted) {
+            completer.complete(false);
+          }
+        },
+      );
+
+      // Wait for callback with timeout
+      return await completer.future.timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          _errorMessage = 'OTP request timed out';
+          return false;
+        },
+      );
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    }
+  }
+
   Future<bool> verifyOTP({
-    required String email,
+    required String phoneNumber,
     required String otp,
   }) async {
     _errorMessage = null;
     notifyListeners();
 
+    if (_verificationId == null) {
+      _errorMessage = 'Please request OTP first';
+      return false;
+    }
+
     try {
-      final response = await ApiService.verifyOTP(email: email, otp: otp);
+      // Verify OTP with Firebase
+      final userCredential = await _firebaseAuth.verifyOTP(
+        verificationId: _verificationId!,
+        smsCode: otp,
+      );
+
+      // Get Firebase ID token
+      final idToken = await userCredential.user?.getIdToken();
+      if (idToken == null) {
+        _errorMessage = 'Failed to get authentication token';
+        return false;
+      }
+
+      // Verify with backend using Firebase token
+      final response = await ApiService.verifyFirebaseToken(
+        idToken: idToken,
+        phoneNumber: phoneNumber,
+      );
 
       if (response['token'] != null) {
         final prefs = await SharedPreferences.getInstance();
@@ -102,6 +168,7 @@ class AuthViewModel with ChangeNotifier {
         _user = response['user'];
         _isAuthenticated = true;
         _errorMessage = null;
+        _verificationId = null; // Clear verification ID
         await SocketService.initialize();
         notifyListeners();
         return true;

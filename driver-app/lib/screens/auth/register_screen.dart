@@ -50,14 +50,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => OTPVerificationScreen(
-            email: _emailController.text.trim(),
-          ),
-        ),
-      );
+      // Send OTP to phone number
+      final phoneNumber = _phoneController.text.trim();
+      if (phoneNumber.isNotEmpty) {
+        final otpSent = await authViewModel.sendOTP(phoneNumber);
+        if (otpSent && mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OTPVerificationScreen(
+                phoneNumber: phoneNumber,
+              ),
+            ),
+          );
+        } else if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to send OTP')),
+          );
+        }
+      }
     } else {
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(

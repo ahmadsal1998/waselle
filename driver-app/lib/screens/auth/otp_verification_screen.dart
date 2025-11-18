@@ -4,9 +4,9 @@ import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../view_models/auth_view_model.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
-  final String email;
+  final String phoneNumber;
 
-  const OTPVerificationScreen({super.key, required this.email});
+  const OTPVerificationScreen({super.key, required this.phoneNumber});
 
   @override
   State<OTPVerificationScreen> createState() => _OTPVerificationScreenState();
@@ -36,7 +36,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
 
     final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
     final success = await authViewModel.verifyOtp(
-      email: widget.email,
+      phoneNumber: widget.phoneNumber,
       otp: _otpController.text,
     );
 
@@ -66,16 +66,16 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.email, size: 80, color: Colors.green),
+              const Icon(Icons.phone, size: 80, color: Colors.green),
               const SizedBox(height: 24),
               Text(
-                l10n.verifyYourEmail,
+                l10n.verifyYourPhone,
                 style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                l10n.otpSentMessage(widget.email),
+                'We sent a verification code to\n${widget.phoneNumber}',
                 style: const TextStyle(fontSize: 16, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),

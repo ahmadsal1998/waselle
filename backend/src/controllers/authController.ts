@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import User from '../models/User';
 import { generateToken } from '../utils/jwt';
 import { generateAndSendOTP, generateOTP } from '../utils/otp';
+import { verifyFirebaseToken as verifyFirebaseIdToken } from '../utils/firebase';
 import { AuthRequest } from '../middleware/auth';
 import admin from '../config/firebase';
 
@@ -176,6 +177,83 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message || 'Login failed' });
+  }
+};
+
+export const verifyFirebaseToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { idToken, phoneNumber } = req.body;
+
+    if (!idToken || !phoneNumber) {
+      res.status(400).json({ message: 'ID token and phone number are required' });
+      return;
+    }
+
+    // Verify Firebase token
+    const decodedToken = await verifyFirebaseIdToken(idToken);
+    const firebasePhoneNumber = decodedToken.phone_number;
+
+    // Verify that the phone number matches
+    if (firebasePhoneNumber !== phoneNumber && !phoneNumber.includes(firebasePhoneNumber.replace('+', ''))) {
+      // Try to match without country code prefix
+      const normalizedFirebasePhone = firebasePhoneNumber.replace(/^\+/, '');
+      const normalizedPhone = phoneNumber.replace(/^\+/, '');
+      if (normalizedFirebasePhone !== normalizedPhone && !normalizedPhone.includes(normalizedFirebasePhone)) {
+        res.status(400).json({ message: 'Phone number mismatch' });
+        return;
+      }
+    }
+
+    // Find or create user by phone number
+    let user = await User.findOne({ 
+      $or: [
+        { phone: phoneNumber },
+        { phone: firebasePhoneNumber },
+      ]
+    });
+
+    if (!user) {
+      // Create new user if doesn't exist (for phone-based registration)
+      user = await User.create({
+        name: decodedToken.name || 'User',
+        email: decodedToken.email || `${phoneNumber}@phone.local`,
+        phone: firebasePhoneNumber || phoneNumber,
+        role: 'customer',
+        isEmailVerified: true, // Phone verification counts as verification
+      });
+    } else {
+      // Update user verification status
+      user.isEmailVerified = true;
+      if (!user.phone) {
+        user.phone = firebasePhoneNumber || phoneNumber;
+      }
+      await user.save();
+    }
+
+    // Generate JWT token
+    const token = generateToken({
+      userId: user._id.toString(),
+      role: user.role,
+      email: user.email || `${phoneNumber}@phone.local`,
+    });
+
+    res.status(200).json({
+      message: 'Phone verified successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        vehicleType: user.vehicleType,
+        isAvailable: user.isAvailable,
+        profilePicture: user.profilePicture,
+      },
+    });
+  } catch (error: any) {
+    console.error('Firebase token verification error:', error);
+    res.status(500).json({ message: error.message || 'Firebase token verification failed' });
   }
 };
 

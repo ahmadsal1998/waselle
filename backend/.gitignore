@@ -5,3 +5,8 @@ dist/
 .DS_Store
 coverage/
 .nyc_output/
+
+# Firebase Admin SDK credentials
+*-firebase-adminsdk-*.json
+firebase-adminsdk-*.json
+backend/wae-679cc-firebase-adminsdk.json

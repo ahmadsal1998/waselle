@@ -4,9 +4,9 @@ import 'package:delivery_user_app/l10n/app_localizations.dart';
 import '../../view_models/auth_view_model.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
-  final String email;
+  final String phoneNumber;
 
-  const OTPVerificationScreen({super.key, required this.email});
+  const OTPVerificationScreen({super.key, required this.phoneNumber});
 
   @override
   State<OTPVerificationScreen> createState() => _OTPVerificationScreenState();
@@ -36,7 +36,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
 
     final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
     final success = await authViewModel.verifyOTP(
-      email: widget.email,
+      phoneNumber: widget.phoneNumber,
       otp: _otpController.text,
     );
 
@@ -48,7 +48,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.invalidOtp)),
+        SnackBar(content: Text(authViewModel.errorMessage ?? l10n.invalidOtp)),
       );
     }
   }
@@ -58,7 +58,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     final l10n = AppLocalizations.of(context)!;
     
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.verifyEmail)),
+      appBar: AppBar(title: Text(l10n.verifyYourPhone)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -66,16 +66,16 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.email, size: 80, color: Colors.blue),
+              const Icon(Icons.phone, size: 80, color: Colors.blue),
               const SizedBox(height: 24),
               Text(
-                l10n.verifyYourEmail,
+                l10n.verifyYourPhone,
                 style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                l10n.otpSentMessage(widget.email),
+                'We sent a verification code to\n${widget.phoneNumber}',
                 style: const TextStyle(fontSize: 16, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
