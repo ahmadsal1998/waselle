@@ -374,40 +374,14 @@ class DeliveryRequestFormController extends ChangeNotifier {
     }
   }
 
+  // Alias for sendOrderOTP - uses Firebase Phone Auth
   Future<void> sendOTP({
     required LocationViewModel locationProvider,
     required RegionViewModel regionProvider,
     required OrderViewModel orderProvider,
   }) async {
-    if (_isSendingOTP) return;
-
-    // Validate phone number
-    final trimmedPhone = phoneNumberController.text.trim();
-    if (trimmedPhone.isEmpty || trimmedPhone.length < 9 || trimmedPhone.length > 10) {
-      _otpError = 'Please enter a valid phone number (9-10 digits)';
-      _notifyListenersSafely();
-      return;
-    }
-
-    _isSendingOTP = true;
-    _otpError = null;
-    _notifyListenersSafely();
-
-    try {
-      await ApiService.sendOrderOTP(
-        phone: trimmedPhone,
-        countryCode: _selectedCountryCode,
-      );
-      
-      _otpSent = true;
-      _otpError = null;
-    } catch (e) {
-      _otpError = e.toString().replaceAll('Exception: ', '');
-      _otpSent = false;
-    } finally {
-      _isSendingOTP = false;
-      _notifyListenersSafely();
-    }
+    // Delegate to sendOrderOTP which now uses Firebase Phone Auth
+    await sendOrderOTP();
   }
 
   void resetOTPState() {
