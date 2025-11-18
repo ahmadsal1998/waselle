@@ -9,6 +9,7 @@ import '../../../../view_models/region_view_model.dart';
 import '../../../../view_models/auth_view_model.dart';
 import '../../../../repositories/api_service.dart';
 import '../../../../services/socket_service.dart';
+import '../../../../services/firebase_auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum DeliveryRequestFormMessageType { info, success, error }
@@ -85,6 +86,8 @@ class DeliveryRequestFormController extends ChangeNotifier {
   bool _isVerifyingOTP = false;
   bool _otpSent = false;
   String? _otpError;
+  String? _firebaseVerificationId; // Store Firebase verification ID
+  final FirebaseAuthService _firebaseAuth = FirebaseAuthService();
   
   bool get isSendingOTP => _isSendingOTP;
   bool get isVerifyingOTP => _isVerifyingOTP;
@@ -410,6 +413,7 @@ class DeliveryRequestFormController extends ChangeNotifier {
   void resetOTPState() {
     _otpSent = false;
     _otpError = null;
+    _firebaseVerificationId = null;
     otpController.clear();
     _notifyListenersSafely();
   }
@@ -628,6 +632,7 @@ class DeliveryRequestFormController extends ChangeNotifier {
     }
   }
 
+  // Verify OTP with Firebase and create order
   Future<DeliveryRequestSubmitResult> verifyOTPAndCreateOrder({
     required LocationViewModel locationProvider,
     required RegionViewModel regionProvider,
@@ -646,18 +651,18 @@ class DeliveryRequestFormController extends ChangeNotifier {
       );
     }
 
+    // Check if Firebase verification ID exists
+    if (_firebaseVerificationId == null) {
+      return DeliveryRequestSubmitResult.failure(
+        'Please request OTP first',
+      );
+    }
+
     final trimmedPhone = phoneNumberController.text.trim();
     
     if (trimmedPhone.isEmpty || trimmedPhone.length < 9 || trimmedPhone.length > 10) {
       return DeliveryRequestSubmitResult.failure(
         localized('pleaseEnterValidPhoneNumber', 'Please enter a valid phone number (9-10 digits).'),
-      );
-    }
-
-    final parsedPhoneNumber = int.tryParse(trimmedPhone);
-    if (parsedPhoneNumber == null) {
-      return DeliveryRequestSubmitResult.failure(
-        localized('pleaseEnterValidPhoneNumber', 'Please enter a valid phone number.'),
       );
     }
 
@@ -729,15 +734,39 @@ class DeliveryRequestFormController extends ChangeNotifier {
         ?.name ?? '';
     final streetDetails = senderAddressController.text.trim();
 
-    // Use new OTP verification endpoint
+    // Verify OTP with Firebase first
     _isVerifyingOTP = true;
     _notifyListenersSafely();
 
     try {
-      final response = await ApiService.verifyOTPAndCreateOrder(
-        otp: otp,
-        phone: trimmedPhone,
-        countryCode: _selectedCountryCode,
+      print('🔄 Verifying Firebase OTP...');
+      
+      // Format phone number with country code
+      String fullPhoneNumber = trimmedPhone;
+      if (!fullPhoneNumber.startsWith('+')) {
+        fullPhoneNumber = '$_selectedCountryCode$fullPhoneNumber';
+      }
+
+      // Verify OTP with Firebase
+      final userCredential = await _firebaseAuth.verifyOTP(
+        verificationId: _firebaseVerificationId!,
+        smsCode: otp,
+      );
+
+      // Get Firebase ID token
+      final idToken = await userCredential.user?.getIdToken();
+      if (idToken == null) {
+        _isVerifyingOTP = false;
+        return DeliveryRequestSubmitResult.failure(
+          'Failed to get authentication token from Firebase',
+        );
+      }
+
+      print('✅ Firebase OTP verified. Creating order...');
+
+      // Create order with Firebase token
+      final response = await ApiService.createOrderWithFirebaseToken(
+        idToken: idToken,
         type: requestType,
         deliveryType: _selectedDeliveryType!,
         pickupLocation: pickupLocation,
@@ -745,7 +774,6 @@ class DeliveryRequestFormController extends ChangeNotifier {
         vehicleType: _selectedVehicle,
         orderCategory: selectedCategory.name,
         senderName: senderNameController.text.trim(),
-        // Send separate address components
         senderCity: cityName,
         senderVillage: villageName,
         senderStreetDetails: streetDetails,

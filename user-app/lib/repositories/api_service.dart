@@ -576,7 +576,60 @@ class ApiService {
     }
   }
 
-  // Verify OTP and create order
+  // Create order with Firebase ID token (recommended - uses Firebase Phone Auth)
+  static Future<Map<String, dynamic>> createOrderWithFirebaseToken({
+    required String idToken,
+    required String type,
+    required String deliveryType,
+    required Map<String, dynamic> pickupLocation,
+    required Map<String, dynamic> dropoffLocation,
+    required String vehicleType,
+    required String orderCategory,
+    required String senderName,
+    required String senderCity,
+    required String senderVillage,
+    required String senderStreetDetails,
+    String? deliveryNotes,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/orders/create-with-firebase-token'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'idToken': idToken,
+          'type': type,
+          'deliveryType': deliveryType,
+          'pickupLocation': pickupLocation,
+          'dropoffLocation': dropoffLocation,
+          'vehicleType': vehicleType,
+          'orderCategory': orderCategory,
+          'senderName': senderName,
+          'senderCity': senderCity,
+          'senderVillage': senderVillage,
+          'senderStreetDetails': senderStreetDetails,
+          if (deliveryNotes != null && deliveryNotes.isNotEmpty)
+            'deliveryNotes': deliveryNotes,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return _parseResponse(response);
+      } else {
+        try {
+          final responseData = _parseResponse(response);
+          throw Exception(responseData['message'] ?? 'Failed to create order');
+        } catch (e) {
+          if (e is Exception) rethrow;
+          throw Exception('Failed to create order with status ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to create order: $e');
+    }
+  }
+
+  // Verify OTP and create order (DEPRECATED - use createOrderWithFirebaseToken instead)
   static Future<Map<String, dynamic>> verifyOTPAndCreateOrder({
     required String otp,
     required String phone,
