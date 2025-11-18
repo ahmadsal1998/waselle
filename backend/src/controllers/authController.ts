@@ -4,6 +4,7 @@ import User from '../models/User';
 import { generateToken } from '../utils/jwt';
 import { generateAndSendOTP, generateOTP } from '../utils/otp';
 import { AuthRequest } from '../middleware/auth';
+import admin from '../config/firebase';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -213,6 +214,81 @@ export const resendOTP = async (req: Request, res: Response): Promise<void> => {
   } catch (error: any) {
     console.error('Resend OTP error:', error);
     res.status(500).json({ message: error.message || 'Failed to resend OTP' });
+  }
+};
+
+export const verifyFirebaseToken = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      res.status(400).json({ message: 'Firebase ID token is required' });
+      return;
+    }
+
+    // Verify Firebase ID token
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(idToken);
+    } catch (error: any) {
+      console.error('Firebase token verification error:', error);
+      res.status(401).json({ message: 'Invalid or expired Firebase token' });
+      return;
+    }
+
+    // Extract phone number from Firebase token
+    const phoneNumber = decodedToken.phone_number;
+    if (!phoneNumber) {
+      res.status(400).json({ message: 'Phone number not found in Firebase token' });
+      return;
+    }
+
+    // Find or create user by phone number
+    let user = await User.findOne({ phone: phoneNumber });
+
+    if (!user) {
+      // Create new user with phone number
+      user = await User.create({
+        name: 'Customer', // Temporary name, can be updated later
+        phone: phoneNumber,
+        countryCode: phoneNumber.startsWith('+') ? phoneNumber.substring(0, 4) : '+970',
+        role: 'customer',
+        isEmailVerified: true, // Phone-based users are verified by default
+      });
+    } else {
+      // Update existing user - ensure they're marked as verified
+      user.isEmailVerified = true;
+      await user.save();
+    }
+
+    // Generate backend JWT token
+    const token = generateToken({
+      userId: user._id.toString(),
+      role: user.role,
+      email: user.email || phoneNumber, // Use phone as email fallback
+    });
+
+    res.status(200).json({
+      message: 'Firebase token verified successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        countryCode: user.countryCode,
+        role: user.role,
+        vehicleType: user.vehicleType,
+        isAvailable: user.isAvailable,
+        profilePicture: user.profilePicture,
+      },
+    });
+  } catch (error: any) {
+    console.error('Firebase token verification error:', error);
+    res.status(500).json({ message: error.message || 'Failed to verify Firebase token' });
   }
 };
 

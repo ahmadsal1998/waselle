@@ -22,7 +22,8 @@
     "socket.io": "^4.6.1",
     "resend": "^3.2.0",
     "express-validator": "^7.0.1",
-    "geolib": "^3.3.4"
+    "geolib": "^3.3.4",
+    "firebase-admin": "^12.6.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

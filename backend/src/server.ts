@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { connectDatabase } from './config/database';
+import './config/firebase'; // Initialize Firebase Admin SDK
 import authRoutes from './routes/authRoutes';
 import orderRoutes from './routes/orderRoutes';
 import userRoutes from './routes/userRoutes';

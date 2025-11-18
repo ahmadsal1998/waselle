@@ -16,6 +16,7 @@ import City from '../models/City';
 import { findCityForLocation } from '../utils/distance';
 import { generateToken } from '../utils/jwt';
 import { normalizeAddress } from '../utils/address';
+import admin from '../config/firebase';
 
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1033,6 +1034,259 @@ export const verifyOTPAndCreateOrder = async (
     console.error('Error verifying OTP and creating order:', error);
     res.status(500).json({
       message: error.message || 'Failed to verify OTP and create order',
+    });
+  }
+};
+
+// Create order with Firebase ID Token (phone verified via Firebase)
+export const createOrderWithFirebaseToken = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const {
+      idToken,
+      type,
+      deliveryType,
+      pickupLocation,
+      dropoffLocation,
+      vehicleType,
+      orderCategory,
+      senderName,
+      senderCity,
+      senderVillage,
+      senderStreetDetails,
+      deliveryNotes,
+    } = req.body;
+
+    // Verify Firebase ID token
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(idToken);
+    } catch (error: any) {
+      console.error('Firebase token verification error:', error);
+      res.status(401).json({ message: 'Invalid or expired Firebase token' });
+      return;
+    }
+
+    // Extract phone number from Firebase token
+    const phoneNumber = decodedToken.phone_number;
+    if (!phoneNumber) {
+      res.status(400).json({ message: 'Phone number not found in Firebase token' });
+      return;
+    }
+
+    // Find or create user by phone number
+    let user = await User.findOne({ phone: phoneNumber });
+
+    if (!user) {
+      // Create new user with phone number
+      user = await User.create({
+        name: senderName?.trim() || 'Customer',
+        phone: phoneNumber,
+        countryCode: phoneNumber.startsWith('+') ? phoneNumber.substring(0, 4) : '+970',
+        role: 'customer',
+        isEmailVerified: true,
+      });
+    } else {
+      // Update existing user information from order
+      if (senderName && senderName.trim()) {
+        user.name = senderName.trim();
+      }
+    }
+
+    // Update user address information
+    if (senderCity && senderCity.trim()) {
+      user.city = senderCity.trim();
+    }
+    if (senderVillage && senderVillage.trim()) {
+      user.village = senderVillage.trim();
+    }
+    if (senderStreetDetails && senderStreetDetails.trim()) {
+      user.streetDetails = senderStreetDetails.trim();
+    }
+
+    // Generate formatted address
+    if (senderCity || senderVillage || senderStreetDetails) {
+      const addressParts = [];
+      if (senderCity && senderCity.trim()) addressParts.push(senderCity.trim());
+      if (senderVillage && senderVillage.trim()) addressParts.push(senderVillage.trim());
+      if (senderStreetDetails && senderStreetDetails.trim()) addressParts.push(senderStreetDetails.trim());
+      if (addressParts.length > 0) {
+        user.address = addressParts.join('-');
+      }
+    }
+
+    // Update customer location based on order type
+    if (pickupLocation && dropoffLocation) {
+      let locationToUse: { lat: number; lng: number } | null = null;
+      
+      if (type === 'send' && pickupLocation.lat && pickupLocation.lng) {
+        locationToUse = {
+          lat: typeof pickupLocation.lat === 'number' ? pickupLocation.lat : parseFloat(pickupLocation.lat),
+          lng: typeof pickupLocation.lng === 'number' ? pickupLocation.lng : parseFloat(pickupLocation.lng),
+        };
+      } else if (type === 'receive' && dropoffLocation.lat && dropoffLocation.lng) {
+        locationToUse = {
+          lat: typeof dropoffLocation.lat === 'number' ? dropoffLocation.lat : parseFloat(dropoffLocation.lat),
+          lng: typeof dropoffLocation.lng === 'number' ? dropoffLocation.lng : parseFloat(dropoffLocation.lng),
+        };
+      }
+      
+      if (locationToUse && !isNaN(locationToUse.lat) && !isNaN(locationToUse.lng)) {
+        user.location = locationToUse;
+      }
+    }
+
+    user.isEmailVerified = true;
+    await user.save();
+
+    // Validate order data
+    if (!vehicleType || !['car', 'bike', 'cargo'].includes(vehicleType)) {
+      res.status(400).json({ message: 'A valid vehicleType is required' });
+      return;
+    }
+
+    const settings = await Settings.getSettings();
+    const vehicleConfig = settings.vehicleTypes[vehicleType as 'bike' | 'car' | 'cargo'];
+    if (!vehicleConfig || !vehicleConfig.enabled) {
+      res.status(400).json({
+        message: `Vehicle type ${vehicleType} is not currently available`,
+      });
+      return;
+    }
+
+    if (!deliveryType || !['internal', 'external'].includes(deliveryType)) {
+      res.status(400).json({
+        message: 'A valid deliveryType is required (internal or external)',
+      });
+      return;
+    }
+
+    if (typeof orderCategory !== 'string' || !orderCategory.trim()) {
+      res.status(400).json({ message: 'Order category is required' });
+      return;
+    }
+
+    if (typeof senderName !== 'string' || !senderName.trim()) {
+      res.status(400).json({ message: 'Sender name is required' });
+      return;
+    }
+
+    if (!senderCity || typeof senderCity !== 'string' || !senderCity.trim()) {
+      res.status(400).json({ message: 'Sender city is required' });
+      return;
+    }
+
+    if (!senderVillage || typeof senderVillage !== 'string' || !senderVillage.trim()) {
+      res.status(400).json({ message: 'Sender village is required' });
+      return;
+    }
+
+    if (!senderStreetDetails || typeof senderStreetDetails !== 'string' || !senderStreetDetails.trim()) {
+      res.status(400).json({ message: 'Sender street details are required' });
+      return;
+    }
+
+    if (!pickupLocation || !dropoffLocation) {
+      res.status(400).json({
+        message: 'pickupLocation and dropoffLocation are required',
+      });
+      return;
+    }
+
+    // Calculate distance and price
+    let distance: number | undefined;
+    if (
+      typeof pickupLocation.lat === 'number' &&
+      typeof pickupLocation.lng === 'number' &&
+      typeof dropoffLocation.lat === 'number' &&
+      typeof dropoffLocation.lng === 'number'
+    ) {
+      distance = calculateDistance(pickupLocation, dropoffLocation);
+    }
+
+    const estimatedPrice = await calculateEstimatedPrice({
+      vehicleType: vehicleType as 'bike' | 'car' | 'cargo',
+      distanceKm: distance,
+    });
+
+    // Validate order category
+    const trimmedCategory = orderCategory.trim();
+    const category = await OrderCategory.findOne({
+      name: { $regex: `^${escapeRegExp(trimmedCategory)}$`, $options: 'i' },
+      isActive: true,
+    });
+
+    if (!category) {
+      res.status(400).json({
+        message: 'Selected order category is not available',
+      });
+      return;
+    }
+
+    // Generate formatted address
+    const formattedAddress = `${senderCity.trim()}-${senderVillage.trim()}-${senderStreetDetails.trim()}`;
+
+    // Extract phone number digits for senderPhoneNumber
+    const cleanPhone = phoneNumber.replace(/[^\d]/g, '');
+    const senderPhoneNumber = parseInt(cleanPhone) || 0;
+
+    // Create order
+    const order = await Order.create({
+      customerId: user._id,
+      type,
+      deliveryType,
+      pickupLocation,
+      dropoffLocation,
+      vehicleType,
+      orderCategory: category.name,
+      senderName: senderName.trim(),
+      senderCity: senderCity.trim(),
+      senderVillage: senderVillage.trim(),
+      senderStreetDetails: senderStreetDetails.trim(),
+      senderAddress: formattedAddress,
+      senderPhoneNumber,
+      deliveryNotes: deliveryNotes?.trim() || '',
+      price: estimatedPrice,
+      estimatedPrice,
+      distance,
+      status: 'pending',
+    });
+
+    await order.populate([
+      { path: 'customerId', select: 'name email phone countryCode' },
+      { path: 'driverId', select: 'name email phone countryCode' },
+    ]);
+
+    const orderData = order.toObject();
+
+    emitNewOrder(orderData);
+
+    // Generate JWT token for the user
+    const token = generateToken({
+      userId: user._id.toString(),
+      role: user.role,
+      email: user.email || phoneNumber,
+    });
+
+    res.status(201).json({
+      message: 'Order created successfully',
+      order: orderData,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        countryCode: user.countryCode,
+        role: user.role,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error creating order with Firebase token:', error);
+    res.status(500).json({
+      message: error.message || 'Failed to create order',
     });
   }
 };
