@@ -434,6 +434,7 @@ class DeliveryRequestFormController extends ChangeNotifier {
         onTimeout: () {
           _otpError = 'OTP request timed out. Please try again.';
           _otpSent = false;
+          return false;
         },
       );
     } catch (e) {
