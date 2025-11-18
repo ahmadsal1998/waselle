@@ -16,7 +16,7 @@ import City from '../models/City';
 import { findCityForLocation } from '../utils/distance';
 import { generateToken } from '../utils/jwt';
 import { normalizeAddress } from '../utils/address';
-import admin from '../config/firebase';
+import { admin } from '../utils/firebase';
 
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
