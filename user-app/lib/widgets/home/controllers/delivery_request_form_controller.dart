@@ -374,14 +374,76 @@ class DeliveryRequestFormController extends ChangeNotifier {
     }
   }
 
-  // Alias for sendOrderOTP - uses Firebase Phone Auth
+  // Send OTP using Firebase Phone Authentication
   Future<void> sendOTP({
     required LocationViewModel locationProvider,
     required RegionViewModel regionProvider,
     required OrderViewModel orderProvider,
   }) async {
-    // Delegate to sendOrderOTP which now uses Firebase Phone Auth
-    await sendOrderOTP();
+    if (_isSendingOTP) return;
+
+    // Validate phone number
+    final trimmedPhone = phoneNumberController.text.trim();
+    if (trimmedPhone.isEmpty || trimmedPhone.length < 9 || trimmedPhone.length > 10) {
+      _otpError = 'Please enter a valid phone number (9-10 digits)';
+      _notifyListenersSafely();
+      return;
+    }
+
+    _isSendingOTP = true;
+    _otpError = null;
+    _firebaseVerificationId = null;
+    _notifyListenersSafely();
+
+    try {
+      // Format phone number with country code
+      String fullPhoneNumber = trimmedPhone;
+      if (!fullPhoneNumber.startsWith('+')) {
+        fullPhoneNumber = '$_selectedCountryCode$fullPhoneNumber';
+      }
+
+      print('📱 Sending Firebase OTP to: $fullPhoneNumber');
+
+      // Use Firebase Phone Auth
+      final completer = Completer<bool>();
+      
+      _firebaseAuth.sendOTPWithCallback(
+        fullPhoneNumber,
+        (verificationId) {
+          print('✅ Firebase OTP sent. Verification ID received.');
+          _firebaseVerificationId = verificationId;
+          _otpSent = true;
+          _otpError = null;
+          if (!completer.isCompleted) {
+            completer.complete(true);
+          }
+        },
+        (error) {
+          print('❌ Firebase OTP error: $error');
+          _otpError = error;
+          _otpSent = false;
+          if (!completer.isCompleted) {
+            completer.complete(false);
+          }
+        },
+      );
+
+      // Wait for callback with timeout
+      await completer.future.timeout(
+        const Duration(seconds: 60),
+        onTimeout: () {
+          _otpError = 'OTP request timed out. Please try again.';
+          _otpSent = false;
+        },
+      );
+    } catch (e) {
+      print('❌ Exception in sendOTP: $e');
+      _otpError = e.toString().replaceAll('Exception: ', '');
+      _otpSent = false;
+    } finally {
+      _isSendingOTP = false;
+      _notifyListenersSafely();
+    }
   }
 
   void resetOTPState() {
