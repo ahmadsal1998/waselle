@@ -17,9 +17,11 @@ const router = Router();
 
 // Public endpoints (no authentication required)
 router.post('/estimate', estimateOrderPrice); // Public - users need to estimate before auth
-router.post('/send-otp', sendOrderOTP); // Public - send OTP for order verification (deprecated - use Firebase)
-router.post('/verify-and-create', verifyOTPAndCreateOrder); // Public - verify OTP and create order (deprecated - use Firebase)
-router.post('/create-with-firebase-token', createOrderWithFirebaseToken); // Public - create order with Firebase token
+// DEPRECATED: These endpoints use backend OTP generation (no SMS sending)
+// Use Firebase Phone Auth instead via /create-with-firebase-token endpoint
+router.post('/send-otp', sendOrderOTP); // DEPRECATED - Use Firebase Phone Auth
+router.post('/verify-and-create', verifyOTPAndCreateOrder); // DEPRECATED - Use Firebase Phone Auth
+router.post('/create-with-firebase-token', createOrderWithFirebaseToken); // ✅ RECOMMENDED - Create order with Firebase token
 
 // Protected endpoints (require authentication)
 router.post('/', authenticate, createOrder);

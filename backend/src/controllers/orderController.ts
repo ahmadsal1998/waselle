@@ -728,10 +728,13 @@ export const sendOrderOTP = async (
       });
     }
 
-    // TODO: Send OTP via SMS/WhatsApp using Vonage or similar service
-    // For now, log to console for development
+    // NOTE: This endpoint is deprecated for order creation
+    // New orders should use Firebase Phone Auth via /orders/create-with-firebase-token
+    // This endpoint is kept for backward compatibility
+    // TODO: Remove this endpoint once all clients migrate to Firebase Phone Auth
     console.log(`📱 OTP for ${fullPhoneNumber}: ${otp}`);
-    console.log('⚠️  In production, configure SMS/WhatsApp service to send OTP');
+    console.log('⚠️  DEPRECATED: Use Firebase Phone Auth instead. This endpoint will be removed.');
+    console.log('⚠️  For production, use /orders/create-with-firebase-token endpoint with Firebase ID token.');
 
     // In development, return OTP in response (remove in production)
     const isDevelopment = process.env.NODE_ENV !== 'production';
