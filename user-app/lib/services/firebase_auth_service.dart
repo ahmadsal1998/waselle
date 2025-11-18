@@ -46,10 +46,16 @@ class FirebaseAuthService {
     Function(String error) onError,
   ) async {
     try {
-      String formattedPhone = phoneNumber;
+      String formattedPhone = phoneNumber.trim();
+      
+      // Ensure phone number has country code
       if (!formattedPhone.startsWith('+')) {
-        formattedPhone = '+1$formattedPhone';
+        // Default to +970 (Palestine) or +1 (US/Canada)
+        // You can change this based on your target market
+        formattedPhone = '+970$formattedPhone'; // Change to your default country code
       }
+
+      print('📱 Attempting to send OTP to: $formattedPhone');
 
       bool codeSent = false;
       bool errorOccurred = false;
@@ -58,15 +64,30 @@ class FirebaseAuthService {
         phoneNumber: formattedPhone,
         verificationCompleted: (PhoneAuthCredential credential) {
           // Auto-verification completed (Android only)
-          // This won't be called if code is sent successfully
+          print('✅ Auto-verification completed');
         },
         verificationFailed: (FirebaseAuthException e) {
+          print('❌ Firebase Auth Error: ${e.code} - ${e.message}');
           if (!errorOccurred) {
             errorOccurred = true;
-            onError(e.message ?? 'Failed to send OTP');
+            String errorMsg = e.message ?? 'Failed to send OTP';
+            
+            // Provide more helpful error messages
+            if (e.code == 'invalid-phone-number') {
+              errorMsg = 'Invalid phone number format. Please include country code (e.g., +970XXXXXXXXX)';
+            } else if (e.code == 'too-many-requests') {
+              errorMsg = 'Too many requests. Please try again later.';
+            } else if (e.code == 'quota-exceeded') {
+              errorMsg = 'SMS quota exceeded. Please contact support.';
+            } else if (e.code == 'app-not-authorized') {
+              errorMsg = 'App not authorized. Please check Firebase configuration.';
+            }
+            
+            onError(errorMsg);
           }
         },
         codeSent: (String verificationId, int? resendToken) {
+          print('✅ OTP code sent successfully. Verification ID received.');
           if (!codeSent && !errorOccurred) {
             codeSent = true;
             onCodeSent(verificationId);
@@ -74,6 +95,7 @@ class FirebaseAuthService {
         },
         codeAutoRetrievalTimeout: (String verificationId) {
           // Auto-retrieval timeout - code was sent but not auto-retrieved
+          print('⏱️ Auto-retrieval timeout. Code was sent.');
           if (!codeSent && !errorOccurred) {
             codeSent = true;
             onCodeSent(verificationId);
@@ -82,7 +104,8 @@ class FirebaseAuthService {
         timeout: const Duration(seconds: 60),
       );
     } catch (e) {
-      onError(e.toString());
+      print('❌ Exception in sendOTPWithCallback: $e');
+      onError('Failed to send OTP: ${e.toString()}');
     }
   }
 

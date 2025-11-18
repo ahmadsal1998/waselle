@@ -100,15 +100,19 @@ class AuthViewModel with ChangeNotifier {
     final completer = Completer<bool>();
 
     try {
+      print('🔄 Starting OTP send process for: $phoneNumber');
+      
       _firebaseAuth.sendOTPWithCallback(
         phoneNumber,
         (verificationId) {
+          print('✅ OTP callback received. Verification ID stored.');
           _verificationId = verificationId;
           if (!completer.isCompleted) {
             completer.complete(true);
           }
         },
         (error) {
+          print('❌ OTP error callback: $error');
           _errorMessage = error;
           if (!completer.isCompleted) {
             completer.complete(false);
@@ -118,13 +122,15 @@ class AuthViewModel with ChangeNotifier {
 
       // Wait for callback with timeout
       return await completer.future.timeout(
-        const Duration(seconds: 30),
+        const Duration(seconds: 60), // Increased timeout to 60 seconds
         onTimeout: () {
-          _errorMessage = 'OTP request timed out';
+          print('⏱️ OTP request timed out after 60 seconds');
+          _errorMessage = 'OTP request timed out. Please check your phone number and try again.';
           return false;
         },
       );
     } catch (e) {
+      print('❌ Exception in sendOTP: $e');
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
       return false;
     }
