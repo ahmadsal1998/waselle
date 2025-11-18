@@ -192,6 +192,12 @@ export const verifyFirebaseToken = async (req: Request, res: Response): Promise<
     const decodedToken = await verifyFirebaseIdToken(idToken);
     const firebasePhoneNumber = decodedToken.phone_number;
 
+    // Check if phone number exists in Firebase token
+    if (!firebasePhoneNumber) {
+      res.status(400).json({ message: 'Phone number not found in Firebase token' });
+      return;
+    }
+
     // Verify that the phone number matches
     if (firebasePhoneNumber !== phoneNumber && !phoneNumber.includes(firebasePhoneNumber.replace('+', ''))) {
       // Try to match without country code prefix
