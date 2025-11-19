@@ -130,10 +130,11 @@ export const getAvailableDrivers = async (
 
     const drivers = await User.find({
       role: 'driver',
+      isActive: { $ne: false }, // Only active drivers
       'location.lat': { $exists: true, $ne: null },
       'location.lng': { $exists: true, $ne: null },
     })
-      .select('name email phoneNumber location isAvailable updatedAt vehicleType')
+      .select('name email phone location isAvailable updatedAt vehicleType')
       .lean();
 
     res.status(200).json({ drivers });

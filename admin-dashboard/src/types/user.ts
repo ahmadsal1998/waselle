@@ -15,8 +15,10 @@ export interface BaseUser {
 export interface Driver extends BaseUser {
   role: 'driver';
   isAvailable: boolean;
-  vehicleType?: 'car' | 'bike';
+  isActive?: boolean;
+  vehicleType?: 'car' | 'bike' | 'cargo';
   location?: LocationPoint | null;
+  phone?: string;
 }
 
 export interface Customer extends BaseUser {

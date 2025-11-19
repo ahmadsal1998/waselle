@@ -1,4 +1,17 @@
+import { useState, useEffect } from 'react';
 import { useCitiesManager } from '@/store/cities/useCitiesManager';
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Power,
+  X,
+  Check,
+  MapPin,
+  Building2,
+  AlertCircle,
+} from 'lucide-react';
 
 const Cities = () => {
   const {
@@ -41,306 +54,417 @@ const Cities = () => {
     isSavingVillage,
   } = useCitiesManager();
 
-return (
-    <div className="space-y-6">
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<{ city?: string; village?: string }>({});
+
+  // Show success message and clear after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  // Enhanced submit handlers with success messages
+  const handleCitySubmitWithFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormErrors({});
+
+    if (!cityForm.name.trim()) {
+      setFormErrors({ city: 'City name is required' });
+      return;
+    }
+
+    try {
+      await handleCitySubmit(e);
+      setSuccessMessage(editingCity ? 'City updated successfully!' : 'City created successfully!');
+      setFormErrors({});
+    } catch (error) {
+      setFormErrors({ city: 'Failed to save city. Please try again.' });
+    }
+  };
+
+  const handleVillageSubmitWithFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormErrors({});
+
+    if (!villageForm.name.trim()) {
+      setFormErrors({ village: 'Village name is required' });
+      return;
+    }
+
+    try {
+      await handleVillageSubmit(e);
+      setSuccessMessage(editingVillage ? 'Village updated successfully!' : 'Village created successfully!');
+      setFormErrors({});
+    } catch (error) {
+      setFormErrors({ village: 'Failed to save village. Please try again.' });
+    }
+  };
+
+  return (
+    <div className="space-y-6 page-transition">
+      {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Cities & Villages Management</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-slate-900">Cities & Villages Management</h1>
+          <p className="text-slate-600 mt-2">
             Manage Palestinian cities and their villages in one unified view.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
-            onClick={() => openCityModal()}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition"
+            onClick={() => {
+              openCityModal();
+              setFormErrors({});
+              setSuccessMessage(null);
+            }}
+            className="btn-primary flex items-center gap-2"
           >
-            + Add City
+            <Plus className="w-5 h-5" />
+            Add City
           </button>
           <button
-            onClick={() => openVillageModal()}
+            onClick={() => {
+              openVillageModal();
+              setFormErrors({});
+              setSuccessMessage(null);
+            }}
             disabled={!selectedCityId}
-            className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
+            className="btn-primary flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            + Add Village
+            <Plus className="w-5 h-5" />
+            Add Village
           </button>
         </div>
       </div>
 
+      {/* Success Message */}
+      {successMessage && (
+        <div className="card bg-green-50 border-green-200 p-4 flex items-center gap-3">
+          <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
+          <p className="text-green-800 font-medium">{successMessage}</p>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="ml-auto text-green-600 hover:text-green-800"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">Search Cities</label>
+        {/* Cities Section */}
+        <section className="card p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Building2 className="w-6 h-6 text-blue-600" />
+            <h2 className="text-xl font-semibold text-slate-900">Cities</h2>
+          </div>
+
+          {/* Search and Filter */}
+          <div className="space-y-4 mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="text"
                 value={citySearch}
-                onChange={(event) => setCitySearch(event.target.value)}
-                placeholder="Search by city name"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                onChange={(e) => setCitySearch(e.target.value)}
+                placeholder="Search by city name..."
+                className="input pl-10"
               />
             </div>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
                 checked={showInactiveCities}
-                onChange={(event) => setShowInactiveCities(event.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                onChange={(e) => setShowInactiveCities(e.target.checked)}
+                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
-              Show inactive
+              <span>Show inactive cities</span>
             </label>
           </div>
 
+          {/* Error Message */}
           {citiesError && (
-            <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-md">
-              {citiesError}
+            <div className="mb-4 card bg-red-50 border-red-200 p-4 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <p className="text-red-800 text-sm">{citiesError}</p>
             </div>
           )}
 
+          {/* Cities List */}
           {loadingCities ? (
-            <div className="bg-white shadow rounded-md p-6 text-center text-gray-500">
-              Loading cities...
+            <div className="card p-12 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-slate-600">Loading cities...</p>
             </div>
           ) : filteredCities.length === 0 ? (
-            <div className="bg-white shadow rounded-md p-6 text-center text-gray-500">
-              No cities match your filters. Try adjusting the search or toggle inactive cities.
+            <div className="card p-12 text-center text-slate-500">
+              <MapPin className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p>No cities match your filters.</p>
+              <p className="text-sm mt-1">Try adjusting the search or toggle inactive cities.</p>
             </div>
           ) : (
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      City
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Villages
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredCities.map((city) => {
-                    const isSelected = city._id === selectedCityId;
-                    return (
-                      <tr
-                        key={city._id}
-                        className={`cursor-pointer transition ${
-                          isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
-                        }`}
-                        onClick={() => setSelectedCityId(city._id)}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{city.name}</div>
-                          <div className="text-sm text-gray-500">
-                            Villages: {city.villagesCount ?? 0}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+            <div className="space-y-2">
+              {filteredCities.map((city) => {
+                const isSelected = city._id === selectedCityId;
+                return (
+                  <div
+                    key={city._id}
+                    onClick={() => setSelectedCityId(city._id)}
+                    className={`
+                      card p-4 cursor-pointer transition-all duration-200
+                      ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md'}
+                    `}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-lg font-semibold text-slate-900">{city.name}</h3>
                           <span
-                            className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               city.isActive
                                 ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-700'
+                                : 'bg-slate-100 text-slate-700'
                             }`}
                           >
                             {city.isActive ? 'Active' : 'Inactive'}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {city.villagesCount ?? 0}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                          <button
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openCityModal(city);
-                            }}
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={async (event) => {
-                              event.stopPropagation();
-                              await handleToggleCityStatus(city);
-                            }}
-                            className="text-yellow-600 hover:text-yellow-800"
-                          >
-                            {city.isActive ? 'Deactivate' : 'Activate'}
-                          </button>
-                          <button
-                            onClick={async (event) => {
-                              event.stopPropagation();
+                        </div>
+                        <p className="text-sm text-slate-600">
+                          {city.villagesCount ?? 0} village{city.villagesCount !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openCityModal(city);
+                            setFormErrors({});
+                          }}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit City"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleToggleCityStatus(city);
+                          }}
+                          className={`p-2 rounded-lg transition-colors ${
+                            city.isActive
+                              ? 'text-amber-600 hover:bg-amber-50'
+                              : 'text-green-600 hover:bg-green-50'
+                          }`}
+                          title={city.isActive ? 'Deactivate' : 'Activate'}
+                        >
+                          <Power className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (confirm(`Are you sure you want to delete "${city.name}"?`)) {
                               await handleDeleteCity(city);
-                            }}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            }
+                          }}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete City"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
 
-        <section className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">
-                {selectedCity ? `Villages in ${selectedCity.name}` : 'Village List'}
-              </label>
-              <input
-                type="text"
-                value={villageSearch}
-                onChange={(event) => setVillageSearch(event.target.value)}
-                placeholder="Search by village name"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={showInactiveVillages}
-                onChange={(event) => setShowInactiveVillages(event.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              Show inactive
-            </label>
+        {/* Villages Section */}
+        <section className="card p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <MapPin className="w-6 h-6 text-green-600" />
+            <h2 className="text-xl font-semibold text-slate-900">
+              {selectedCity ? `Villages in ${selectedCity.name}` : 'Villages'}
+            </h2>
           </div>
 
-          {villagesError && (
-            <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-md">
-              {villagesError}
+          {/* Search and Filter */}
+          {selectedCityId && (
+            <div className="space-y-4 mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  value={villageSearch}
+                  onChange={(e) => setVillageSearch(e.target.value)}
+                  placeholder="Search by village name..."
+                  className="input pl-10"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showInactiveVillages}
+                  onChange={(e) => setShowInactiveVillages(e.target.checked)}
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>Show inactive villages</span>
+              </label>
             </div>
           )}
 
+          {/* Error Message */}
+          {villagesError && (
+            <div className="mb-4 card bg-red-50 border-red-200 p-4 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <p className="text-red-800 text-sm">{villagesError}</p>
+            </div>
+          )}
+
+          {/* Villages List */}
           {!selectedCityId ? (
-            <div className="bg-white shadow rounded-md p-6 text-center text-gray-500">
-              Select a city to view and manage its villages.
+            <div className="card p-12 text-center text-slate-500">
+              <MapPin className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p>Select a city to view and manage its villages.</p>
             </div>
           ) : loadingVillages ? (
-            <div className="bg-white shadow rounded-md p-6 text-center text-gray-500">
-              Loading villages...
+            <div className="card p-12 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              <p className="mt-4 text-slate-600">Loading villages...</p>
             </div>
           ) : filteredVillages.length === 0 ? (
-            <div className="bg-white shadow rounded-md p-6 text-center text-gray-500">
-              No villages found for the selected city. Use the &ldquo;Add Village&rdquo; button to
-              create one.
+            <div className="card p-12 text-center text-slate-500">
+              <MapPin className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p>No villages found for the selected city.</p>
+              <p className="text-sm mt-1">Use the "Add Village" button to create one.</p>
             </div>
           ) : (
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Village
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredVillages.map((village) => (
-                    <tr key={village._id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {village.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+            <div className="space-y-2">
+              {filteredVillages.map((village) => (
+                <div
+                  key={village._id}
+                  className="card p-4 hover:shadow-md transition-all duration-200"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-slate-900">{village.name}</h3>
                         <span
-                          className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             village.isActive
                               ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-700'
+                              : 'bg-slate-100 text-slate-700'
                           }`}
                         >
                           {village.isActive ? 'Active' : 'Inactive'}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                        <button
-                          onClick={() => openVillageModal(village)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={async () => {
-                            await handleToggleVillageStatus(village);
-                          }}
-                          className="text-yellow-600 hover:text-yellow-800"
-                        >
-                          {village.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={async () => {
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        onClick={() => {
+                          openVillageModal(village);
+                          setFormErrors({});
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit Village"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await handleToggleVillageStatus(village);
+                        }}
+                        className={`p-2 rounded-lg transition-colors ${
+                          village.isActive
+                            ? 'text-amber-600 hover:bg-amber-50'
+                            : 'text-green-600 hover:bg-green-50'
+                        }`}
+                        title={village.isActive ? 'Deactivate' : 'Activate'}
+                      >
+                        <Power className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (confirm(`Are you sure you want to delete "${village.name}"?`)) {
                             await handleDeleteVillage(village);
-                          }}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          }
+                        }}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete Village"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </section>
       </div>
 
+      {/* City Modal */}
       {isCityModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {editingCity ? 'Edit City' : 'Add City'}
-              </h2>
-              <button onClick={closeCityModal} className="text-gray-400 hover:text-gray-600">
-                ✕
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
+              <div className="flex items-center gap-3">
+                <Building2 className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-slate-900">
+                  {editingCity ? 'Edit City' : 'Add New City'}
+                </h2>
+              </div>
+              <button
+                onClick={() => {
+                  closeCityModal();
+                  setFormErrors({});
+                }}
+                className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleCitySubmit} className="px-6 py-5 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleCitySubmitWithFeedback} className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* City Name */}
               <div>
-                <label htmlFor="cityName" className="block text-sm font-medium text-gray-700">
-                  City Name
+                <label htmlFor="cityName" className="block text-sm font-medium text-slate-700 mb-2">
+                  City Name *
                 </label>
                 <input
                   id="cityName"
                   type="text"
                   value={cityForm.name}
-                  onChange={(event) =>
-                    setCityForm((prev) => ({ ...prev, name: event.target.value }))
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  onChange={(e) => {
+                    setCityForm((prev) => ({ ...prev, name: e.target.value }));
+                    if (formErrors.city) setFormErrors({});
+                  }}
+                  className={`input ${formErrors.city ? 'border-red-300 focus:ring-red-500' : ''}`}
                   placeholder="Enter city name"
                   autoFocus
                 />
+                {formErrors.city && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {formErrors.city}
+                  </p>
+                )}
               </div>
 
-              <div className="pt-4 border-t border-gray-200">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-900">Service Center Configuration</h3>
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
+              {/* Service Center Configuration */}
+              <div className="pt-4 border-t border-slate-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-slate-900">Service Center Configuration</h3>
+                  <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={cityForm.serviceCenter !== null && cityForm.serviceCenter !== undefined}
-                      onChange={(event) => {
-                        if (event.target.checked) {
+                      onChange={(e) => {
+                        if (e.target.checked) {
                           setCityForm((prev) => ({
                             ...prev,
                             serviceCenter: {
@@ -354,17 +478,17 @@ return (
                           setCityForm((prev) => ({ ...prev, serviceCenter: null }));
                         }
                       }}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                     />
-                    Enable Service Center
+                    <span>Enable Service Center</span>
                   </label>
                 </div>
 
                 {cityForm.serviceCenter && (
-                  <div className="space-y-4 mt-4">
-                    <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4 mt-4 bg-slate-50 p-4 rounded-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="serviceCenterLat" className="block text-xs font-medium text-gray-700 mb-1">
+                        <label htmlFor="serviceCenterLat" className="block text-xs font-medium text-slate-700 mb-1">
                           Center Latitude
                         </label>
                         <input
@@ -374,7 +498,7 @@ return (
                           min="-90"
                           max="90"
                           value={cityForm.serviceCenter.center.lat}
-                          onChange={(event) =>
+                          onChange={(e) =>
                             setCityForm((prev) => ({
                               ...prev,
                               serviceCenter: prev.serviceCenter
@@ -382,18 +506,18 @@ return (
                                     ...prev.serviceCenter,
                                     center: {
                                       ...prev.serviceCenter.center,
-                                      lat: Number(event.target.value),
+                                      lat: Number(e.target.value),
                                     },
                                   }
                                 : undefined,
                             }))
                           }
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          className="input text-sm"
                           placeholder="0.0"
                         />
                       </div>
                       <div>
-                        <label htmlFor="serviceCenterLng" className="block text-xs font-medium text-gray-700 mb-1">
+                        <label htmlFor="serviceCenterLng" className="block text-xs font-medium text-slate-700 mb-1">
                           Center Longitude
                         </label>
                         <input
@@ -403,7 +527,7 @@ return (
                           min="-180"
                           max="180"
                           value={cityForm.serviceCenter.center.lng}
-                          onChange={(event) =>
+                          onChange={(e) =>
                             setCityForm((prev) => ({
                               ...prev,
                               serviceCenter: prev.serviceCenter
@@ -411,20 +535,20 @@ return (
                                     ...prev.serviceCenter,
                                     center: {
                                       ...prev.serviceCenter.center,
-                                      lng: Number(event.target.value),
+                                      lng: Number(e.target.value),
                                     },
                                   }
                                 : undefined,
                             }))
                           }
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          className="input text-sm"
                           placeholder="0.0"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label htmlFor="serviceAreaRadius" className="block text-xs font-medium text-gray-700 mb-1">
+                      <label htmlFor="serviceAreaRadius" className="block text-xs font-medium text-slate-700 mb-1">
                         Service Area Radius (km)
                       </label>
                       <input
@@ -434,26 +558,26 @@ return (
                         min="1"
                         max="500"
                         value={cityForm.serviceCenter.serviceAreaRadiusKm}
-                        onChange={(event) =>
+                        onChange={(e) =>
                           setCityForm((prev) => ({
                             ...prev,
                             serviceCenter: prev.serviceCenter
                               ? {
                                   ...prev.serviceCenter,
-                                  serviceAreaRadiusKm: Number(event.target.value),
+                                  serviceAreaRadiusKm: Number(e.target.value),
                                 }
                               : undefined,
                           }))
                         }
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                        className="input text-sm"
                         placeholder="20"
                       />
-                      <p className="mt-1 text-xs text-gray-500">Coverage radius for this city (1-500 km)</p>
+                      <p className="mt-1 text-xs text-slate-500">Coverage radius for this city (1-500 km)</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="internalOrderRadius" className="block text-xs font-medium text-gray-700 mb-1">
+                        <label htmlFor="internalOrderRadius" className="block text-xs font-medium text-slate-700 mb-1">
                           Internal Orders Radius (km)
                         </label>
                         <input
@@ -463,24 +587,24 @@ return (
                           min="1"
                           max="100"
                           value={cityForm.serviceCenter.internalOrderRadiusKm}
-                          onChange={(event) =>
+                          onChange={(e) =>
                             setCityForm((prev) => ({
                               ...prev,
                               serviceCenter: prev.serviceCenter
                                 ? {
                                     ...prev.serviceCenter,
-                                    internalOrderRadiusKm: Number(event.target.value),
+                                    internalOrderRadiusKm: Number(e.target.value),
                                   }
                                 : undefined,
                             }))
                           }
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          className="input text-sm"
                           placeholder="5"
                         />
-                        <p className="mt-1 text-xs text-gray-500">For orders inside city</p>
+                        <p className="mt-1 text-xs text-slate-500">For orders inside city</p>
                       </div>
                       <div>
-                        <label htmlFor="externalOrderRadius" className="block text-xs font-medium text-gray-700 mb-1">
+                        <label htmlFor="externalOrderRadius" className="block text-xs font-medium text-slate-700 mb-1">
                           External Orders Radius (km)
                         </label>
                         <input
@@ -490,40 +614,41 @@ return (
                           min="1"
                           max="100"
                           value={cityForm.serviceCenter.externalOrderRadiusKm}
-                          onChange={(event) =>
+                          onChange={(e) =>
                             setCityForm((prev) => ({
                               ...prev,
                               serviceCenter: prev.serviceCenter
                                 ? {
                                     ...prev.serviceCenter,
-                                    externalOrderRadiusKm: Number(event.target.value),
+                                    externalOrderRadiusKm: Number(e.target.value),
                                   }
                                 : undefined,
                             }))
                           }
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          className="input text-sm"
                           placeholder="10"
                         />
-                        <p className="mt-1 text-xs text-gray-500">For orders outside city</p>
+                        <p className="mt-1 text-xs text-slate-500">For orders outside city</p>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex justify-end space-x-3 pt-2 border-t border-gray-200">
+              {/* Form Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
                   type="button"
-                  onClick={closeCityModal}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                  onClick={() => {
+                    closeCityModal();
+                    setFormErrors({});
+                  }}
+                  className="btn-secondary"
+                  disabled={isSavingCity}
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSavingCity}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60"
-                >
+                <button type="submit" className="btn-primary" disabled={isSavingCity}>
                   {isSavingCity ? 'Saving...' : editingCity ? 'Save Changes' : 'Create City'}
                 </button>
               </div>
@@ -532,54 +657,72 @@ return (
         </div>
       )}
 
+      {/* Village Modal */}
       {isVillageModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {editingVillage ? 'Edit Village' : 'Add Village'}
-                </h2>
+                <div className="flex items-center gap-3 mb-1">
+                  <MapPin className="w-6 h-6 text-green-600" />
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    {editingVillage ? 'Edit Village' : 'Add New Village'}
+                  </h2>
+                </div>
                 {selectedCity && (
-                  <p className="text-sm text-gray-500">City: {selectedCity.name}</p>
+                  <p className="text-sm text-slate-600 ml-9">City: {selectedCity.name}</p>
                 )}
               </div>
-              <button onClick={closeVillageModal} className="text-gray-400 hover:text-gray-600">
-                ✕
+              <button
+                onClick={() => {
+                  closeVillageModal();
+                  setFormErrors({});
+                }}
+                className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleVillageSubmit} className="px-6 py-5 space-y-4">
+            <form onSubmit={handleVillageSubmitWithFeedback} className="p-6 space-y-4">
               <div>
-                <label htmlFor="villageName" className="block text-sm font-medium text-gray-700">
-                  Village Name
+                <label htmlFor="villageName" className="block text-sm font-medium text-slate-700 mb-2">
+                  Village Name *
                 </label>
                 <input
                   id="villageName"
                   type="text"
                   value={villageForm.name}
-                  onChange={(event) =>
-                    setVillageForm((prev) => ({ ...prev, name: event.target.value }))
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  onChange={(e) => {
+                    setVillageForm((prev) => ({ ...prev, name: e.target.value }));
+                    if (formErrors.village) setFormErrors({});
+                  }}
+                  className={`input ${formErrors.village ? 'border-red-300 focus:ring-red-500' : ''}`}
                   placeholder="Enter village name"
                   autoFocus
                 />
+                {formErrors.village && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {formErrors.village}
+                  </p>
+                )}
               </div>
-              {villagesError && (
-                <div className="text-sm text-red-600">{villagesError}</div>
-              )}
-              <div className="flex justify-end space-x-3 pt-2">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
                   type="button"
-                  onClick={closeVillageModal}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                  onClick={() => {
+                    closeVillageModal();
+                    setFormErrors({});
+                  }}
+                  className="btn-secondary"
+                  disabled={isSavingVillage}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  className="btn-primary bg-green-600 hover:bg-green-700"
                   disabled={isSavingVillage}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-60"
                 >
                   {isSavingVillage ? 'Saving...' : editingVillage ? 'Save Changes' : 'Create Village'}
                 </button>
@@ -593,4 +736,3 @@ return (
 };
 
 export default Cities;
-

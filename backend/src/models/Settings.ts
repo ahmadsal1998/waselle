@@ -14,6 +14,11 @@ export interface ISettings extends Document {
     lng: number;
   }; // Center point of the service area
   serviceAreaRadiusKm: number; // Radius in kilometers that defines the service area boundary
+  mapDefaultCenter: {
+    lat: number;
+    lng: number;
+  }; // Default center point for the map view
+  mapDefaultZoom: number; // Default zoom level for the map view
   vehicleTypes: {
     bike: VehicleTypeConfig;
     car: VehicleTypeConfig;
@@ -68,6 +73,25 @@ const SettingsSchema: Schema = new Schema(
       min: 1,
       max: 500,
     },
+    mapDefaultCenter: {
+      lat: {
+        type: Number,
+        required: true,
+        default: 32.462502185826004, // Default coordinates for Palestine
+      },
+      lng: {
+        type: Number,
+        required: true,
+        default: 35.29172911766705,
+      },
+    },
+    mapDefaultZoom: {
+      type: Number,
+      required: true,
+      default: 12, // Default zoom level
+      min: 1,
+      max: 18,
+    },
     vehicleTypes: {
       bike: {
         enabled: {
@@ -119,6 +143,8 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
       externalOrderRadiusKm: 10,
       serviceAreaCenter: { lat: 0, lng: 0 },
       serviceAreaRadiusKm: 20,
+      mapDefaultCenter: { lat: 32.462502185826004, lng: 35.29172911766705 },
+      mapDefaultZoom: 12,
       vehicleTypes: {
         bike: { enabled: true, basePrice: 5 },
         car: { enabled: true, basePrice: 10 },
@@ -138,6 +164,13 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
     }
     if (settings.serviceAreaRadiusKm === undefined) {
       settings.serviceAreaRadiusKm = 20;
+    }
+    // Migrate map default center if needed
+    if (!settings.mapDefaultCenter || settings.mapDefaultCenter.lat === undefined) {
+      settings.mapDefaultCenter = { lat: 32.462502185826004, lng: 35.29172911766705 };
+    }
+    if (settings.mapDefaultZoom === undefined) {
+      settings.mapDefaultZoom = 12;
     }
     // Migrate vehicle types if needed
     if (!settings.vehicleTypes) {

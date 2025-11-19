@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:delivery_user_app/l10n/app_localizations.dart';
+import 'package:geocoding/geocoding.dart';
 
 import '../../view_models/order_view_model.dart';
 
@@ -14,6 +15,8 @@ class OrderHistoryScreen extends StatefulWidget {
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   bool _isLoading = false;
   bool _isInitialized = false;
+  // Cache to store geocoded addresses by coordinate key
+  final Map<String, String> _addressCache = {};
 
   Future<void> _loadOrders(OrderViewModel orderProvider) async {
     setState(() => _isLoading = true);
@@ -80,8 +83,14 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   ? '${createdAt.day}/${createdAt.month}/${createdAt.year} ${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}'
                   : l10n.unknownDate;
 
+              // Alternate background colors: shade200 for even indices (starting with first card), shade100 for odd indices
+              final cardColor = index % 2 == 0
+                  ? Colors.grey.shade100
+                  : Colors.grey.shade50;
+
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
+                color: cardColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -127,9 +136,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                               color: Colors.blue, size: 20),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              _formatLocation(order['pickupLocation']),
-                              style: const TextStyle(fontSize: 14),
+                            child: _LocationText(
+                              location: order['pickupLocation'],
+                              addressCache: _addressCache,
                             ),
                           ),
                         ],
@@ -141,9 +150,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                               color: Colors.green, size: 20),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              _formatLocation(order['dropoffLocation']),
-                              style: const TextStyle(fontSize: 14),
+                            child: _LocationText(
+                              location: order['dropoffLocation'],
+                              addressCache: _addressCache,
                             ),
                           ),
                         ],
@@ -195,16 +204,173 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     }
   }
 
-  String _formatLocation(Map<String, dynamic>? location) {
-    if (location == null) return 'Unknown location';
-    final latValue = location['lat'];
-    final lngValue = location['lng'];
-    if (latValue == null || lngValue == null) return 'Unknown location';
-    final lat =
-        latValue is num ? latValue.toDouble() : double.tryParse('$latValue');
-    final lng =
-        lngValue is num ? lngValue.toDouble() : double.tryParse('$lngValue');
-    if (lat == null || lng == null) return 'Unknown location';
-    return '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
+}
+
+// Widget to handle async loading of location names
+class _LocationText extends StatefulWidget {
+  const _LocationText({
+    required this.location,
+    required this.addressCache,
+  });
+
+  final Map<String, dynamic>? location;
+  final Map<String, String> addressCache;
+
+  @override
+  State<_LocationText> createState() => _LocationTextState();
+}
+
+class _LocationTextState extends State<_LocationText> {
+  String _displayText = '';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocationName();
+  }
+
+  Future<void> _loadLocationName() async {
+    if (widget.location == null) {
+      setState(() {
+        _displayText = 'Unknown location';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final latValue = widget.location!['lat'];
+    final lngValue = widget.location!['lng'];
+    
+    if (latValue == null || lngValue == null) {
+      setState(() {
+        _displayText = 'Unknown location';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final lat = latValue is num 
+        ? latValue.toDouble() 
+        : double.tryParse('$latValue');
+    final lng = lngValue is num 
+        ? lngValue.toDouble() 
+        : double.tryParse('$lngValue');
+
+    if (lat == null || lng == null) {
+      setState(() {
+        _displayText = 'Unknown location';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Show coordinates initially while loading
+    setState(() {
+      _displayText = '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
+    });
+
+    try {
+      final areaName = await _getAreaName(lat, lng, widget.addressCache);
+      if (mounted) {
+        setState(() {
+          _displayText = areaName;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      // Keep coordinates as fallback
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<String> _getAreaName(
+    double latitude,
+    double longitude,
+    Map<String, String> cache,
+  ) async {
+    // Create a cache key from coordinates (rounded to 4 decimal places)
+    final cacheKey = '${latitude.toStringAsFixed(4)},${longitude.toStringAsFixed(4)}';
+    
+    // Check cache first
+    if (cache.containsKey(cacheKey)) {
+      return cache[cacheKey]!;
+    }
+
+    try {
+      final placemarks = await placemarkFromCoordinates(latitude, longitude);
+      
+      if (placemarks.isNotEmpty) {
+        final placemark = placemarks.first;
+        final areaName = _formatPlacemarkAddress(placemark, latitude, longitude);
+        
+        // Cache the result
+        cache[cacheKey] = areaName;
+        return areaName;
+      } else {
+        // Fallback to coordinates if no placemark found
+        final fallback = '${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}';
+        cache[cacheKey] = fallback;
+        return fallback;
+      }
+    } catch (e) {
+      // Fallback to coordinates on error
+      final fallback = '${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}';
+      cache[cacheKey] = fallback;
+      return fallback;
+    }
+  }
+
+  String _formatPlacemarkAddress(
+    Placemark placemark,
+    double latitude,
+    double longitude,
+  ) {
+    final parts = <String>[];
+    
+    // Prioritize locality (city/town), subLocality (neighborhood), and administrativeArea (region)
+    if (placemark.locality?.isNotEmpty ?? false) {
+      parts.add(placemark.locality!);
+    }
+    
+    if (placemark.subLocality?.isNotEmpty ?? false) {
+      // If we have both locality and subLocality, format as "City - Neighborhood"
+      if (parts.isNotEmpty) {
+        parts.insert(parts.length - 1, placemark.subLocality!);
+        return parts.join(' – ');
+      } else {
+        parts.add(placemark.subLocality!);
+      }
+    }
+    
+    // Add administrative area if we don't have enough info
+    if (parts.length < 2 && (placemark.administrativeArea?.isNotEmpty ?? false)) {
+      if (parts.isEmpty) {
+        parts.add(placemark.administrativeArea!);
+      } else {
+        parts.add(placemark.administrativeArea!);
+        return parts.join(' – ');
+      }
+    }
+    
+    // If we have parts, return them joined
+    if (parts.isNotEmpty) {
+      return parts.join(' – ');
+    }
+    
+    // Fallback to coordinates if no meaningful address parts found
+    return '${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      _displayText,
+      style: const TextStyle(fontSize: 14),
+    );
   }
 }

@@ -3,9 +3,12 @@ import type { LatLngExpression, LatLngTuple } from 'leaflet';
 import { getOrders } from '@/services/orderService';
 import { getUsers } from '@/services/userService';
 import { getRoute } from '@/services/routeService';
+import { getSettings } from '@/services/settingsService';
 import type { ApiUser, Driver, Customer, Order, OrderStatus } from '@/types';
 
-const DEFAULT_LOCATION: LatLngExpression = [51.505, -0.09];
+// Default coordinates for Palestine (can be overridden by settings)
+const DEFAULT_LOCATION: LatLngExpression = [32.462502185826004, 35.29172911766705];
+const DEFAULT_ZOOM = 12;
 const TRACKED_ORDER_STATUSES: readonly OrderStatus[] = ['pending', 'accepted', 'on_the_way'];
 
 const isTrackedStatus = (status: string): status is OrderStatus =>
@@ -39,6 +42,8 @@ export const useMapData = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [routes, setRoutes] = useState<Map<string, LatLngTuple[]>>(new Map());
   const [userLocation, setUserLocation] = useState<LatLngExpression | null>(null);
+  const [mapDefaultCenter, setMapDefaultCenter] = useState<LatLngExpression>(DEFAULT_LOCATION);
+  const [mapDefaultZoom, setMapDefaultZoom] = useState<number>(DEFAULT_ZOOM);
   const [dataLoading, setDataLoading] = useState(true);
   const [locationLoading, setLocationLoading] = useState(true);
   const [loadingRoutes, setLoadingRoutes] = useState(false);
@@ -103,17 +108,35 @@ export const useMapData = () => {
     }
   }, [calculateRoutes]);
 
+  const loadMapSettings = useCallback(async () => {
+    try {
+      const settings = await getSettings();
+      if (settings.mapDefaultCenter) {
+        setMapDefaultCenter([settings.mapDefaultCenter.lat, settings.mapDefaultCenter.lng]);
+      }
+      if (settings.mapDefaultZoom !== undefined) {
+        setMapDefaultZoom(settings.mapDefaultZoom);
+      }
+    } catch (error) {
+      console.error('Error loading map settings:', error);
+      // Use defaults if settings fail to load
+    }
+  }, []);
+
   const determineUserLocation = useCallback(() => {
-    setUserLocation(DEFAULT_LOCATION);
+    // Use map default center from settings instead of hardcoded default
+    setUserLocation(mapDefaultCenter);
     setLocationLoading(false);
 
+    // Optionally try to get user's actual location, but fallback to settings default
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          // Only use user location if we have valid coordinates
           setUserLocation([position.coords.latitude, position.coords.longitude]);
         },
         () => {
-          // Silent failure; retain default location
+          // Silent failure; retain default location from settings
         },
         {
           timeout: 5000,
@@ -122,12 +145,22 @@ export const useMapData = () => {
         }
       );
     }
-  }, []);
+  }, [mapDefaultCenter]);
+
+  useEffect(() => {
+    void loadMapSettings();
+  }, [loadMapSettings]);
 
   useEffect(() => {
     void fetchData();
-    determineUserLocation();
-  }, [fetchData, determineUserLocation]);
+  }, [fetchData]);
+
+  useEffect(() => {
+    // Wait for map settings to load before determining location
+    if (mapDefaultCenter) {
+      determineUserLocation();
+    }
+  }, [mapDefaultCenter, determineUserLocation]);
 
   useEffect(() => {
     if (!dataLoading && !locationLoading) {
@@ -135,7 +168,7 @@ export const useMapData = () => {
     }
   }, [dataLoading, locationLoading]);
 
-  const mapCenter = useMemo<LatLngExpression>(() => userLocation ?? DEFAULT_LOCATION, [userLocation]);
+  const mapCenter = useMemo<LatLngExpression>(() => userLocation ?? mapDefaultCenter, [userLocation, mapDefaultCenter]);
 
   return {
     drivers,
@@ -145,6 +178,7 @@ export const useMapData = () => {
     loadingRoutes,
     isLoading,
     mapCenter,
+    mapZoom: mapDefaultZoom,
     refresh: fetchData,
   };
 };

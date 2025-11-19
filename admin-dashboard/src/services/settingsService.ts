@@ -15,6 +15,11 @@ export interface Settings {
     lng: number;
   };
   serviceAreaRadiusKm: number;
+  mapDefaultCenter?: {
+    lat: number;
+    lng: number;
+  };
+  mapDefaultZoom?: number;
   vehicleTypes?: {
     bike: VehicleTypeConfig;
     car: VehicleTypeConfig;

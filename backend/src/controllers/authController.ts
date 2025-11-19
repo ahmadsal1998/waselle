@@ -135,6 +135,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Check if driver account is active
+    if (user.role === 'driver' && user.isActive === false) {
+      res.status(403).json({ message: 'Your account has been deactivated. Please contact administrator.' });
+      return;
+    }
+
     if (!user.isEmailVerified) {
       res.status(401).json({ message: 'Please verify your email first' });
       return;

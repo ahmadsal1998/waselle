@@ -17,14 +17,19 @@ const Dashboard = () => {
   const { stats, isLoading, error } = useDashboardStats();
 
   if (isLoading) {
-    return <div className="text-center py-12">Loading...</div>;
+    return (
+      <div className="text-center py-12">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p className="mt-4 text-slate-600">Loading dashboard data...</p>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-        <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-md">
+      <div className="space-y-4 page-transition">
+        <h1 className="text-3xl font-bold text-slate-900">Dashboard Overview</h1>
+        <div className="card bg-red-50 border-red-200 text-red-700 px-4 py-3">
           {error}
         </div>
       </div>
@@ -32,7 +37,11 @@ const Dashboard = () => {
   }
 
   if (!stats) {
-    return <div className="text-center py-12">No data available</div>;
+    return (
+      <div className="text-center py-12">
+        <p className="text-slate-600">No data available</p>
+      </div>
+    );
   }
 
   const chartData = [
@@ -42,68 +51,79 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+    <div className="space-y-6 page-transition">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900">Dashboard Overview</h1>
+        <p className="mt-2 text-slate-600">Welcome back! Here's what's happening today.</p>
+      </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="card overflow-hidden">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="text-3xl">👥</div>
+                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <span className="text-2xl">👥</span>
+                </div>
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Users</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.totalUsers}</dd>
+                  <dt className="text-sm font-medium text-slate-500 truncate">Total Users</dt>
+                  <dd className="text-lg font-semibold text-slate-900">{stats.totalUsers}</dd>
                 </dl>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="card overflow-hidden">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="text-3xl">🚗</div>
+                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                  <span className="text-2xl">🚗</span>
+                </div>
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Drivers</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.totalDrivers}</dd>
+                  <dt className="text-sm font-medium text-slate-500 truncate">Total Drivers</dt>
+                  <dd className="text-lg font-semibold text-slate-900">{stats.totalDrivers}</dd>
                 </dl>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="card overflow-hidden">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="text-3xl">📦</div>
+                <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <span className="text-2xl">📦</span>
+                </div>
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Orders</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.totalOrders}</dd>
+                  <dt className="text-sm font-medium text-slate-500 truncate">Total Orders</dt>
+                  <dd className="text-lg font-semibold text-slate-900">{stats.totalOrders}</dd>
                 </dl>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
+        <div className="card overflow-hidden">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="text-3xl">⚡</div>
+                <div className="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                  <span className="text-2xl">⚡</span>
+                </div>
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Active Orders</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.activeOrders}</dd>
+                  <dt className="text-sm font-medium text-slate-500 truncate">Active Orders</dt>
+                  <dd className="text-lg font-semibold text-slate-900">{stats.activeOrders}</dd>
                 </dl>
               </div>
             </div>
@@ -112,8 +132,8 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Orders Status</h2>
+        <div className="card p-6">
+          <h2 className="text-xl font-semibold mb-4 text-slate-900">Orders Status</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -135,16 +155,16 @@ const Dashboard = () => {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Orders Overview</h2>
+        <div className="card p-6">
+          <h2 className="text-xl font-semibold mb-4 text-slate-900">Orders Overview</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="name" stroke="#64748b" />
+              <YAxis stroke="#64748b" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="value" fill="#3b82f6" />
+              <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

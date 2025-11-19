@@ -30,16 +30,16 @@ const MapCenter = ({ center }: { center: LatLngExpression }) => {
 };
 
 const MapView = () => {
-  const { drivers, customers, orders, routes, isLoading, loadingRoutes, mapCenter } = useMapData();
+  const { drivers, customers, orders, routes, isLoading, loadingRoutes, mapCenter, mapZoom } = useMapData();
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">Map View</h1>
-        <div className="flex items-center justify-center h-[600px]">
+      <div className="space-y-6 page-transition">
+        <h1 className="text-3xl font-bold text-slate-900">Map View</h1>
+        <div className="flex items-center justify-center h-[calc(100vh-300px)] min-h-[600px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading map...</p>
+            <p className="mt-4 text-slate-600">Loading map...</p>
           </div>
         </div>
       </div>
@@ -47,10 +47,19 @@ const MapView = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Map View</h1>
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        <MapContainer center={mapCenter} zoom={2} style={{ height: '600px', width: '100%' }} scrollWheelZoom>
+    <div className="space-y-6 page-transition">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900">Map View</h1>
+        <p className="mt-2 text-slate-600">Real-time view of drivers, customers, and orders</p>
+      </div>
+      <div className="card overflow-hidden p-0">
+        <MapContainer 
+          center={mapCenter} 
+          zoom={mapZoom} 
+          style={{ height: 'calc(100vh - 300px)', minHeight: '600px', width: '100%' }} 
+          scrollWheelZoom={true}
+          className="z-0"
+        >
           <MapCenter center={mapCenter} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -198,32 +207,32 @@ const MapView = () => {
           })}
         </MapContainer>
       </div>
-      <div className="bg-white p-4 rounded-lg shadow">
+      <div className="card p-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-            <span className="text-sm">Drivers</span>
+            <span className="text-sm text-slate-700 font-medium">Drivers</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
-            <span className="text-sm">Customers</span>
+            <span className="text-sm text-slate-700 font-medium">Customers</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-            <span className="text-sm">Pickup Points</span>
+            <span className="text-sm text-slate-700 font-medium">Pickup Points</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-cyan-500 rounded-full"></div>
-            <span className="text-sm">Drop-off Points</span>
+            <span className="text-sm text-slate-700 font-medium">Drop-off Points</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-1 h-8 bg-blue-500"></div>
-            <span className="text-sm">Driver-Customer Routes</span>
+            <span className="text-sm text-slate-700 font-medium">Driver-Customer Routes</span>
           </div>
           {loadingRoutes && (
             <div className="flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              <span className="text-sm text-gray-600">Calculating routes...</span>
+              <span className="text-sm text-slate-600">Calculating routes...</span>
             </div>
           )}
         </div>

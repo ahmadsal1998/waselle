@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../view_models/auth_view_model.dart';
 import '../home/home_screen.dart';
-import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -129,18 +128,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           l10n.signIn,
                           style: const TextStyle(fontSize: 16, color: Colors.white),
                         ),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const RegisterScreen(),
-                      ),
-                    );
-                  },
-                  child: Text(l10n.dontHaveAccount),
                 ),
               ],
             ),

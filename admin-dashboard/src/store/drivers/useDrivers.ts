@@ -1,30 +1,49 @@
-import { useCallback, useEffect, useState } from 'react';
-import { getUsers } from '@/services/userService';
+import { useEffect, useState } from 'react';
+import { getDrivers, type DriverFilters } from '@/services/driverService';
 import type { Driver } from '@/types';
 
-export const useDrivers = () => {
+export const useDrivers = (filters?: DriverFilters) => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchDrivers = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchDrivers = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const driverUsers = await getDrivers(filters);
+        if (!cancelled) {
+          setDrivers(driverUsers);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          console.error('Failed to fetch drivers:', err);
+          const errorMessage = err?.response?.data?.message || err?.message || 'Failed to fetch drivers';
+          setError(errorMessage);
+          setDrivers([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void fetchDrivers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filters?.search, filters?.status]); // Depend on filter values, not the object
+
+  const refresh = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const users = await getUsers();
-      const driverUsers = users
-        .filter((user) => user.role === 'driver')
-        .map<Driver>((driver) => ({
-          _id: driver._id,
-          name: driver.name,
-          email: driver.email,
-          role: 'driver',
-          isAvailable: Boolean(driver.isAvailable),
-          vehicleType: driver.vehicleType,
-          location: driver.location ?? null,
-          createdAt: driver.createdAt,
-          updatedAt: driver.updatedAt,
-        }));
+      const driverUsers = await getDrivers(filters);
       setDrivers(driverUsers);
     } catch (err) {
       console.error('Failed to fetch drivers:', err);
@@ -33,16 +52,12 @@ export const useDrivers = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    void fetchDrivers();
-  }, [fetchDrivers]);
+  };
 
   return {
     drivers,
     isLoading,
     error,
-    refresh: fetchDrivers,
+    refresh,
   };
 };

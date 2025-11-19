@@ -11,6 +11,7 @@ export interface IUser extends Document {
     lng: number;
   };
   isAvailable: boolean;
+  isActive?: boolean; // Account status (active/inactive)
   phone?: string;
   countryCode?: string;
   address?: string; // Kept for backward compatibility (formatted string)
@@ -83,6 +84,10 @@ const UserSchema: Schema = new Schema(
     isAvailable: {
       type: Boolean,
       default: false,
+    },
+    isActive: {
+      type: Boolean,
+      default: true, // Drivers are active by default
     },
     phone: {
       type: String,
