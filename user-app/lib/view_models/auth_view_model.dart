@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/api_service.dart';
 import '../services/socket_service.dart';
 import '../services/firebase_auth_service.dart';
+import '../utils/phone_utils.dart';
 
 class AuthViewModel with ChangeNotifier {
   bool _isAuthenticated = false;
@@ -168,16 +169,17 @@ class AuthViewModel with ChangeNotifier {
         return false;
       }
 
-      // Format phone number with country code if needed
-      String formattedPhone = phoneNumber;
-      if (!formattedPhone.startsWith('+')) {
-        // Try to add country code (default to +970 for Palestine)
-        formattedPhone = '+970$formattedPhone';
+      // Normalize phone number before sending to backend
+      // This ensures consistent format (+9720XXXXXXXX) regardless of input format
+      String? normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber);
+      if (normalizedPhone == null) {
+        _errorMessage = 'Invalid phone number format';
+        return false;
       }
 
       // Call phone-login endpoint to save user in MongoDB and get JWT token
       final response = await ApiService.phoneLogin(
-        phone: formattedPhone,
+        phone: normalizedPhone,
         firebaseUid: firebaseUser.uid,
         verificationId: _verificationId!,
         smsCode: otp,

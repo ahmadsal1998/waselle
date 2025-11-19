@@ -1,10 +1,15 @@
 /**
  * Normalizes phone numbers to the format: +9720XXXXXXXX
  * Handles various input formats:
- * - +972593202026 -> +9720593202026
+ * - +972593202026 -> +9720593202026 (removes leading zero after country code)
  * - +9720593202026 -> +9720593202026 (already correct)
  * - 972593202026 -> +9720593202026
  * - 0593202026 -> +9720593202026
+ * 
+ * IMPORTANT: This function ensures consistent normalization by:
+ * 1. Removing any leading zero after the country code (972)
+ * 2. Always adding the 0 after 972 if missing
+ * 3. Ensuring the format is exactly +9720XXXXXXXX (13 digits total)
  */
 export const normalizePhoneNumber = (phone: string | undefined | null): string | undefined => {
   if (!phone) {
@@ -37,6 +42,13 @@ export const normalizePhoneNumber = (phone: string | undefined | null): string |
     return `+${normalized}`;
   }
 
+  // Case 2b: +9720XXXXXXXX but with extra digits (normalize to 13 digits)
+  // Example: 9720593202026123 -> should become 9720593202026
+  if (normalized.startsWith('9720') && normalized.length > 13) {
+    normalized = normalized.substring(0, 13);
+    return `+${normalized}`;
+  }
+
   // Case 3: Starts with 0XXXXXXXX (local format, 10 digits)
   // Example: 0593202026 -> should become 9720593202026
   if (normalized.startsWith('0') && normalized.length === 10) {
@@ -51,29 +63,40 @@ export const normalizePhoneNumber = (phone: string | undefined | null): string |
     return `+${normalized}`;
   }
 
-  // Case 5: Already has +9720 but might have extra formatting
-  if (normalized.startsWith('9720') && normalized.length >= 13) {
-    // Take first 13 digits
-    normalized = normalized.substring(0, 13);
-    return `+${normalized}`;
-  }
-
-  // If it already starts with +9720 and is correct length, return as is
-  if (hasPlus && normalized.startsWith('9720') && normalized.length === 13) {
+  // Case 5: Handle 972XXXXXXXX format (might have leading zero after 972)
+  // This handles cases like 9720593202026 (already correct) or 972593202026 (needs 0)
+  if (normalized.startsWith('972')) {
+    const after972 = normalized.substring(3);
+    // If it starts with 0, keep it; otherwise add 0
+    if (after972.startsWith('0')) {
+      // Already has 0, ensure it's exactly 13 digits total
+      normalized = `972${after972}`;
+      if (normalized.length > 13) {
+        normalized = normalized.substring(0, 13);
+      } else if (normalized.length < 13) {
+        // Shouldn't happen, but pad if needed
+        normalized = normalized.padEnd(13, '0');
+      }
+    } else {
+      // Missing 0 after 972, add it
+      normalized = `9720${after972}`;
+      // Ensure it's exactly 13 digits
+      if (normalized.length > 13) {
+        normalized = normalized.substring(0, 13);
+      } else if (normalized.length < 13) {
+        normalized = normalized.padEnd(13, '0');
+      }
+    }
     return `+${normalized}`;
   }
 
   // Default: try to ensure it starts with +9720
-  // If it starts with 972 but doesn't have 0, add it
-  if (normalized.startsWith('972') && !normalized.startsWith('9720')) {
-    normalized = `9720${normalized.substring(3)}`;
-  } else if (!normalized.startsWith('972')) {
-    // If it doesn't start with 972, add it
-    if (normalized.startsWith('0')) {
-      normalized = `972${normalized}`;
-    } else {
-      normalized = `9720${normalized}`;
-    }
+  // If it starts with 0, prepend 972
+  if (normalized.startsWith('0')) {
+    normalized = `972${normalized}`;
+  } else {
+    // Otherwise, prepend 9720
+    normalized = `9720${normalized}`;
   }
 
   // Ensure it's exactly 13 digits after country code

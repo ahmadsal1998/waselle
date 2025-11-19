@@ -49,7 +49,13 @@ const UserSchema: Schema = new Schema(
       type: String,
       required: [
         function (this: IUser) {
-          return this.role !== 'customer' || !!this.email;
+          // Password is required for:
+          // 1. Non-customer roles (drivers, admins)
+          // 2. Customer accounts with real email (not phone-based placeholder)
+          if (this.role !== 'customer') return true;
+          if (!this.email) return false;
+          // Don't require password for phone-based accounts (email placeholder)
+          return !this.email.endsWith('@phone.local');
         },
         'Password is required for email-based accounts',
       ],

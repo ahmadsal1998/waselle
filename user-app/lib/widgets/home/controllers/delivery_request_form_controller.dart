@@ -10,6 +10,7 @@ import '../../../../view_models/auth_view_model.dart';
 import '../../../../repositories/api_service.dart';
 import '../../../../services/socket_service.dart';
 import '../../../../services/firebase_auth_service.dart';
+import '../../../../utils/phone_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum DeliveryRequestFormMessageType { info, success, error }
@@ -121,18 +122,40 @@ class DeliveryRequestFormController extends ChangeNotifier {
       // Auto-fill phone and country code (only if field is empty)
       if (user['phone'] != null && phoneNumberController.text.isEmpty) {
         final phone = user['phone'].toString();
-        final countryCode = user['countryCode']?.toString() ?? '+970';
         
-        // Extract phone number without country code
-        String phoneNumber = phone;
-        if (phone.startsWith(countryCode)) {
-          phoneNumber = phone.substring(countryCode.length);
-        }
+        // Split the phone number into country code and local number
+        // This handles formats like +972593202026 or +9720593202026
+        final phoneParts = PhoneUtils.splitPhoneNumber(phone);
         
-        phoneNumberController.text = phoneNumber;
-        
-        if (_selectedCountryCode != countryCode) {
-          _selectedCountryCode = countryCode;
+        if (phoneParts != null) {
+          // Set the local phone number (without country code)
+          phoneNumberController.text = phoneParts['phone'] ?? '';
+          
+          // Set the country code
+          final countryCode = phoneParts['countryCode'] ?? '+972';
+          if (_selectedCountryCode != countryCode) {
+            _selectedCountryCode = countryCode;
+          }
+        } else {
+          // Fallback: try to use countryCode from user if available
+          final countryCode = user['countryCode']?.toString() ?? '+972';
+          String phoneNumber = phone;
+          
+          // Try to remove country code if phone starts with it
+          if (phone.startsWith(countryCode)) {
+            phoneNumber = phone.substring(countryCode.length);
+          } else if (phone.startsWith('+972')) {
+            // Handle +972593202026 or +9720593202026 format
+            phoneNumber = phone.substring(4); // Remove +972
+            if (phoneNumber.isNotEmpty && phoneNumber[0] == '0') {
+              phoneNumber = phoneNumber.substring(1); // Remove leading 0
+            }
+          }
+          
+          phoneNumberController.text = phoneNumber;
+          if (_selectedCountryCode != countryCode) {
+            _selectedCountryCode = countryCode;
+          }
         }
       }
       
@@ -809,10 +832,20 @@ class DeliveryRequestFormController extends ChangeNotifier {
 
       print('✅ Firebase OTP verified. Saving user to MongoDB...');
 
+      // Normalize phone number before sending to backend
+      // This ensures consistent format (+9720XXXXXXXX) regardless of input format
+      String? normalizedPhone = PhoneUtils.normalizePhoneNumber(fullPhoneNumber);
+      if (normalizedPhone == null) {
+        _isVerifyingOTP = false;
+        return DeliveryRequestSubmitResult.failure(
+          'Invalid phone number format',
+        );
+      }
+
       // Call phone-login endpoint to save user in MongoDB and get JWT token
       try {
         final phoneLoginResponse = await ApiService.phoneLogin(
-          phone: fullPhoneNumber,
+          phone: normalizedPhone,
           firebaseUid: firebaseUser.uid,
           verificationId: _firebaseVerificationId!,
           smsCode: otp,
