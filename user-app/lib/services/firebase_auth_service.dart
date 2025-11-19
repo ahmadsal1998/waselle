@@ -50,9 +50,20 @@ class FirebaseAuthService {
       
       // Ensure phone number has country code
       if (!formattedPhone.startsWith('+')) {
+        // Remove leading zeros (common in local phone number formats)
+        formattedPhone = formattedPhone.replaceFirst(RegExp(r'^0+'), '');
+        
         // Default to +970 (Palestine) or +1 (US/Canada)
         // You can change this based on your target market
         formattedPhone = '+970$formattedPhone'; // Change to your default country code
+      } else {
+        // If already has country code, ensure no leading zeros after the country code
+        // Handle cases like +9700593202026 -> +970593202026
+        if (formattedPhone.startsWith('+9700')) {
+          formattedPhone = '+970' + formattedPhone.substring(5);
+        } else if (formattedPhone.startsWith('+970') && formattedPhone.length > 4 && formattedPhone[4] == '0') {
+          formattedPhone = '+970' + formattedPhone.substring(5);
+        }
       }
 
       print('📱 Attempting to send OTP to: $formattedPhone');
@@ -68,6 +79,11 @@ class FirebaseAuthService {
         },
         verificationFailed: (FirebaseAuthException e) {
           print('❌ Firebase Auth Error: ${e.code} - ${e.message}');
+          print('❌ Error details: ${e.toString()}');
+          if (e.stackTrace != null) {
+            print('❌ Stack trace: ${e.stackTrace}');
+          }
+          
           if (!errorOccurred) {
             errorOccurred = true;
             String errorMsg = e.message ?? 'Failed to send OTP';
@@ -81,6 +97,13 @@ class FirebaseAuthService {
               errorMsg = 'SMS quota exceeded. Please contact support.';
             } else if (e.code == 'app-not-authorized') {
               errorMsg = 'App not authorized. Please check Firebase configuration.';
+            } else if (e.code == 'internal-error') {
+              errorMsg = 'Internal error occurred. Please ensure:\n'
+                  '1. URL scheme is registered in Info.plist\n'
+                  '2. App is rebuilt after Info.plist changes\n'
+                  '3. GoogleService-Info.plist is properly configured\n'
+                  '4. Firebase Phone Auth is enabled in Firebase Console';
+              print('❌ Firebase OTP error: ${e.message ?? "Unknown internal error"}');
             }
             
             onError(errorMsg);

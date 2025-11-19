@@ -58,6 +58,27 @@ class MyApp extends StatelessWidget {
             ],
             theme: AppTheme.lightTheme,
             home: const AuthWrapper(),
+            // Handle unknown routes (like Firebase Auth callbacks) gracefully
+            onUnknownRoute: (settings) {
+              // Firebase Auth callbacks use custom URL schemes - ignore them
+              // They're handled natively by Firebase Auth, not by Flutter routing
+              final uri = Uri.tryParse(settings.name ?? '');
+              if (uri != null && 
+                  (uri.scheme.startsWith('app-') || 
+                   uri.scheme.contains('googleusercontent') ||
+                   uri.scheme == 'com.googleusercontent.apps')) {
+                // This is a Firebase Auth callback - return a dummy route that does nothing
+                return MaterialPageRoute(
+                  builder: (_) => const SizedBox.shrink(),
+                  settings: settings,
+                );
+              }
+              // For other unknown routes, return to home
+              return MaterialPageRoute(
+                builder: (_) => const AuthWrapper(),
+                settings: settings,
+              );
+            },
           );
         },
       ),

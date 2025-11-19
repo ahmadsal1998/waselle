@@ -790,8 +790,16 @@ class DeliveryRequestFormController extends ChangeNotifier {
         smsCode: otp,
       );
 
-      // Get Firebase ID token
-      final idToken = await userCredential.user?.getIdToken();
+      // Get Firebase user and ID token
+      final firebaseUser = userCredential.user;
+      if (firebaseUser == null) {
+        _isVerifyingOTP = false;
+        return DeliveryRequestSubmitResult.failure(
+          'Failed to get Firebase user after verification',
+        );
+      }
+
+      final idToken = await firebaseUser.getIdToken();
       if (idToken == null) {
         _isVerifyingOTP = false;
         return DeliveryRequestSubmitResult.failure(
@@ -799,7 +807,36 @@ class DeliveryRequestFormController extends ChangeNotifier {
         );
       }
 
-      print('✅ Firebase OTP verified. Creating order...');
+      print('✅ Firebase OTP verified. Saving user to MongoDB...');
+
+      // Call phone-login endpoint to save user in MongoDB and get JWT token
+      try {
+        final phoneLoginResponse = await ApiService.phoneLogin(
+          phone: fullPhoneNumber,
+          firebaseUid: firebaseUser.uid,
+          verificationId: _firebaseVerificationId!,
+          smsCode: otp,
+          idToken: idToken,
+        );
+
+        print('✅ User saved in MongoDB. JWT token received.');
+
+        // Update auth state with user data from phone-login response
+        if (phoneLoginResponse['user'] != null) {
+          await authProvider.setAuthenticated(
+            token: phoneLoginResponse['token'] as String,
+            user: Map<String, dynamic>.from(phoneLoginResponse['user'] as Map<String, dynamic>),
+          );
+        }
+      } catch (e) {
+        print('❌ Error calling phone-login: $e');
+        _isVerifyingOTP = false;
+        return DeliveryRequestSubmitResult.failure(
+          'Failed to save user. Please try again.',
+        );
+      }
+
+      print('✅ Creating order...');
 
       // Create order with Firebase token
       final response = await ApiService.createOrderWithFirebaseToken(

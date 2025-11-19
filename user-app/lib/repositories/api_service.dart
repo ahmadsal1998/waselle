@@ -12,7 +12,12 @@ class ApiService {
   static const String baseUrl = 'https://waselle.onrender.com/api';
 
   // Get the base URL for socket connections (without /api)
-  static String get socketUrl => baseUrl.replaceAll('/api', '');
+  // For Render.com, socket URL should be the same as base URL without /api
+  static String get socketUrl {
+    final url = baseUrl.replaceAll('/api', '');
+    // Ensure no trailing slash
+    return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+  }
 
   static Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
@@ -202,6 +207,58 @@ class ApiService {
           e.toString().contains('Network is unreachable')) {
         throw Exception(
             'Unable to connect to server. Please check your internet connection or ensure the backend server is running on port 5001.');
+      }
+      rethrow;
+    }
+  }
+
+  // Phone login - creates/updates user in MongoDB after Firebase verification
+  static Future<Map<String, dynamic>> phoneLogin({
+    required String phone,
+    required String firebaseUid,
+    required String verificationId,
+    required String smsCode,
+    String? idToken,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/phone-login'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'phone': phone,
+          'firebaseUid': firebaseUid,
+          'verificationId': verificationId,
+          'smsCode': smsCode,
+          if (idToken != null) 'idToken': idToken,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final responseData = _parseResponse(response);
+        
+        // Store JWT token if provided
+        if (responseData['token'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', responseData['token'] as String);
+        }
+        
+        return responseData;
+      } else {
+        try {
+          final responseData = _parseResponse(response);
+          throw Exception(responseData['message'] ?? 'Phone login failed');
+        } catch (e) {
+          if (e is Exception) rethrow;
+          throw Exception('Phone login failed with status ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (e is http.ClientException ||
+          e.toString().contains('Connection refused') ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Network is unreachable')) {
+        throw Exception(
+            'Unable to connect to server. Please check your internet connection or ensure the backend server is running.');
       }
       rethrow;
     }

@@ -4,6 +4,7 @@ import {
   login,
   verifyOTP,
   verifyFirebaseToken,
+  phoneLogin,
   resendOTP,
   getCurrentUser,
 } from '../controllers/authController';
@@ -15,6 +16,7 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOTP);
 router.post('/verify-firebase-token', verifyFirebaseToken);
+router.post('/phone-login', phoneLogin);
 router.post('/resend-otp', resendOTP);
 router.get('/me', authenticate, getCurrentUser);
 

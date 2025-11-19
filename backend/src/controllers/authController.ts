@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import User from '../models/User';
 import { generateToken } from '../utils/jwt';
 import { generateAndSendOTP, generateOTP } from '../utils/otp';
-import { verifyFirebaseToken as verifyFirebaseIdToken } from '../utils/firebase';
+import { verifyFirebaseToken as verifyFirebaseIdToken, admin } from '../utils/firebase';
 import { AuthRequest } from '../middleware/auth';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -259,6 +259,115 @@ export const verifyFirebaseToken = async (req: Request, res: Response): Promise<
   } catch (error: any) {
     console.error('Firebase token verification error:', error);
     res.status(500).json({ message: error.message || 'Firebase token verification failed' });
+  }
+};
+
+export const phoneLogin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { phone, firebaseUid, verificationId, smsCode, idToken } = req.body;
+
+    if (!phone || !firebaseUid) {
+      res.status(400).json({ message: 'Phone and firebaseUid are required' });
+      return;
+    }
+
+    // Verify Firebase ID token if provided (recommended for security)
+    let decodedToken: admin.auth.DecodedIdToken | null = null;
+    if (idToken) {
+      try {
+        decodedToken = await verifyFirebaseIdToken(idToken);
+        // Verify that the Firebase UID matches
+        if (decodedToken.uid !== firebaseUid) {
+          res.status(400).json({ message: 'Firebase UID mismatch' });
+          return;
+        }
+        // Verify phone number matches if present in token
+        if (decodedToken.phone_number) {
+          const tokenPhone = decodedToken.phone_number;
+          const normalizedTokenPhone = tokenPhone.replace(/^\+/, '');
+          const normalizedPhone = phone.replace(/^\+/, '');
+          if (normalizedTokenPhone !== normalizedPhone && !normalizedPhone.includes(normalizedTokenPhone)) {
+            res.status(400).json({ message: 'Phone number mismatch with Firebase token' });
+            return;
+          }
+        }
+      } catch (error: any) {
+        console.error('Firebase token verification error:', error);
+        res.status(401).json({ message: 'Invalid Firebase token' });
+        return;
+      }
+    } else {
+      // If no idToken provided, we'll still proceed but log a warning
+      console.warn('⚠️  phone-login called without idToken. Consider sending idToken for better security.');
+    }
+    
+    // Find or create user by phone number
+    let user = await User.findOne({ 
+      $or: [
+        { phone: phone },
+        { phone: `+${phone.replace(/^\+/, '')}` },
+      ]
+    });
+
+    // Use phone from decoded token if available, otherwise use provided phone
+    const verifiedPhone = decodedToken?.phone_number || (phone.startsWith('+') ? phone : `+${phone}`);
+    
+    if (!user) {
+      // Create new user if doesn't exist (for phone-based registration)
+      // Use phone number as name if not provided
+      user = await User.create({
+        name: decodedToken?.name || `User ${verifiedPhone.substring(verifiedPhone.length - 4)}`, // Last 4 digits as default name
+        email: decodedToken?.email || `${verifiedPhone.replace(/[^0-9]/g, '')}@phone.local`,
+        phone: verifiedPhone,
+        role: 'customer',
+        isEmailVerified: true, // Phone verification counts as verification
+      });
+      console.log(`✅ Created new user in MongoDB: ${user._id} for phone: ${verifiedPhone}`);
+    } else {
+      // Update user verification status if needed
+      if (!user.isEmailVerified) {
+        user.isEmailVerified = true;
+      }
+      if (!user.phone) {
+        user.phone = verifiedPhone;
+      }
+      // Update name/email from Firebase token if available
+      if (decodedToken) {
+        if (decodedToken.name && !user.name) {
+          user.name = decodedToken.name;
+        }
+        if (decodedToken.email && !user.email) {
+          user.email = decodedToken.email;
+        }
+      }
+      await user.save();
+      console.log(`✅ Updated existing user in MongoDB: ${user._id} for phone: ${verifiedPhone}`);
+    }
+
+    // Generate JWT token
+    const token = generateToken({
+      userId: user._id.toString(),
+      role: user.role,
+      email: user.email || `${phone.replace(/[^0-9]/g, '')}@phone.local`,
+    });
+
+    res.status(200).json({
+      message: 'Phone login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        vehicleType: user.vehicleType,
+        isAvailable: user.isAvailable,
+        profilePicture: user.profilePicture,
+      },
+    });
+  } catch (error: any) {
+    console.error('Phone login error:', error);
+    res.status(500).json({ message: error.message || 'Phone login failed' });
   }
 };
 

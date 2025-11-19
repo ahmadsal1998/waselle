@@ -155,22 +155,37 @@ class AuthViewModel with ChangeNotifier {
         smsCode: otp,
       );
 
-      // Get Firebase ID token
-      final idToken = await userCredential.user?.getIdToken();
+      // Get Firebase user and ID token
+      final firebaseUser = userCredential.user;
+      if (firebaseUser == null) {
+        _errorMessage = 'Failed to get Firebase user after verification';
+        return false;
+      }
+
+      final idToken = await firebaseUser.getIdToken();
       if (idToken == null) {
         _errorMessage = 'Failed to get authentication token';
         return false;
       }
 
-      // Verify with backend using Firebase token
-      final response = await ApiService.verifyFirebaseToken(
+      // Format phone number with country code if needed
+      String formattedPhone = phoneNumber;
+      if (!formattedPhone.startsWith('+')) {
+        // Try to add country code (default to +970 for Palestine)
+        formattedPhone = '+970$formattedPhone';
+      }
+
+      // Call phone-login endpoint to save user in MongoDB and get JWT token
+      final response = await ApiService.phoneLogin(
+        phone: formattedPhone,
+        firebaseUid: firebaseUser.uid,
+        verificationId: _verificationId!,
+        smsCode: otp,
         idToken: idToken,
-        phoneNumber: phoneNumber,
       );
 
       if (response['token'] != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', response['token']);
+        // Token is already stored in ApiService.phoneLogin
         _user = response['user'];
         _isAuthenticated = true;
         _errorMessage = null;
