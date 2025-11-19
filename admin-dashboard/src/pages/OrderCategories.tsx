@@ -46,7 +46,7 @@ const OrderCategories = () => {
   }, [successMessage]);
 
   // Enhanced submit handler with success messages
-  const handleSubmitWithFeedback = async (e: React.FormEvent) => {
+  const handleSubmitWithFeedback = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormError(null);
 

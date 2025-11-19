@@ -17,7 +17,6 @@ import {
   Key,
   Power,
   X,
-  Check,
 } from 'lucide-react';
 import type { Driver } from '@/types';
 
@@ -301,7 +300,7 @@ const Drivers = () => {
       {showAddModal && (
         <DriverModal
           onClose={() => setShowAddModal(false)}
-          onSubmit={handleAddDriver}
+          onSubmit={handleAddDriver as (data: CreateDriverData | UpdateDriverData) => Promise<void>}
           isSubmitting={isSubmitting}
         />
       )}

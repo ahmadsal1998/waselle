@@ -16,7 +16,6 @@ import {
   Grid3x3,
   List,
   X,
-  Check,
 } from 'lucide-react';
 import type { Order, OrderStatus, OrderType } from '@/types';
 
@@ -414,7 +413,6 @@ const Orders = () => {
                     <OrderTableRow
                       key={order._id}
                       order={order}
-                      onView={() => {}}
                       onEdit={() => {}}
                       onDelete={() => {
                         setSelectedOrder(order);
@@ -445,7 +443,6 @@ const Orders = () => {
               <OrderCard
                 key={order._id}
                 order={order}
-                onView={() => {}}
                 onEdit={() => {}}
                 onDelete={() => {
                   setSelectedOrder(order);
@@ -542,7 +539,6 @@ const Orders = () => {
 // Table Row Component
 interface OrderTableRowProps {
   order: Order;
-  onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onUpdateStatus: () => void;
@@ -550,7 +546,6 @@ interface OrderTableRowProps {
 
 const OrderTableRow = ({
   order,
-  onView,
   onEdit,
   onDelete,
   onUpdateStatus,
@@ -643,13 +638,19 @@ const OrderTableRow = ({
 };
 
 // Order Card Component (Grid View)
+interface OrderCardProps {
+  order: Order;
+  onEdit: () => void;
+  onDelete: () => void;
+  onUpdateStatus: () => void;
+}
+
 const OrderCard = ({
   order,
-  onView,
   onEdit,
   onDelete,
   onUpdateStatus,
-}: OrderTableRowProps) => {
+}: OrderCardProps) => {
   const priceDiff = order.price && order.estimatedPrice
     ? order.price - order.estimatedPrice
     : null;

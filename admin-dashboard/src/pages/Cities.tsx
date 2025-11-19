@@ -66,7 +66,7 @@ const Cities = () => {
   }, [successMessage]);
 
   // Enhanced submit handlers with success messages
-  const handleCitySubmitWithFeedback = async (e: React.FormEvent) => {
+  const handleCitySubmitWithFeedback = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormErrors({});
 
@@ -84,7 +84,7 @@ const Cities = () => {
     }
   };
 
-  const handleVillageSubmitWithFeedback = async (e: React.FormEvent) => {
+  const handleVillageSubmitWithFeedback = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormErrors({});
 
