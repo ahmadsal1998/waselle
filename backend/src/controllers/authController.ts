@@ -316,13 +316,21 @@ export const phoneLogin = async (req: Request, res: Response): Promise<void> => 
     if (!user) {
       // Create new user if doesn't exist (for phone-based registration)
       // Use phone number as name if not provided
-      user = await User.create({
+      // Only set email if it's a real email from Firebase token (not a placeholder)
+      // For phone-based users, email is optional and password is not required
+      const userData: any = {
         name: decodedToken?.name || `User ${verifiedPhone.substring(verifiedPhone.length - 4)}`, // Last 4 digits as default name
-        email: decodedToken?.email || `${verifiedPhone.replace(/[^0-9]/g, '')}@phone.local`,
         phone: verifiedPhone,
         role: 'customer',
         isEmailVerified: true, // Phone verification counts as verification
-      });
+      };
+      
+      // Only set email if it's a real email from Firebase token
+      if (decodedToken?.email && decodedToken.email.includes('@') && !decodedToken.email.endsWith('@phone.local')) {
+        userData.email = decodedToken.email;
+      }
+      
+      user = await User.create(userData);
       console.log(`✅ Created new user in MongoDB: ${user._id} for phone: ${verifiedPhone}`);
     } else {
       // Update user verification status if needed
@@ -337,8 +345,11 @@ export const phoneLogin = async (req: Request, res: Response): Promise<void> => 
         if (decodedToken.name && !user.name) {
           user.name = decodedToken.name;
         }
-        if (decodedToken.email && !user.email) {
-          user.email = decodedToken.email;
+        // Only update email if it's a real email (not a placeholder)
+        if (decodedToken.email && decodedToken.email.includes('@') && !decodedToken.email.endsWith('@phone.local')) {
+          if (!user.email) {
+            user.email = decodedToken.email;
+          }
         }
       }
       await user.save();
@@ -346,10 +357,11 @@ export const phoneLogin = async (req: Request, res: Response): Promise<void> => 
     }
 
     // Generate JWT token
+    // Use phone number as identifier if no email (for phone-based users)
     const token = generateToken({
       userId: user._id.toString(),
       role: user.role,
-      email: user.email || `${phone.replace(/[^0-9]/g, '')}@phone.local`,
+      email: user.email || `${verifiedPhone.replace(/[^0-9]/g, '')}@phone.local`,
     });
 
     res.status(200).json({
