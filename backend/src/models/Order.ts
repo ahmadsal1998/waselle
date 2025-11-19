@@ -12,7 +12,9 @@ export interface IOrder extends Document {
   senderCity?: string; // Separate city component
   senderVillage?: string; // Separate village component
   senderStreetDetails?: string; // Separate street/details component
-  senderPhoneNumber: number;
+  senderPhoneNumber: number; // Kept for backward compatibility
+  phone?: string; // Local phone number without country code (e.g., "593202026")
+  countryCode?: string; // Country code (e.g., "+972")
   deliveryNotes?: string;
   pickupLocation: {
     lat: number;
@@ -90,6 +92,16 @@ const OrderSchema: Schema = new Schema(
       type: Number,
       required: [true, 'Sender phone number is required'],
       min: 0,
+    },
+    phone: {
+      type: String,
+      trim: true,
+      // Local phone number without country code (e.g., "593202026")
+    },
+    countryCode: {
+      type: String,
+      trim: true,
+      // Country code (e.g., "+972")
     },
     deliveryNotes: {
       type: String,

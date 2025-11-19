@@ -17,6 +17,7 @@ import { findCityForLocation } from '../utils/distance';
 import { generateToken } from '../utils/jwt';
 import { normalizeAddress } from '../utils/address';
 import { admin } from '../utils/firebase';
+import { normalizePhoneNumber, splitPhoneNumber } from '../utils/phone';
 
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -241,6 +242,11 @@ export const createOrder = async (
       return;
     }
 
+    // Split phone number into country code and local number
+    // Use user's phone from MongoDB if available, otherwise use senderPhoneNumber from request
+    const userPhoneToSplit = user?.phone || senderPhoneNumber?.toString();
+    const phoneParts = splitPhoneNumber(userPhoneToSplit);
+
     // Store address components separately in the database
     const order = await Order.create({
       customerId: req.user.userId,
@@ -258,6 +264,8 @@ export const createOrder = async (
       // Generate formatted address for backward compatibility (optional)
       senderAddress: formattedAddress,
       senderPhoneNumber: Math.trunc(parsedPhoneNumber),
+      phone: phoneParts?.phone,
+      countryCode: phoneParts?.countryCode,
       deliveryNotes: deliveryNotes.trim(),
       price: estimatedPrice,
       estimatedPrice,
@@ -701,26 +709,43 @@ export const sendOrderOTP = async (
 
     const normalizedCountryCode = countryCode || '+970';
     const cleanPhone = phone.replace(/[^\d]/g, '');
-    const fullPhoneNumber = `${normalizedCountryCode}${cleanPhone}`;
+    const rawFullPhoneNumber = `${normalizedCountryCode}${cleanPhone}`;
+    
+    // Normalize phone number before storage
+    const fullPhoneNumber = normalizePhoneNumber(rawFullPhoneNumber);
+    if (!fullPhoneNumber) {
+      res.status(400).json({
+        message: 'Invalid phone number format',
+      });
+      return;
+    }
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Find or create user by phone number
-    let user = await User.findOne({ phone: fullPhoneNumber });
+    // Find or create user by phone number (check both normalized and raw formats)
+    let user = await User.findOne({ 
+      $or: [
+        { phone: fullPhoneNumber },
+        { phone: rawFullPhoneNumber },
+      ]
+    });
 
     if (user) {
-      // Update existing user's OTP
+      // Update existing user's OTP and normalize phone number
       user.otpCode = otp;
       user.otpExpires = otpExpires;
+      if (user.phone !== fullPhoneNumber) {
+        user.phone = fullPhoneNumber;
+      }
       await user.save();
     } else {
-      // Create new user with phone number
+      // Create new user with normalized phone number
       user = await User.create({
         name: 'Customer', // Temporary name, will be updated when order is created
         phone: fullPhoneNumber,
-        countryCode: normalizedCountryCode,
+        countryCode: fullPhoneNumber.startsWith('+') ? fullPhoneNumber.substring(0, 4) : '+970',
         role: 'customer',
         isEmailVerified: true, // Phone-based customers are verified by default
         otpCode: otp,
@@ -795,10 +820,24 @@ export const verifyOTPAndCreateOrder = async (
 
     const normalizedCountryCode = countryCode || '+970';
     const cleanPhone = phone.replace(/[^\d]/g, '');
-    const fullPhoneNumber = `${normalizedCountryCode}${cleanPhone}`;
+    const rawFullPhoneNumber = `${normalizedCountryCode}${cleanPhone}`;
+    
+    // Normalize phone number before lookup
+    const fullPhoneNumber = normalizePhoneNumber(rawFullPhoneNumber);
+    if (!fullPhoneNumber) {
+      res.status(400).json({
+        message: 'Invalid phone number format',
+      });
+      return;
+    }
 
-    // Find user by phone
-    const user = await User.findOne({ phone: fullPhoneNumber });
+    // Find user by phone (check both normalized and raw formats)
+    const user = await User.findOne({ 
+      $or: [
+        { phone: fullPhoneNumber },
+        { phone: rawFullPhoneNumber },
+      ]
+    });
 
     if (!user) {
       res.status(404).json({
@@ -826,6 +865,11 @@ export const verifyOTPAndCreateOrder = async (
     user.otpCode = undefined;
     user.otpExpires = undefined;
     user.isEmailVerified = true; // Phone-based customers are verified by default
+    
+    // Normalize phone number if it's different
+    if (user.phone !== fullPhoneNumber) {
+      user.phone = fullPhoneNumber;
+    }
 
     // Update user information from order
     if (senderName && senderName.trim()) {
@@ -982,6 +1026,9 @@ export const verifyOTPAndCreateOrder = async (
     // Generate formatted address
     const formattedAddress = `${senderCity.trim()}-${senderVillage.trim()}-${senderStreetDetails.trim()}`;
 
+    // Split phone number into country code and local number
+    const phoneParts = splitPhoneNumber(user.phone || fullPhoneNumber);
+
     // Create order
     const order = await Order.create({
       customerId: user._id,
@@ -997,6 +1044,8 @@ export const verifyOTPAndCreateOrder = async (
       senderStreetDetails: senderStreetDetails.trim(),
       senderAddress: formattedAddress,
       senderPhoneNumber: parseInt(cleanPhone),
+      phone: phoneParts?.phone,
+      countryCode: phoneParts?.countryCode,
       deliveryNotes: deliveryNotes.trim(),
       price: estimatedPrice,
       estimatedPrice,
@@ -1073,17 +1122,29 @@ export const createOrderWithFirebaseToken = async (
     }
 
     // Extract phone number from Firebase token
-    const phoneNumber = decodedToken.phone_number;
-    if (!phoneNumber) {
+    const rawPhoneNumber = decodedToken.phone_number;
+    if (!rawPhoneNumber) {
       res.status(400).json({ message: 'Phone number not found in Firebase token' });
       return;
     }
 
-    // Find or create user by phone number
-    let user = await User.findOne({ phone: phoneNumber });
+    // Normalize phone number before storage
+    const phoneNumber = normalizePhoneNumber(rawPhoneNumber);
+    if (!phoneNumber) {
+      res.status(400).json({ message: 'Invalid phone number format in Firebase token' });
+      return;
+    }
+
+    // Find or create user by phone number (check both normalized and raw formats)
+    let user = await User.findOne({ 
+      $or: [
+        { phone: phoneNumber },
+        { phone: rawPhoneNumber },
+      ]
+    });
 
     if (!user) {
-      // Create new user with phone number
+      // Create new user with normalized phone number
       user = await User.create({
         name: senderName?.trim() || 'Customer',
         phone: phoneNumber,
@@ -1095,6 +1156,10 @@ export const createOrderWithFirebaseToken = async (
       // Update existing user information from order
       if (senderName && senderName.trim()) {
         user.name = senderName.trim();
+      }
+      // Normalize phone number if it's different
+      if (user.phone !== phoneNumber) {
+        user.phone = phoneNumber;
       }
     }
 
@@ -1231,7 +1296,10 @@ export const createOrderWithFirebaseToken = async (
     // Generate formatted address
     const formattedAddress = `${senderCity.trim()}-${senderVillage.trim()}-${senderStreetDetails.trim()}`;
 
-    // Extract phone number digits for senderPhoneNumber
+    // Split phone number into country code and local number
+    const phoneParts = splitPhoneNumber(user.phone || phoneNumber);
+    
+    // Extract phone number digits for senderPhoneNumber (backward compatibility)
     const cleanPhone = phoneNumber.replace(/[^\d]/g, '');
     const senderPhoneNumber = parseInt(cleanPhone) || 0;
 
@@ -1250,6 +1318,8 @@ export const createOrderWithFirebaseToken = async (
       senderStreetDetails: senderStreetDetails.trim(),
       senderAddress: formattedAddress,
       senderPhoneNumber,
+      phone: phoneParts?.phone,
+      countryCode: phoneParts?.countryCode,
       deliveryNotes: deliveryNotes?.trim() || '',
       price: estimatedPrice,
       estimatedPrice,
@@ -1293,4 +1363,5 @@ export const createOrderWithFirebaseToken = async (
     });
   }
 };
+
 

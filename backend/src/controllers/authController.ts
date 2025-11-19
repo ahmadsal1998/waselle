@@ -5,6 +5,7 @@ import { generateToken } from '../utils/jwt';
 import { generateAndSendOTP, generateOTP } from '../utils/otp';
 import { verifyFirebaseToken as verifyFirebaseIdToken, admin } from '../utils/firebase';
 import { AuthRequest } from '../middleware/auth';
+import { normalizePhoneNumber } from '../utils/phone';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -198,20 +199,28 @@ export const verifyFirebaseToken = async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Verify that the phone number matches
-    if (firebasePhoneNumber !== phoneNumber && !phoneNumber.includes(firebasePhoneNumber.replace('+', ''))) {
-      // Try to match without country code prefix
-      const normalizedFirebasePhone = firebasePhoneNumber.replace(/^\+/, '');
-      const normalizedPhone = phoneNumber.replace(/^\+/, '');
-      if (normalizedFirebasePhone !== normalizedPhone && !normalizedPhone.includes(normalizedFirebasePhone)) {
-        res.status(400).json({ message: 'Phone number mismatch' });
-        return;
-      }
+    // Normalize phone numbers before comparison and storage
+    const normalizedFirebasePhone = normalizePhoneNumber(firebasePhoneNumber);
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+
+    if (!normalizedFirebasePhone) {
+      res.status(400).json({ message: 'Invalid phone number format in Firebase token' });
+      return;
     }
+
+    // Verify that the phone number matches (after normalization)
+    if (normalizedFirebasePhone !== normalizedPhone) {
+      res.status(400).json({ message: 'Phone number mismatch' });
+      return;
+    }
+
+    // Use normalized phone number for storage
+    const phoneToStore = normalizedFirebasePhone;
 
     // Find or create user by phone number
     let user = await User.findOne({ 
       $or: [
+        { phone: phoneToStore },
         { phone: phoneNumber },
         { phone: firebasePhoneNumber },
       ]
@@ -221,17 +230,15 @@ export const verifyFirebaseToken = async (req: Request, res: Response): Promise<
       // Create new user if doesn't exist (for phone-based registration)
       user = await User.create({
         name: decodedToken.name || 'User',
-        email: decodedToken.email || `${phoneNumber}@phone.local`,
-        phone: firebasePhoneNumber || phoneNumber,
+        email: decodedToken.email || `${phoneToStore}@phone.local`,
+        phone: phoneToStore,
         role: 'customer',
         isEmailVerified: true, // Phone verification counts as verification
       });
     } else {
-      // Update user verification status
+      // Update user verification status and normalize phone number
       user.isEmailVerified = true;
-      if (!user.phone) {
-        user.phone = firebasePhoneNumber || phoneNumber;
-      }
+      user.phone = phoneToStore;
       await user.save();
     }
 
@@ -310,8 +317,14 @@ export const phoneLogin = async (req: Request, res: Response): Promise<void> => 
       ]
     });
 
-    // Use phone from decoded token if available, otherwise use provided phone
-    const verifiedPhone = decodedToken?.phone_number || (phone.startsWith('+') ? phone : `+${phone}`);
+    // Normalize phone number before storage
+    const rawPhone = decodedToken?.phone_number || phone;
+    const verifiedPhone = normalizePhoneNumber(rawPhone);
+    
+    if (!verifiedPhone) {
+      res.status(400).json({ message: 'Invalid phone number format' });
+      return;
+    }
     
     if (!user) {
       // Create new user if doesn't exist (for phone-based registration)
@@ -337,9 +350,8 @@ export const phoneLogin = async (req: Request, res: Response): Promise<void> => 
       if (!user.isEmailVerified) {
         user.isEmailVerified = true;
       }
-      if (!user.phone) {
-        user.phone = verifiedPhone;
-      }
+      // Always normalize and update phone number
+      user.phone = verifiedPhone;
       // Update name/email from Firebase token if available
       if (decodedToken) {
         if (decodedToken.name && !user.name) {
