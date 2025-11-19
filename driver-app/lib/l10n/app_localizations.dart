@@ -485,6 +485,12 @@ abstract class AppLocalizations {
   /// **'Verify Your Email'**
   String get verifyYourEmail;
 
+  /// Phone OTP verification title
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Your Phone'**
+  String get verifyYourPhone;
+
   /// OTP sent message
   ///
   /// In en, this message translates to:

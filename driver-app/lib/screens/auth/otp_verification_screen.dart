@@ -58,7 +58,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     final l10n = AppLocalizations.of(context)!;
     
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.verifyEmail)),
+      appBar: AppBar(title: Text(l10n.verifyYourPhone)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

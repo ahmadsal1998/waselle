@@ -532,6 +532,58 @@
   "externalDeliveryDescription": "Delivery within 10 km radius (configurable by admin)",
   "@externalDeliveryDescription": {
     "description": "External delivery description"
+  },
+  "orderProgress": "Order Progress",
+  "@orderProgress": {
+    "description": "Order progress section title"
+  },
+  "showOrderProgress": "Show Order Progress",
+  "@showOrderProgress": {
+    "description": "Show order progress button text"
+  },
+  "hideOrderProgress": "Hide Order Progress",
+  "@hideOrderProgress": {
+    "description": "Hide order progress button text"
+  },
+  "tapToOpenMap": "Tap to open map",
+  "@tapToOpenMap": {
+    "description": "Tap to open map hint text"
+  },
+  "orderPlaced": "Order Placed",
+  "@orderPlaced": {
+    "description": "Order placed stage title"
+  },
+  "orderPlacedDescription": "Your order has been placed and is waiting for a driver",
+  "@orderPlacedDescription": {
+    "description": "Order placed stage description"
+  },
+  "orderAccepted": "Order Accepted",
+  "@orderAccepted": {
+    "description": "Order accepted stage title"
+  },
+  "orderAcceptedDescription": "A driver has accepted your order",
+  "@orderAcceptedDescription": {
+    "description": "Order accepted stage description"
+  },
+  "onTheWay": "On the Way",
+  "@onTheWay": {
+    "description": "On the way stage title"
+  },
+  "onTheWayDescription": "Driver is on the way to your location",
+  "@onTheWayDescription": {
+    "description": "On the way stage description"
+  },
+  "delivered": "Delivered",
+  "@delivered": {
+    "description": "Delivered stage title"
+  },
+  "deliveredDescription": "Your order has been successfully delivered",
+  "@deliveredDescription": {
+    "description": "Delivered stage description"
+  },
+  "current": "Current",
+  "@current": {
+    "description": "Current stage badge text"
   }
 }
 

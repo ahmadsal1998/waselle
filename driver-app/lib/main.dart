@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
-import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'view_models/auth_view_model.dart';
 import 'view_models/location_view_model.dart';
@@ -18,9 +16,6 @@ import 'screens/home/home_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SharedPreferences.getInstance();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
   runApp(const MyApp());
 }
 
@@ -70,6 +65,15 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthViewModel>(
       builder: (context, authViewModel, _) {
+        // Show loading indicator while checking auth status
+        if (authViewModel.isCheckingAuth) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        
         if (authViewModel.isAuthenticated) {
           return const HomeScreen();
         }

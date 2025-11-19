@@ -18,6 +18,7 @@ class RegionViewModel with ChangeNotifier {
       _cities.where((city) => city.isActive).toList(growable: false);
 
   bool get isLoadingCities => _isLoadingCities;
+  bool get citiesLoaded => _citiesLoaded;
   String? get citiesError => _citiesError;
 
   Future<void> loadCities({bool forceRefresh = false}) async {

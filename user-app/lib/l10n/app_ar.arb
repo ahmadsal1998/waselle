@@ -161,6 +161,19 @@
   "selectDeliveryType": "اختر نوع التوصيل",
   "pleaseSelectDeliveryType": "الرجاء اختيار نوع التوصيل",
   "internalDeliveryDescription": "التوصيل ضمن دائرة نصف قطرها 2 كم (قابل للتعديل من قبل المدير)",
-  "externalDeliveryDescription": "التوصيل ضمن دائرة نصف قطرها 10 كم (قابل للتعديل من قبل المدير)"
+  "externalDeliveryDescription": "التوصيل ضمن دائرة نصف قطرها 10 كم (قابل للتعديل من قبل المدير)",
+  "orderProgress": "تقدم الطلب",
+  "showOrderProgress": "إظهار تقدم الطلب",
+  "hideOrderProgress": "إخفاء تقدم الطلب",
+  "tapToOpenMap": "اضغط لفتح الخريطة",
+  "orderPlaced": "تم وضع الطلب",
+  "orderPlacedDescription": "تم وضع طلبك وهو في انتظار سائق",
+  "orderAccepted": "تم قبول الطلب",
+  "orderAcceptedDescription": "قبل سائق طلبك",
+  "onTheWay": "في الطريق",
+  "onTheWayDescription": "السائق في طريقه إلى موقعك",
+  "delivered": "تم التسليم",
+  "deliveredDescription": "تم تسليم طلبك بنجاح",
+  "current": "الحالي"
 }
 

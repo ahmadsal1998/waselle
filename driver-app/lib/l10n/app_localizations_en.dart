@@ -208,6 +208,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get verifyYourEmail => 'Verify Your Email';
 
   @override
+  String get verifyYourPhone => 'Verify Your Phone';
+
+  @override
   String otpSentMessage(String email) {
     return 'We sent a verification code to\n$email';
   }

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 import '../../../../view_models/location_view_model.dart';
 import '../../../../view_models/order_view_model.dart';
@@ -10,6 +12,8 @@ import '../../../../view_models/auth_view_model.dart';
 import '../../../../repositories/api_service.dart';
 import '../../../../services/socket_service.dart';
 import '../../../../services/firebase_auth_service.dart';
+import '../../../../services/saved_address_service.dart';
+import '../../../../models/saved_address.dart';
 import '../../../../utils/phone_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -64,6 +68,8 @@ class DeliveryRequestFormController extends ChangeNotifier {
   bool _isSubmitting = false;
   String? _selectedCityId;
   String? _selectedVillageId;
+  String? _selectedSavedAddressId; // Selected saved address ID
+  bool _useCurrentLocation = true; // Whether to use current location or saved address
   bool _isInitialized = false;
   bool _isDisposed = false;
   List<Map<String, dynamic>> _vehicleTypes = [];
@@ -78,6 +84,8 @@ class DeliveryRequestFormController extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   String? get selectedCityId => _selectedCityId;
   String? get selectedVillageId => _selectedVillageId;
+  String? get selectedSavedAddressId => _selectedSavedAddressId;
+  bool get useCurrentLocation => _useCurrentLocation;
   List<Map<String, dynamic>> get vehicleTypes => _vehicleTypes;
   bool get isLoadingVehicleTypes => _isLoadingVehicleTypes;
   String? get vehicleTypesError => _vehicleTypesError;
@@ -307,6 +315,259 @@ class DeliveryRequestFormController extends ChangeNotifier {
     );
   }
 
+  /// Select a saved address
+  Future<void> selectSavedAddress(
+    String? addressId, {
+    required RegionViewModel regionProvider,
+    required LocationViewModel locationProvider,
+    required OrderViewModel orderProvider,
+  }) async {
+    if (_selectedSavedAddressId == addressId) return;
+    
+    _selectedSavedAddressId = addressId;
+    _useCurrentLocation = addressId == null;
+    
+    if (addressId != null) {
+      final address = await SavedAddressService.getAddressById(addressId);
+      if (address != null) {
+        // Ensure cities are loaded before trying to match
+        if (!regionProvider.citiesLoaded) {
+          await regionProvider.loadCities();
+        }
+        
+        // Validate and set city ID - check if it exists in current cities list
+        String? validCityId = address.cityId;
+        if (validCityId != null && validCityId.isNotEmpty) {
+          // Verify the city ID still exists in the current cities list
+          final cityExists = regionProvider.cityById(validCityId) != null;
+          if (!cityExists) {
+            // City ID from saved address no longer exists, clear it
+            validCityId = null;
+          }
+        }
+        
+        // If city/village are missing or invalid, try to match them from the address string
+        bool cityMatched = false;
+        if (validCityId == null || validCityId.isEmpty) {
+          // First try matching from saved address string
+          if (address.address != null && address.address!.isNotEmpty) {
+            debugPrint('🔍 Trying to match city from address string: ${address.address}');
+            cityMatched = await _tryMatchCityFromAddress(address.address!, regionProvider);
+            if (cityMatched) {
+              validCityId = _selectedCityId; // _tryMatchCityFromAddress sets _selectedCityId
+              debugPrint('✅ City matched from address string: $validCityId');
+            }
+          }
+          
+          // If still not matched, try reverse geocoding from coordinates
+          if (!cityMatched) {
+            try {
+              debugPrint('🔍 Trying reverse geocoding for coordinates: ${address.latitude}, ${address.longitude}');
+              final placemarks = await placemarkFromCoordinates(
+                address.latitude,
+                address.longitude,
+              );
+              if (placemarks.isNotEmpty) {
+                final placemark = placemarks.first;
+                debugPrint('📍 Placemark data: locality=${placemark.locality}, subAdmin=${placemark.subAdministrativeArea}, admin=${placemark.administrativeArea}');
+                
+                // Try multiple combinations from placemark data
+                final addressStrings = <String>[];
+                
+                // Add individual fields if they exist
+                if (placemark.locality != null && placemark.locality!.isNotEmpty) {
+                  addressStrings.add(placemark.locality!);
+                }
+                if (placemark.subAdministrativeArea != null && placemark.subAdministrativeArea!.isNotEmpty) {
+                  addressStrings.add(placemark.subAdministrativeArea!);
+                }
+                if (placemark.administrativeArea != null && placemark.administrativeArea!.isNotEmpty) {
+                  addressStrings.add(placemark.administrativeArea!);
+                }
+                
+                // Add combinations
+                if (placemark.locality != null && placemark.locality!.isNotEmpty &&
+                    placemark.subAdministrativeArea != null && placemark.subAdministrativeArea!.isNotEmpty) {
+                  addressStrings.add('${placemark.locality} - ${placemark.subAdministrativeArea}');
+                }
+                if (placemark.subAdministrativeArea != null && placemark.subAdministrativeArea!.isNotEmpty &&
+                    placemark.locality != null && placemark.locality!.isNotEmpty) {
+                  addressStrings.add('${placemark.subAdministrativeArea} - ${placemark.locality}');
+                }
+                
+                for (final addressString in addressStrings) {
+                  if (addressString.trim().isEmpty) continue;
+                  debugPrint('🔍 Trying to match city from: $addressString');
+                  cityMatched = await _tryMatchCityFromAddress(addressString.trim(), regionProvider);
+                  if (cityMatched) {
+                    validCityId = _selectedCityId;
+                    debugPrint('✅ City matched from reverse geocoding: $validCityId');
+                    break;
+                  }
+                }
+              }
+            } catch (e) {
+              debugPrint('❌ Error reverse geocoding saved address: $e');
+            }
+          }
+        } else {
+          // City ID exists and is valid
+          _selectedCityId = validCityId;
+          cityMatched = true;
+          debugPrint('✅ Using saved cityId: $validCityId');
+        }
+        
+        // Set city ID - always set if matched (fields will be hidden for saved addresses)
+        _selectedCityId = cityMatched ? validCityId : null;
+        
+        if (!cityMatched) {
+          debugPrint('❌ Failed to match city for saved address');
+        }
+        
+        // Only set street details if the saved address has them
+        // Otherwise, keep the current value or leave empty
+        if (address.streetDetails != null && address.streetDetails!.isNotEmpty) {
+          senderAddressController.text = address.streetDetails!;
+        }
+        
+        // Load villages for the selected city if city is available
+        bool villageMatched = false;
+        String? validVillageId = address.villageId;
+        
+        if (_selectedCityId != null && _selectedCityId!.isNotEmpty) {
+          await regionProvider.loadVillages(_selectedCityId!);
+          
+          // Validate village ID if it exists
+          if (validVillageId != null && validVillageId.isNotEmpty) {
+            final villageExists = regionProvider.villageById(_selectedCityId!, validVillageId) != null;
+            if (!villageExists) {
+              validVillageId = null;
+            }
+          }
+          
+          // Try to match village after loading villages
+          if (validVillageId == null || validVillageId.isEmpty) {
+            // First try matching from saved address string
+            if (address.address != null && address.address!.isNotEmpty) {
+              debugPrint('🔍 Trying to match village from address string: ${address.address}');
+              villageMatched = await _tryMatchVillageFromAddress(address.address!, regionProvider);
+              if (villageMatched) {
+                validVillageId = _selectedVillageId; // _tryMatchVillageFromAddress sets _selectedVillageId
+                debugPrint('✅ Village matched from address string: $validVillageId');
+              }
+            }
+            
+            // If still not matched, try reverse geocoding
+            if (!villageMatched) {
+              try {
+                debugPrint('🔍 Trying reverse geocoding for village at: ${address.latitude}, ${address.longitude}');
+                final placemarks = await placemarkFromCoordinates(
+                  address.latitude,
+                  address.longitude,
+                );
+                if (placemarks.isNotEmpty) {
+                  final placemark = placemarks.first;
+                  debugPrint('📍 Placemark for village: subLocality=${placemark.subLocality}, locality=${placemark.locality}, thoroughfare=${placemark.thoroughfare}');
+                  
+                  // Try multiple combinations from placemark data
+                  final addressStrings = <String>[];
+                  
+                  // Add individual fields if they exist
+                  if (placemark.subLocality != null && placemark.subLocality!.isNotEmpty) {
+                    addressStrings.add(placemark.subLocality!);
+                  }
+                  if (placemark.locality != null && placemark.locality!.isNotEmpty) {
+                    addressStrings.add(placemark.locality!);
+                  }
+                  if (placemark.thoroughfare != null && placemark.thoroughfare!.isNotEmpty) {
+                    addressStrings.add(placemark.thoroughfare!);
+                  }
+                  
+                  // Add combinations
+                  if (placemark.subLocality != null && placemark.subLocality!.isNotEmpty &&
+                      placemark.locality != null && placemark.locality!.isNotEmpty) {
+                    addressStrings.add('${placemark.subLocality} - ${placemark.locality}');
+                  }
+                  if (placemark.locality != null && placemark.locality!.isNotEmpty &&
+                      placemark.subLocality != null && placemark.subLocality!.isNotEmpty) {
+                    addressStrings.add('${placemark.locality} - ${placemark.subLocality}');
+                  }
+                  
+                  for (final addressString in addressStrings) {
+                    if (addressString.trim().isEmpty) continue;
+                    debugPrint('🔍 Trying to match village from: $addressString');
+                    villageMatched = await _tryMatchVillageFromAddress(addressString.trim(), regionProvider);
+                    if (villageMatched) {
+                      validVillageId = _selectedVillageId;
+                      debugPrint('✅ Village matched from reverse geocoding: $validVillageId');
+                      break;
+                    }
+                  }
+                }
+              } catch (e) {
+                debugPrint('❌ Error reverse geocoding village for saved address: $e');
+              }
+            }
+          } else {
+            // Village ID exists and is valid
+            _selectedVillageId = validVillageId;
+            villageMatched = true;
+            debugPrint('✅ Using saved villageId: $validVillageId');
+          }
+          
+          if (!villageMatched) {
+            debugPrint('❌ Failed to match village for saved address');
+          }
+        }
+        
+        // Set village ID - always set if matched (fields are hidden for saved addresses)
+        _selectedVillageId = villageMatched ? validVillageId : null;
+        
+        // Notify listeners to update UI (city/village fields are hidden when saved address is selected)
+        _notifyListenersSafely();
+        
+        // Only schedule estimate if we have the required data
+        if (_selectedCityId != null && _selectedCityId!.isNotEmpty) {
+          scheduleEstimate(
+            regionProvider: regionProvider,
+            locationProvider: locationProvider,
+            orderProvider: orderProvider,
+          );
+        }
+      } else {
+        // Address not found, reset to current location
+        _useCurrentLocation = true;
+        _selectedSavedAddressId = null;
+        _notifyListenersSafely();
+      }
+    } else {
+      // Reset to current location
+      senderAddressController.clear();
+      _selectedCityId = null;
+      _selectedVillageId = null;
+      _notifyListenersSafely();
+    }
+  }
+
+  /// Use current location instead of saved address
+  void useCurrentLocationForPickup({
+    required RegionViewModel regionProvider,
+    required LocationViewModel locationProvider,
+    required OrderViewModel orderProvider,
+  }) {
+    _useCurrentLocation = true;
+    _selectedSavedAddressId = null;
+    senderAddressController.clear();
+    _selectedCityId = null;
+    _selectedVillageId = null;
+    _notifyListenersSafely();
+    scheduleEstimate(
+      regionProvider: regionProvider,
+      locationProvider: locationProvider,
+      orderProvider: orderProvider,
+    );
+  }
+
   void onSenderAddressChanged({
     required RegionViewModel regionProvider,
     required LocationViewModel locationProvider,
@@ -317,6 +578,233 @@ class DeliveryRequestFormController extends ChangeNotifier {
       locationProvider: locationProvider,
       orderProvider: orderProvider,
     );
+  }
+
+  /// Common English-Arabic city name mappings for transliteration
+  static const Map<String, String> _cityNameTranslations = {
+    'jenin': 'جنين',
+    'nablus': 'نابلس',
+    'ramallah': 'رام الله',
+    'jerusalem': 'القدس',
+    'bethlehem': 'بيت لحم',
+    'hebron': 'الخليل',
+    'gaza': 'غزة',
+    'tulkarm': 'طولكرم',
+    'qalqilya': 'قلقيلية',
+    'salfit': 'سلفيت',
+    'jericho': 'أريحا',
+    'tubas': 'طوباس',
+  };
+
+  /// Try to match city from address string
+  Future<bool> _tryMatchCityFromAddress(String addressString, RegionViewModel regionProvider) async {
+    // Ensure cities are loaded
+    if (!regionProvider.citiesLoaded) {
+      await regionProvider.loadCities();
+    }
+    
+    final cities = regionProvider.activeCities;
+    if (cities.isEmpty) return false;
+    
+    // Normalize the address string for comparison (remove extra spaces, normalize separators)
+    final normalizedAddress = addressString.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final addressLower = normalizedAddress.toLowerCase();
+    
+    // Try exact match first (most reliable)
+    for (final city in cities) {
+      final cityName = city.name.trim();
+      final cityNameLower = cityName.toLowerCase();
+      
+      // Check if city name appears in address (exact or contains)
+      if (addressLower == cityNameLower || 
+          addressLower.startsWith(cityNameLower + ' ') ||
+          addressLower.startsWith(cityNameLower + '-') ||
+          addressLower.contains(' ' + cityNameLower + ' ') ||
+          addressLower.contains('-' + cityNameLower + '-') ||
+          addressLower.contains(cityNameLower)) {
+        _selectedCityId = city.id;
+        await regionProvider.loadVillages(city.id);
+        _notifyListenersSafely();
+        debugPrint('✅ City matched (exact): ${city.name}');
+        return true;
+      }
+      
+      // Try transliteration matching (English to Arabic)
+      // Check if address contains English city name that translates to this Arabic city name
+      for (final entry in _cityNameTranslations.entries) {
+        final englishName = entry.key;
+        final arabicName = entry.value;
+        
+        // If address contains English name and city is Arabic name
+        if (addressLower.contains(englishName) && cityNameLower.contains(arabicName.toLowerCase())) {
+          _selectedCityId = city.id;
+          await regionProvider.loadVillages(city.id);
+          _notifyListenersSafely();
+          debugPrint('✅ City matched (transliteration): $englishName -> ${city.name}');
+          return true;
+        }
+        
+        // If address contains Arabic name and we're checking against English
+        if (addressLower.contains(arabicName.toLowerCase()) && cityNameLower.contains(englishName)) {
+          _selectedCityId = city.id;
+          await regionProvider.loadVillages(city.id);
+          _notifyListenersSafely();
+          debugPrint('✅ City matched (transliteration reverse): $arabicName -> ${city.name}');
+          return true;
+        }
+      }
+    }
+    
+    // Try partial match (for addresses like "جنين - فقاعة - الشارع الرئيسي")
+    // Split by common separators and check each part
+    // Try splitting by different patterns
+    final separators = RegExp(r'[-\s,،\u200C\u200D]+'); // Include zero-width characters
+    final parts = normalizedAddress.split(separators);
+    
+    // Also try splitting by Arabic comma and dash specifically
+    final arabicParts = normalizedAddress.split(RegExp(r'[،\-]'));
+    final allParts = [...parts, ...arabicParts];
+    
+    for (final part in allParts) {
+      final partTrimmed = part.trim();
+      if (partTrimmed.isEmpty || partTrimmed.length < 2) continue;
+      
+      // Remove any Arabic diacritics/normalization issues
+      final partNormalized = partTrimmed.replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '');
+      final partLower = partNormalized.toLowerCase();
+      
+      for (final city in cities) {
+        final cityName = city.name.trim();
+        final cityNameNormalized = cityName.replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '');
+        final cityNameLower = cityNameNormalized.toLowerCase();
+        
+        // Check for exact match or substring match
+        // Be more lenient with matching
+        if (partLower == cityNameLower || 
+            partLower == cityNameLower.replaceAll(' ', '') ||
+            cityNameLower.replaceAll(' ', '') == partLower ||
+            partLower.contains(cityNameLower) || 
+            cityNameLower.contains(partLower) ||
+            // Also check if part is a significant portion of city name (for Arabic)
+            (partLower.length >= 2 && cityNameLower.startsWith(partLower)) ||
+            (cityNameLower.length >= 2 && partLower.startsWith(cityNameLower)) ||
+            // Check if removing spaces makes them match
+            partLower.replaceAll(RegExp(r'\s+'), '') == cityNameLower.replaceAll(RegExp(r'\s+'), '')) {
+          _selectedCityId = city.id;
+          await regionProvider.loadVillages(city.id);
+          _notifyListenersSafely();
+          debugPrint('✅ City matched (partial): ${city.name}');
+          return true;
+        }
+        
+        // Try transliteration matching for partial matches
+        for (final entry in _cityNameTranslations.entries) {
+          final englishName = entry.key;
+          final arabicName = entry.value;
+          
+          // If part contains English name and city is Arabic name
+          if (partLower.contains(englishName) && cityNameLower.contains(arabicName.toLowerCase())) {
+            _selectedCityId = city.id;
+            await regionProvider.loadVillages(city.id);
+            _notifyListenersSafely();
+            debugPrint('✅ City matched (partial transliteration): $englishName -> ${city.name}');
+            return true;
+          }
+          
+          // If part contains Arabic name and city name contains English
+          if (partLower.contains(arabicName.toLowerCase()) && cityNameLower.contains(englishName)) {
+            _selectedCityId = city.id;
+            await regionProvider.loadVillages(city.id);
+            _notifyListenersSafely();
+            debugPrint('✅ City matched (partial transliteration reverse): $arabicName -> ${city.name}');
+            return true;
+          }
+          
+          // Also check if part equals English name and city equals Arabic name
+          if (partLower == englishName && cityNameLower == arabicName.toLowerCase()) {
+            _selectedCityId = city.id;
+            await regionProvider.loadVillages(city.id);
+            _notifyListenersSafely();
+            debugPrint('✅ City matched (exact transliteration): $englishName -> ${city.name}');
+            return true;
+          }
+        }
+      }
+    }
+    
+    return false;
+  }
+
+  /// Try to match village from address string
+  Future<bool> _tryMatchVillageFromAddress(String addressString, RegionViewModel regionProvider) async {
+    if (_selectedCityId == null || _selectedCityId!.isEmpty) return false;
+    
+    // Ensure villages are loaded for the selected city
+    if (!regionProvider.villagesForCity(_selectedCityId!).isNotEmpty) {
+      await regionProvider.loadVillages(_selectedCityId!);
+    }
+    
+    final villages = regionProvider.activeVillagesForCity(_selectedCityId!);
+    if (villages.isEmpty) return false;
+    
+    // Normalize the address string
+    final normalizedAddress = addressString.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final addressLower = normalizedAddress.toLowerCase();
+    
+    // Try exact match first
+    for (final village in villages) {
+      final villageName = village.name.trim();
+      final villageNameLower = villageName.toLowerCase();
+      
+      if (addressLower == villageNameLower ||
+          addressLower.startsWith(villageNameLower + ' ') ||
+          addressLower.startsWith(villageNameLower + '-') ||
+          addressLower.contains(' ' + villageNameLower + ' ') ||
+          addressLower.contains('-' + villageNameLower + '-') ||
+          addressLower.contains(villageNameLower)) {
+        _selectedVillageId = village.id;
+        _notifyListenersSafely();
+        return true;
+      }
+    }
+    
+    // Try partial match (split by separators)
+    final separators = RegExp(r'[-\s,،\u200C\u200D]+');
+    final parts = normalizedAddress.split(separators);
+    
+    // Also try splitting by Arabic comma and dash specifically
+    final arabicParts = normalizedAddress.split(RegExp(r'[،\-]'));
+    final allParts = [...parts, ...arabicParts];
+    
+    for (final part in allParts) {
+      final partTrimmed = part.trim();
+      if (partTrimmed.isEmpty || partTrimmed.length < 2) continue;
+      
+      // Remove any Arabic diacritics/normalization issues
+      final partNormalized = partTrimmed.replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '');
+      final partLowerNormalized = partNormalized.toLowerCase();
+      
+      for (final village in villages) {
+        final villageName = village.name.trim();
+        final villageNameNormalized = villageName.replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '');
+        final villageNameLowerNormalized = villageNameNormalized.toLowerCase();
+        
+        if (partLowerNormalized == villageNameLowerNormalized || 
+            partLowerNormalized == villageNameLowerNormalized.replaceAll(' ', '') ||
+            villageNameLowerNormalized.replaceAll(' ', '') == partLowerNormalized ||
+            partLowerNormalized.contains(villageNameLowerNormalized) || 
+            villageNameLowerNormalized.contains(partLowerNormalized) ||
+            (partLowerNormalized.length >= 2 && villageNameLowerNormalized.startsWith(partLowerNormalized)) ||
+            (villageNameLowerNormalized.length >= 2 && partLowerNormalized.startsWith(villageNameLowerNormalized)) ||
+            partLowerNormalized.replaceAll(RegExp(r'\s+'), '') == villageNameLowerNormalized.replaceAll(RegExp(r'\s+'), '')) {
+          _selectedVillageId = village.id;
+          _notifyListenersSafely();
+          return true;
+        }
+      }
+    }
+    
+    return false;
   }
 
   void scheduleEstimate({
@@ -495,16 +983,226 @@ class DeliveryRequestFormController extends ChangeNotifier {
       );
     }
 
-    if (_selectedCityId == null || _selectedCityId!.isEmpty) {
-      return DeliveryRequestSubmitResult.failure(
-        localized('pleaseSelectYourCity', 'Please select your city.'),
-      );
-    }
+    // City and Village are only required when using Current Location
+    // When using a saved address, try to match city/village from address string if missing
+    if (_useCurrentLocation) {
+      if (_selectedCityId == null || _selectedCityId!.isEmpty) {
+        return DeliveryRequestSubmitResult.failure(
+          localized('pleaseSelectYourCity', 'Please select your city.'),
+        );
+      }
 
-    if (_selectedVillageId == null || _selectedVillageId!.isEmpty) {
-      return DeliveryRequestSubmitResult.failure(
-        localized('pleaseSelectYourVillage', 'Please select your village.'),
-      );
+      if (_selectedVillageId == null || _selectedVillageId!.isEmpty) {
+        return DeliveryRequestSubmitResult.failure(
+          localized('pleaseSelectYourVillage', 'Please select your village.'),
+        );
+      }
+    } else if (_selectedSavedAddressId != null) {
+      // When using saved address, try to match city/village if missing
+      final savedAddress = await SavedAddressService.getAddressById(_selectedSavedAddressId!);
+      if (savedAddress != null) {
+        // Ensure cities are loaded
+        if (!regionProvider.citiesLoaded) {
+          await regionProvider.loadCities();
+        }
+        
+        // Validate city ID exists in current cities list
+        String? validCityId = _selectedCityId;
+        if (validCityId != null && validCityId.isNotEmpty) {
+          final cityExists = regionProvider.cityById(validCityId) != null;
+          if (!cityExists) {
+            validCityId = null;
+            _selectedCityId = null;
+          }
+        }
+        
+        // Try to match city from address string if missing or invalid
+        bool cityMatched = false;
+        if (validCityId == null || validCityId.isEmpty) {
+          // First try matching from saved address string
+          if (savedAddress.address != null && savedAddress.address!.isNotEmpty) {
+            debugPrint('🔍 Trying to match city from address string (validation): ${savedAddress.address}');
+            cityMatched = await _tryMatchCityFromAddress(savedAddress.address!, regionProvider);
+            if (cityMatched) {
+              validCityId = _selectedCityId;
+              debugPrint('✅ City matched from address string (validation): $validCityId');
+            }
+          }
+          
+          // If still not matched, try reverse geocoding
+          if (!cityMatched) {
+            try {
+              debugPrint('🔍 Trying reverse geocoding for coordinates (validation): ${savedAddress.latitude}, ${savedAddress.longitude}');
+              final placemarks = await placemarkFromCoordinates(
+                savedAddress.latitude,
+                savedAddress.longitude,
+              );
+              if (placemarks.isNotEmpty) {
+                final placemark = placemarks.first;
+                debugPrint('📍 Placemark data (validation): locality=${placemark.locality}, subAdmin=${placemark.subAdministrativeArea}, admin=${placemark.administrativeArea}');
+                
+                // Try multiple combinations from placemark data
+                final addressStrings = <String>[];
+                
+                // Add individual fields if they exist
+                if (placemark.locality != null && placemark.locality!.isNotEmpty) {
+                  addressStrings.add(placemark.locality!);
+                }
+                if (placemark.subAdministrativeArea != null && placemark.subAdministrativeArea!.isNotEmpty) {
+                  addressStrings.add(placemark.subAdministrativeArea!);
+                }
+                if (placemark.administrativeArea != null && placemark.administrativeArea!.isNotEmpty) {
+                  addressStrings.add(placemark.administrativeArea!);
+                }
+                
+                // Add combinations
+                if (placemark.locality != null && placemark.locality!.isNotEmpty &&
+                    placemark.subAdministrativeArea != null && placemark.subAdministrativeArea!.isNotEmpty) {
+                  addressStrings.add('${placemark.locality} - ${placemark.subAdministrativeArea}');
+                }
+                
+                for (final addressString in addressStrings) {
+                  if (addressString.trim().isEmpty) continue;
+                  debugPrint('🔍 Trying to match city from (validation): $addressString');
+                  cityMatched = await _tryMatchCityFromAddress(addressString.trim(), regionProvider);
+                  if (cityMatched) {
+                    validCityId = _selectedCityId;
+                    debugPrint('✅ City matched from reverse geocoding (validation): $validCityId');
+                    break;
+                  }
+                }
+              }
+            } catch (e) {
+              debugPrint('❌ Error reverse geocoding city for saved address validation: $e');
+            }
+          }
+        } else {
+          // City ID exists and is valid
+          cityMatched = true;
+          debugPrint('✅ Using saved cityId (validation): $validCityId');
+        }
+        
+        // Update selected city ID
+        _selectedCityId = cityMatched ? validCityId : null;
+        
+        // Validate village ID exists if city is matched
+        String? validVillageId = _selectedVillageId;
+        bool villageMatched = false;
+        
+        if (cityMatched && validCityId != null && validCityId.isNotEmpty) {
+          await regionProvider.loadVillages(validCityId);
+          
+          // Validate village ID exists in current villages list
+          if (validVillageId != null && validVillageId.isNotEmpty) {
+            final villageExists = regionProvider.villageById(validCityId, validVillageId) != null;
+            if (!villageExists) {
+              validVillageId = null;
+              _selectedVillageId = null;
+            }
+          }
+          
+          // Try to match village from address string if missing or invalid
+          if ((validVillageId == null || validVillageId.isEmpty) && savedAddress.address != null) {
+            villageMatched = await _tryMatchVillageFromAddress(savedAddress.address!, regionProvider);
+            if (villageMatched) {
+              validVillageId = _selectedVillageId;
+            }
+          } else if (validVillageId != null && validVillageId.isNotEmpty) {
+            villageMatched = true;
+          }
+          
+          // If still not matched and we have coordinates, try reverse geocoding
+          if (!villageMatched) {
+            try {
+              debugPrint('🔍 Trying reverse geocoding for village (validation) at: ${savedAddress.latitude}, ${savedAddress.longitude}');
+              final placemarks = await placemarkFromCoordinates(
+                savedAddress.latitude,
+                savedAddress.longitude,
+              );
+              if (placemarks.isNotEmpty) {
+                final placemark = placemarks.first;
+                debugPrint('📍 Placemark for village (validation): subLocality=${placemark.subLocality}, locality=${placemark.locality}, thoroughfare=${placemark.thoroughfare}');
+                
+                // Try multiple combinations from placemark data
+                final addressStrings = <String>[];
+                
+                // Add individual fields if they exist
+                if (placemark.subLocality != null && placemark.subLocality!.isNotEmpty) {
+                  addressStrings.add(placemark.subLocality!);
+                }
+                if (placemark.locality != null && placemark.locality!.isNotEmpty) {
+                  addressStrings.add(placemark.locality!);
+                }
+                if (placemark.thoroughfare != null && placemark.thoroughfare!.isNotEmpty) {
+                  addressStrings.add(placemark.thoroughfare!);
+                }
+                
+                // Add combinations
+                if (placemark.subLocality != null && placemark.subLocality!.isNotEmpty &&
+                    placemark.locality != null && placemark.locality!.isNotEmpty) {
+                  addressStrings.add('${placemark.subLocality} - ${placemark.locality}');
+                }
+                
+                for (final addressString in addressStrings) {
+                  if (addressString.trim().isEmpty) continue;
+                  debugPrint('🔍 Trying to match village from (validation): $addressString');
+                  villageMatched = await _tryMatchVillageFromAddress(addressString.trim(), regionProvider);
+                  if (villageMatched) {
+                    validVillageId = _selectedVillageId;
+                    debugPrint('✅ Village matched from reverse geocoding (validation): $validVillageId');
+                    break;
+                  }
+                }
+              }
+            } catch (e) {
+              debugPrint('❌ Error reverse geocoding village for saved address validation: $e');
+            }
+          }
+        }
+        
+        // Update selected village ID
+        _selectedVillageId = villageMatched ? validVillageId : null;
+        
+        // If city still missing after all matching attempts, show error
+        // Village is optional in backend, so we allow proceeding without it if city is matched
+        if (!cityMatched) {
+          _notifyListenersSafely();
+          return DeliveryRequestSubmitResult.failure(
+            'Unable to determine city from saved address. Please use current location or update the saved address.',
+          );
+        }
+
+        // Village is optional - if not matched, we'll proceed without it
+        // This is acceptable for city center addresses where village might not be available
+        // If village not matched, try one more thing: check if city name itself is a village
+        if (!villageMatched && validCityId != null && validCityId.isNotEmpty) {
+          final city = regionProvider.cityById(validCityId);
+          if (city != null) {
+            final villages = regionProvider.activeVillagesForCity(validCityId);
+            // Check if any village name matches the city name (for city center villages)
+            for (final village in villages) {
+              if (village.name.toLowerCase() == city.name.toLowerCase() ||
+                  village.name.toLowerCase().contains(city.name.toLowerCase()) ||
+                  city.name.toLowerCase().contains(village.name.toLowerCase())) {
+                _selectedVillageId = village.id;
+                villageMatched = true;
+                debugPrint('✅ Village matched (city center): ${village.name}');
+                break;
+              }
+            }
+          }
+        }
+        
+        // If still not matched, proceed without village (village is optional for saved addresses)
+        if (!villageMatched) {
+          debugPrint('⚠️ Village not matched, but proceeding without it (village is optional for saved addresses)');
+          _selectedVillageId = null; // Clear village ID to proceed without it
+        }
+      } else {
+        return DeliveryRequestSubmitResult.failure(
+          'Selected saved address not found. Please select another address.',
+        );
+      }
     }
 
     if (formKey.currentState?.validate() != true) {
@@ -539,11 +1237,38 @@ class DeliveryRequestFormController extends ChangeNotifier {
       );
     }
 
-    final position = locationProvider.currentPosition;
-
-    if (position == null) {
+    // Get position - either from current location or saved address
+    Position? position;
+    if (_useCurrentLocation) {
+      position = locationProvider.currentPosition;
+      if (position == null) {
+        return DeliveryRequestSubmitResult.failure(
+          localized('waitingForLocation', 'Waiting for your current location. Please enable location services and try again.'),
+        );
+      }
+    } else if (_selectedSavedAddressId != null) {
+      final savedAddress = await SavedAddressService.getAddressById(_selectedSavedAddressId!);
+      if (savedAddress == null) {
+        return DeliveryRequestSubmitResult.failure(
+          'Selected saved address not found. Please select another address.',
+        );
+      }
+      // Create a Position object from saved address coordinates
+      position = Position(
+        latitude: savedAddress.latitude,
+        longitude: savedAddress.longitude,
+        timestamp: DateTime.now(),
+        accuracy: 0,
+        altitude: 0,
+        heading: 0,
+        speed: 0,
+        speedAccuracy: 0,
+        altitudeAccuracy: 0,
+        headingAccuracy: 0,
+      );
+    } else {
       return DeliveryRequestSubmitResult.failure(
-        localized('waitingForLocation', 'Waiting for your current location. Please enable location services and try again.'),
+        localized('waitingForLocation', 'Please select a pickup location.'),
       );
     }
 
@@ -595,10 +1320,38 @@ class DeliveryRequestFormController extends ChangeNotifier {
       );
     }
 
-    final position = locationProvider.currentPosition;
-    if (position == null) {
+    // Get position - either from current location or saved address
+    Position? position;
+    if (_useCurrentLocation) {
+      position = locationProvider.currentPosition;
+      if (position == null) {
+        return DeliveryRequestSubmitResult.failure(
+          localized('waitingForLocation', 'Waiting for your current location. Please enable location services and try again.'),
+        );
+      }
+    } else if (_selectedSavedAddressId != null) {
+      final savedAddress = await SavedAddressService.getAddressById(_selectedSavedAddressId!);
+      if (savedAddress == null) {
+        return DeliveryRequestSubmitResult.failure(
+          'Selected saved address not found. Please select another address.',
+        );
+      }
+      // Create a Position object from saved address coordinates
+      position = Position(
+        latitude: savedAddress.latitude,
+        longitude: savedAddress.longitude,
+        timestamp: DateTime.now(),
+        accuracy: 0,
+        altitude: 0,
+        heading: 0,
+        speed: 0,
+        speedAccuracy: 0,
+        altitudeAccuracy: 0,
+        headingAccuracy: 0,
+      );
+    } else {
       return DeliveryRequestSubmitResult.failure(
-        localized('waitingForLocation', 'Waiting for your current location. Please enable location services and try again.'),
+        localized('waitingForLocation', 'Please select a pickup location.'),
       );
     }
 
@@ -612,36 +1365,77 @@ class DeliveryRequestFormController extends ChangeNotifier {
 
     _setSubmitting(true);
 
+    // Get address string - use saved address if available, otherwise compose from form
+    String addressString;
+    if (!_useCurrentLocation && _selectedSavedAddressId != null) {
+      final savedAddress = await SavedAddressService.getAddressById(_selectedSavedAddressId!);
+      addressString = savedAddress?.address ?? composeAddress(regionProvider);
+    } else {
+      addressString = locationProvider.currentAddress ?? composeAddress(regionProvider);
+    }
+
     final pickupLocation = {
       'lat': position.latitude,
       'lng': position.longitude,
-      'address': locationProvider.currentAddress ?? composeAddress(regionProvider),
-      'cityId': _selectedCityId,
-      'cityName': regionProvider.cityById(_selectedCityId ?? '')?.name,
-      'villageId': _selectedVillageId,
-      'villageName': regionProvider
-          .villageById(_selectedCityId ?? '', _selectedVillageId ?? '')
-          ?.name,
+      'address': addressString,
+      if (_selectedCityId != null && _selectedCityId!.isNotEmpty) 'cityId': _selectedCityId,
+      if (_selectedCityId != null && _selectedCityId!.isNotEmpty) 
+        'cityName': regionProvider.cityById(_selectedCityId!)?.name,
+      if (_selectedVillageId != null && _selectedVillageId!.isNotEmpty) 'villageId': _selectedVillageId,
+      if (_selectedVillageId != null && _selectedVillageId!.isNotEmpty)
+        'villageName': regionProvider
+            .villageById(_selectedCityId ?? '', _selectedVillageId!)
+            ?.name,
     };
 
     final dropoffLocation = {
       'lat': position.latitude,
       'lng': position.longitude,
-      'address': composeAddress(regionProvider),
-      'cityId': _selectedCityId,
-      'cityName': regionProvider.cityById(_selectedCityId ?? '')?.name,
-      'villageId': _selectedVillageId,
-      'villageName': regionProvider
-          .villageById(_selectedCityId ?? '', _selectedVillageId ?? '')
-          ?.name,
+      'address': addressString,
+      if (_selectedCityId != null && _selectedCityId!.isNotEmpty) 'cityId': _selectedCityId,
+      if (_selectedCityId != null && _selectedCityId!.isNotEmpty) 
+        'cityName': regionProvider.cityById(_selectedCityId!)?.name,
+      if (_selectedVillageId != null && _selectedVillageId!.isNotEmpty) 'villageId': _selectedVillageId,
+      if (_selectedVillageId != null && _selectedVillageId!.isNotEmpty)
+        'villageName': regionProvider
+            .villageById(_selectedCityId ?? '', _selectedVillageId!)
+            ?.name,
     };
 
     // Get separate address components from form
-    final cityName = regionProvider.cityById(_selectedCityId ?? '')?.name ?? '';
-    final villageName = regionProvider
-        .villageById(_selectedCityId ?? '', _selectedVillageId ?? '')
-        ?.name ?? '';
+    final city = _selectedCityId != null && _selectedCityId!.isNotEmpty
+        ? regionProvider.cityById(_selectedCityId!)
+        : null;
+    final cityName = city?.name ?? '';
+    
+    final village = _selectedCityId != null && 
+            _selectedCityId!.isNotEmpty && 
+            _selectedVillageId != null && 
+            _selectedVillageId!.isNotEmpty
+        ? regionProvider.villageById(_selectedCityId!, _selectedVillageId!)
+        : null;
+    final villageName = village?.name ?? '';
+    
     final streetDetails = senderAddressController.text.trim();
+
+    // Validate that we have city name (required)
+    if (cityName.isEmpty) {
+      _setSubmitting(false);
+      return DeliveryRequestSubmitResult.failure(
+        'City information is required. Please select a city or use current location.',
+      );
+    }
+    
+    // Village is optional in backend, but required when using current location
+    // When using saved address, village can be empty (for city center addresses)
+    if (_useCurrentLocation && villageName.isEmpty) {
+      _setSubmitting(false);
+      return DeliveryRequestSubmitResult.failure(
+        'Village information is required when using current location. Please select a village.',
+      );
+    }
+    
+    // For saved addresses, village is optional - we can proceed without it
 
     try {
       // Use the authenticated order creation endpoint
@@ -754,45 +1548,112 @@ class DeliveryRequestFormController extends ChangeNotifier {
       );
     }
 
-    final position = locationProvider.currentPosition;
-
-    if (position == null) {
-      return DeliveryRequestSubmitResult.failure(
-        localized('waitingForLocation', 'Waiting for your current location. Please enable location services and try again.'),
+    // Get position - either from current location or saved address
+    Position? position;
+    if (_useCurrentLocation) {
+      position = locationProvider.currentPosition;
+      if (position == null) {
+        return DeliveryRequestSubmitResult.failure(
+          localized('waitingForLocation', 'Waiting for your current location. Please enable location services and try again.'),
+        );
+      }
+    } else if (_selectedSavedAddressId != null) {
+      final savedAddress = await SavedAddressService.getAddressById(_selectedSavedAddressId!);
+      if (savedAddress == null) {
+        return DeliveryRequestSubmitResult.failure(
+          'Selected saved address not found. Please select another address.',
+        );
+      }
+      // Create a Position object from saved address coordinates
+      position = Position(
+        latitude: savedAddress.latitude,
+        longitude: savedAddress.longitude,
+        timestamp: DateTime.now(),
+        accuracy: 0,
+        altitude: 0,
+        heading: 0,
+        speed: 0,
+        speedAccuracy: 0,
+        altitudeAccuracy: 0,
+        headingAccuracy: 0,
       );
+    } else {
+      return DeliveryRequestSubmitResult.failure(
+        localized('waitingForLocation', 'Please select a pickup location.'),
+      );
+    }
+
+    // Get address string - use saved address if available, otherwise compose from form
+    String addressString;
+    if (!_useCurrentLocation && _selectedSavedAddressId != null) {
+      final savedAddress = await SavedAddressService.getAddressById(_selectedSavedAddressId!);
+      addressString = savedAddress?.address ?? composeAddress(regionProvider);
+    } else {
+      addressString = locationProvider.currentAddress ?? composeAddress(regionProvider);
     }
 
     final pickupLocation = {
       'lat': position.latitude,
       'lng': position.longitude,
-      'address':
-          locationProvider.currentAddress ?? composeAddress(regionProvider),
-      'cityId': _selectedCityId,
-      'cityName': regionProvider.cityById(_selectedCityId ?? '')?.name,
-      'villageId': _selectedVillageId,
-      'villageName': regionProvider
-          .villageById(_selectedCityId ?? '', _selectedVillageId ?? '')
-          ?.name,
+      'address': addressString,
+      if (_selectedCityId != null && _selectedCityId!.isNotEmpty) 'cityId': _selectedCityId,
+      if (_selectedCityId != null && _selectedCityId!.isNotEmpty) 
+        'cityName': regionProvider.cityById(_selectedCityId!)?.name,
+      if (_selectedVillageId != null && _selectedVillageId!.isNotEmpty) 'villageId': _selectedVillageId,
+      if (_selectedVillageId != null && _selectedVillageId!.isNotEmpty)
+        'villageName': regionProvider
+            .villageById(_selectedCityId ?? '', _selectedVillageId!)
+            ?.name,
     };
 
     final dropoffLocation = {
       'lat': position.latitude,
       'lng': position.longitude,
-      'address': composeAddress(regionProvider),
-      'cityId': _selectedCityId,
-      'cityName': regionProvider.cityById(_selectedCityId ?? '')?.name,
-      'villageId': _selectedVillageId,
-      'villageName': regionProvider
-          .villageById(_selectedCityId ?? '', _selectedVillageId ?? '')
-          ?.name,
+      'address': addressString,
+      if (_selectedCityId != null && _selectedCityId!.isNotEmpty) 'cityId': _selectedCityId,
+      if (_selectedCityId != null && _selectedCityId!.isNotEmpty) 
+        'cityName': regionProvider.cityById(_selectedCityId!)?.name,
+      if (_selectedVillageId != null && _selectedVillageId!.isNotEmpty) 'villageId': _selectedVillageId,
+      if (_selectedVillageId != null && _selectedVillageId!.isNotEmpty)
+        'villageName': regionProvider
+            .villageById(_selectedCityId ?? '', _selectedVillageId!)
+            ?.name,
     };
 
     // Get separate address components from form
-    final cityName = regionProvider.cityById(_selectedCityId ?? '')?.name ?? '';
-    final villageName = regionProvider
-        .villageById(_selectedCityId ?? '', _selectedVillageId ?? '')
-        ?.name ?? '';
+    final city = _selectedCityId != null && _selectedCityId!.isNotEmpty
+        ? regionProvider.cityById(_selectedCityId!)
+        : null;
+    final cityName = city?.name ?? '';
+    
+    final village = _selectedCityId != null && 
+            _selectedCityId!.isNotEmpty && 
+            _selectedVillageId != null && 
+            _selectedVillageId!.isNotEmpty
+        ? regionProvider.villageById(_selectedCityId!, _selectedVillageId!)
+        : null;
+    final villageName = village?.name ?? '';
+    
     final streetDetails = senderAddressController.text.trim();
+
+    // Validate that we have city name (required)
+    if (cityName.isEmpty) {
+      _isVerifyingOTP = false;
+      return DeliveryRequestSubmitResult.failure(
+        'City information is required. Please select a city or use current location.',
+      );
+    }
+    
+    // Village is optional in backend, but required when using current location
+    // When using saved address, village can be empty (for city center addresses)
+    if (_useCurrentLocation && villageName.isEmpty) {
+      _isVerifyingOTP = false;
+      return DeliveryRequestSubmitResult.failure(
+        'Village information is required when using current location. Please select a village.',
+      );
+    }
+    
+    // For saved addresses, village is optional - we can proceed without it
 
     // Verify OTP with Firebase first
     _isVerifyingOTP = true;

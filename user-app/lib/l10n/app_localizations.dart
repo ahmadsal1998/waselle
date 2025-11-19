@@ -856,6 +856,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delivery within 10 km radius (configurable by admin)'**
   String get externalDeliveryDescription;
+
+  /// Order progress section title
+  ///
+  /// In en, this message translates to:
+  /// **'Order Progress'**
+  String get orderProgress;
+
+  /// Show order progress button text
+  ///
+  /// In en, this message translates to:
+  /// **'Show Order Progress'**
+  String get showOrderProgress;
+
+  /// Hide order progress button text
+  ///
+  /// In en, this message translates to:
+  /// **'Hide Order Progress'**
+  String get hideOrderProgress;
+
+  /// Tap to open map hint text
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to open map'**
+  String get tapToOpenMap;
+
+  /// Order placed stage title
+  ///
+  /// In en, this message translates to:
+  /// **'Order Placed'**
+  String get orderPlaced;
+
+  /// Order placed stage description
+  ///
+  /// In en, this message translates to:
+  /// **'Your order has been placed and is waiting for a driver'**
+  String get orderPlacedDescription;
+
+  /// Order accepted stage title
+  ///
+  /// In en, this message translates to:
+  /// **'Order Accepted'**
+  String get orderAccepted;
+
+  /// Order accepted stage description
+  ///
+  /// In en, this message translates to:
+  /// **'A driver has accepted your order'**
+  String get orderAcceptedDescription;
+
+  /// On the way stage title
+  ///
+  /// In en, this message translates to:
+  /// **'On the Way'**
+  String get onTheWay;
+
+  /// On the way stage description
+  ///
+  /// In en, this message translates to:
+  /// **'Driver is on the way to your location'**
+  String get onTheWayDescription;
+
+  /// Delivered stage title
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get delivered;
+
+  /// Delivered stage description
+  ///
+  /// In en, this message translates to:
+  /// **'Your order has been successfully delivered'**
+  String get deliveredDescription;
+
+  /// Current stage badge text
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get current;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

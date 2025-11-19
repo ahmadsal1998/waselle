@@ -189,15 +189,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context, authViewModel, _) {
         final user = authViewModel.user;
         final isAvailable = authViewModel.isAvailable;
+        final isLoggedIn = user != null;
 
-        if (user == null) {
-          return Center(
-            child: Text(
-              l10n.noUserData,
-              style: TextStyle(color: AppTheme.textSecondary),
-            ),
-          );
-        }
+        // Create default placeholder values when user is not logged in
+        final displayUser = user ?? {
+          'name': l10n.unknown,
+          'email': 'Not available',
+          'phone': 'Not available',
+          'profilePicture': null,
+        };
 
         return ListView(
           padding: EdgeInsets.zero,
@@ -215,7 +215,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     children: [
                       GestureDetector(
-                        onTap: _pickAndUploadImage,
+                        onTap: isLoggedIn ? _pickAndUploadImage : null,
                         child: Stack(
                           children: [
                             Container(
@@ -226,10 +226,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 boxShadow: ModernCardShadow.light,
                               ),
                               child: ClipOval(
-                                child: user['profilePicture'] != null &&
-                                        (user['profilePicture'] as String).isNotEmpty
+                                child: displayUser['profilePicture'] != null &&
+                                        (displayUser['profilePicture'] as String).isNotEmpty
                                     ? Image.network(
-                                        user['profilePicture'] as String,
+                                        displayUser['profilePicture'] as String,
                                         width: 100,
                                         height: 100,
                                         fit: BoxFit.cover,
@@ -284,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ),
                               ),
                             ),
-                            if (_isUploadingPicture)
+                            if (isLoggedIn && _isUploadingPicture)
                               Positioned.fill(
                                 child: Container(
                                   decoration: BoxDecoration(
@@ -298,7 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                               )
-                            else
+                            else if (isLoggedIn)
                               Positioned(
                                 bottom: 0,
                                 right: 0,
@@ -324,7 +324,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        user['name'] ?? l10n.unknown,
+                        displayUser['name'] ?? l10n.unknown,
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
@@ -344,11 +344,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          user['email'] ?? '',
+                          displayUser['email'] ?? 'Not available',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
+                            fontStyle: isLoggedIn ? FontStyle.normal : FontStyle.italic,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -363,12 +364,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  // Availability Toggle
-                  _AvailabilityToggleTile(
-                    isAvailable: isAvailable,
-                    onToggle: _toggleAvailability,
-                  ),
-                  const SizedBox(height: 12),
+                  // Availability Toggle (only show if logged in)
+                  if (isLoggedIn)
+                    _AvailabilityToggleTile(
+                      isAvailable: isAvailable,
+                      onToggle: _toggleAvailability,
+                    ),
+                  if (isLoggedIn) const SizedBox(height: 12),
                   Consumer<LocaleViewModel>(
                     builder: (context, localeViewModel, _) {
                       return _ModernProfileTile(
@@ -442,22 +444,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  _ModernProfileTile(
-                    icon: Icons.logout_rounded,
-                    title: l10n.logout,
-                    subtitle: 'Sign out from your account',
-                    isDestructive: true,
-                    onTap: () async {
-                      await authViewModel.logout();
-                      SocketService.disconnect();
-                      if (context.mounted) {
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                          '/',
-                          (route) => false,
-                        );
-                      }
-                    },
-                  ),
+                  if (isLoggedIn)
+                    _ModernProfileTile(
+                      icon: Icons.logout_rounded,
+                      title: l10n.logout,
+                      subtitle: 'Sign out from your account',
+                      isDestructive: true,
+                      onTap: () async {
+                        await authViewModel.logout();
+                        SocketService.disconnect();
+                        if (context.mounted) {
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/',
+                            (route) => false,
+                          );
+                        }
+                      },
+                    ),
                   const SizedBox(height: 32),
                 ],
               ),

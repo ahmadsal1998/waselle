@@ -398,4 +398,43 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get externalDeliveryDescription => 'التوصيل ضمن دائرة نصف قطرها 10 كم (قابل للتعديل من قبل المدير)';
+
+  @override
+  String get orderProgress => 'تقدم الطلب';
+
+  @override
+  String get showOrderProgress => 'إظهار تقدم الطلب';
+
+  @override
+  String get hideOrderProgress => 'إخفاء تقدم الطلب';
+
+  @override
+  String get tapToOpenMap => 'اضغط لفتح الخريطة';
+
+  @override
+  String get orderPlaced => 'تم وضع الطلب';
+
+  @override
+  String get orderPlacedDescription => 'تم وضع طلبك وهو في انتظار سائق';
+
+  @override
+  String get orderAccepted => 'تم قبول الطلب';
+
+  @override
+  String get orderAcceptedDescription => 'قبل سائق طلبك';
+
+  @override
+  String get onTheWay => 'في الطريق';
+
+  @override
+  String get onTheWayDescription => 'السائق في طريقه إلى موقعك';
+
+  @override
+  String get delivered => 'تم التسليم';
+
+  @override
+  String get deliveredDescription => 'تم تسليم طلبك بنجاح';
+
+  @override
+  String get current => 'الحالي';
 }

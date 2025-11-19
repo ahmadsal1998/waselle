@@ -8,6 +8,8 @@ import '../../../../view_models/order_view_model.dart';
 import '../../../../view_models/region_view_model.dart';
 import '../../../../view_models/auth_view_model.dart';
 import '../../../../screens/home/order_success_screen.dart';
+import '../../../../services/saved_address_service.dart';
+import '../../../../models/saved_address.dart';
 import '../controllers/delivery_request_form_controller.dart';
 
 class DeliveryRequestFormView extends StatefulWidget {
@@ -227,18 +229,35 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
               icon: Icons.map_outlined,
               title: l10n.pickupLocation,
               subtitle: l10n.tellUsWhereToCollect,
-              child: _buildRegionFields(
-                context: context,
-                controller: controller,
-                regionProvider: regionProvider,
-                orderProvider: orderProvider,
-                locationProvider: locationProvider,
-                cities: cities,
-                villages: villages,
-                isCitiesLoading: isCitiesLoading,
-                isVillagesLoading: isVillagesLoading,
-                cityError: cityError,
-                villagesError: villagesError,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSavedAddressSelector(
+                    context,
+                    controller,
+                    regionProvider,
+                    locationProvider,
+                    orderProvider,
+                  ),
+                  // Show City and Village fields ONLY when using Current Location
+                  // When saved address is selected, fields are hidden and values are auto-populated
+                  if (controller.useCurrentLocation) ...[
+                    const SizedBox(height: 20),
+                    _buildRegionFields(
+                      context: context,
+                      controller: controller,
+                      regionProvider: regionProvider,
+                      orderProvider: orderProvider,
+                      locationProvider: locationProvider,
+                      cities: cities,
+                      villages: villages,
+                      isCitiesLoading: isCitiesLoading,
+                      isVillagesLoading: isVillagesLoading,
+                      cityError: cityError,
+                      villagesError: villagesError,
+                    ),
+                  ],
+                ],
               ),
             ),
             const SizedBox(height: 20),
@@ -399,22 +418,45 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
             ],
           ),
           const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: locationProvider.isLoading
-                ? null
-                : () => controller.refreshLocation(locationProvider),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: theme.colorScheme.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: locationProvider.isLoading
+                      ? null
+                      : () => controller.refreshLocation(locationProvider),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: theme.colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.my_location_outlined),
+                  label: Text(
+                    locationProvider.isLoading ? l10n.updating : l10n.refreshLocation,
+                  ),
+                ),
               ),
-            ),
-            icon: const Icon(Icons.my_location_outlined),
-            label: Text(
-              locationProvider.isLoading ? l10n.updating : l10n.refreshLocation,
-            ),
+              const SizedBox(width: 12),
+              IconButton(
+                onPressed: locationProvider.currentPosition == null
+                    ? null
+                    : () => _showSaveAddressDialog(
+                          context,
+                          locationProvider,
+                          controller,
+                        ),
+                icon: const Icon(Icons.bookmark_add_outlined),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.9),
+                  foregroundColor: theme.colorScheme.primary,
+                  padding: const EdgeInsets.all(14),
+                ),
+                tooltip: 'Save Current Address',
+              ),
+            ],
           ),
         ],
       ),
@@ -862,6 +904,358 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
     );
   }
 
+  Widget _buildSavedAddressSelector(
+    BuildContext context,
+    DeliveryRequestFormController controller,
+    RegionViewModel regionProvider,
+    LocationViewModel locationProvider,
+    OrderViewModel orderProvider,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    // Watch controller to rebuild when selection changes
+    final useCurrentLocation = controller.useCurrentLocation;
+    final selectedSavedAddressId = controller.selectedSavedAddressId;
+
+    return FutureBuilder<List<SavedAddress>>(
+      // Add key to force rebuild when selection changes
+      key: ValueKey('saved_addresses_$selectedSavedAddressId'),
+      future: SavedAddressService.getSavedAddresses(),
+      builder: (context, snapshot) {
+        final savedAddresses = snapshot.data ?? [];
+        
+        // Access controller properties here to ensure rebuild when they change
+        // The parent widget watches the controller, so this will rebuild
+        final currentUseCurrentLocation = controller.useCurrentLocation;
+        final currentSelectedId = controller.selectedSavedAddressId;
+
+        if (savedAddresses.isEmpty) {
+          // Show current location option only
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: theme.colorScheme.primary.withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.my_location,
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Using Current Location',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        locationProvider.currentAddress ?? 'Getting location...',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Show selector with saved addresses
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Select Pickup Location',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Current Location Option
+            InkWell(
+              onTap: () {
+                controller.useCurrentLocationForPickup(
+                  regionProvider: regionProvider,
+                  locationProvider: locationProvider,
+                  orderProvider: orderProvider,
+                );
+              },
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: currentUseCurrentLocation
+                      ? theme.colorScheme.primaryContainer.withOpacity(0.5)
+                      : theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: currentUseCurrentLocation
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outlineVariant.withOpacity(0.5),
+                    width: currentUseCurrentLocation ? 2 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.my_location,
+                      color: currentUseCurrentLocation
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Current Location',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: currentUseCurrentLocation
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            locationProvider.currentAddress ?? 'Getting location...',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (currentUseCurrentLocation)
+                      Icon(
+                        Icons.check_circle,
+                        color: theme.colorScheme.primary,
+                        size: 24,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Saved Addresses List
+            ...savedAddresses.map((address) {
+              final isSelected = !currentUseCurrentLocation &&
+                  currentSelectedId == address.id;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: InkWell(
+                  onTap: () {
+                    controller.selectSavedAddress(
+                      address.id,
+                      regionProvider: regionProvider,
+                      locationProvider: locationProvider,
+                      orderProvider: orderProvider,
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? theme.colorScheme.primaryContainer.withOpacity(0.5)
+                          : theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outlineVariant.withOpacity(0.5),
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? theme.colorScheme.primary.withOpacity(0.2)
+                                : theme.colorScheme.surfaceVariant,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            _getAddressIcon(address.label),
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurfaceVariant,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                address.label,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: isSelected
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                address.address ?? 
+                                    '${address.latitude.toStringAsFixed(4)}, ${address.longitude.toStringAsFixed(4)}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isSelected)
+                          Icon(
+                            Icons.check_circle,
+                            color: theme.colorScheme.primary,
+                            size: 24,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ],
+        );
+      },
+    );
+  }
+
+  IconData _getAddressIcon(String label) {
+    final lowerLabel = label.toLowerCase();
+    if (lowerLabel.contains('home')) {
+      return Icons.home;
+    } else if (lowerLabel.contains('work')) {
+      return Icons.work;
+    } else if (lowerLabel.contains('office')) {
+      return Icons.business;
+    } else {
+      return Icons.location_on;
+    }
+  }
+
+  void _showSaveAddressDialog(
+    BuildContext context,
+    LocationViewModel locationProvider,
+    DeliveryRequestFormController controller,
+  ) {
+    final theme = Theme.of(context);
+    final labelController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Save Current Address'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: labelController,
+            decoration: const InputDecoration(
+              labelText: 'Label (e.g., Home, Work)',
+              hintText: 'Enter a name for this address',
+              border: OutlineInputBorder(),
+            ),
+            autofocus: true,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter a label';
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                final position = locationProvider.currentPosition;
+                if (position == null) {
+                  Navigator.of(dialogContext).pop();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Location not available'),
+                      ),
+                    );
+                  }
+                  return;
+                }
+
+                final address = SavedAddress(
+                  id: SavedAddressService.generateId(),
+                  label: labelController.text.trim(),
+                  latitude: position.latitude,
+                  longitude: position.longitude,
+                  address: locationProvider.currentAddress,
+                  cityId: controller.selectedCityId,
+                  villageId: controller.selectedVillageId,
+                  streetDetails: controller.senderAddressController.text.trim().isEmpty
+                      ? null
+                      : controller.senderAddressController.text.trim(),
+                );
+
+                final success = await SavedAddressService.saveAddress(address);
+                Navigator.of(dialogContext).pop();
+
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Address "${address.label}" saved successfully'),
+                      backgroundColor: theme.colorScheme.primary,
+                    ),
+                  );
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Failed to save address'),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRegionFields({
     required BuildContext context,
     required DeliveryRequestFormController controller,
@@ -908,6 +1302,18 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                 }
               : null,
           validator: (value) {
+            // Validate if fields are visible (either using current location or saved address with missing city/village)
+            final fieldsVisible = controller.useCurrentLocation || 
+                (controller.selectedSavedAddressId != null && 
+                 (controller.selectedCityId == null || 
+                  controller.selectedCityId!.isEmpty ||
+                  controller.selectedVillageId == null ||
+                  controller.selectedVillageId!.isEmpty));
+            
+            if (!fieldsVisible) {
+              return null; // Fields hidden, no validation needed
+            }
+            
             if (cities.isEmpty) {
               return l10n.noActiveCitiesAvailable;
             }
@@ -969,6 +1375,18 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                 }
               : null,
           validator: (value) {
+            // Validate if fields are visible (either using current location or saved address with missing city/village)
+            final fieldsVisible = controller.useCurrentLocation || 
+                (controller.selectedSavedAddressId != null && 
+                 (controller.selectedCityId == null || 
+                  controller.selectedCityId!.isEmpty ||
+                  controller.selectedVillageId == null ||
+                  controller.selectedVillageId!.isEmpty));
+            
+            if (!fieldsVisible) {
+              return null; // Fields hidden, no validation needed
+            }
+            
             if (controller.selectedCityId == null) {
               return l10n.selectCityFirst;
             }

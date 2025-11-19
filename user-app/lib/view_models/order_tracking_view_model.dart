@@ -81,6 +81,7 @@ class OrderTrackingViewModel extends ChangeNotifier {
   VoidCallback? _ordersListener;
   VoidCallback? _locationListener;
   void Function(dynamic)? _driverLocationListener;
+  void Function(dynamic)? _orderUpdatedListener;
 
   bool get isInitialized => _isInitialized;
 
@@ -126,6 +127,12 @@ class OrderTrackingViewModel extends ChangeNotifier {
       SocketService.removeListener(
         'driver-location-update',
         _driverLocationListener!,
+      );
+    }
+    if (_orderUpdatedListener != null) {
+      SocketService.removeListener(
+        'order-updated',
+        _orderUpdatedListener!,
       );
     }
     super.dispose();
@@ -255,6 +262,73 @@ class OrderTrackingViewModel extends ChangeNotifier {
     };
 
     SocketService.on('driver-location-update', _driverLocationListener!);
+
+    // Listen for order status updates
+    if (_orderUpdatedListener != null) {
+      SocketService.removeListener(
+        'order-updated',
+        _orderUpdatedListener!,
+      );
+    }
+
+    _orderUpdatedListener = (dynamic payload) {
+      if (_isDisposed) return;
+      final data = _normalizePayload(payload);
+      if (data == null) return;
+
+      final updatedOrderId = _extractId(data['_id']);
+      if (updatedOrderId == null) return;
+
+      // Check if this order is being tracked
+      if (!_trackedOrders.containsKey(updatedOrderId)) {
+        return;
+      }
+
+      // The OrderViewModel already handles the socket event and updates its state
+      // When OrderViewModel notifies listeners, our _ordersListener will be triggered
+      // However, we also want to handle driver location updates immediately if present
+      unawaited(_handleOrderStatusUpdate(updatedOrderId, data));
+    };
+
+    SocketService.on('order-updated', _orderUpdatedListener!);
+  }
+
+  Future<void> _handleOrderStatusUpdate(
+    String orderId,
+    Map<String, dynamic> updatedOrderData,
+  ) async {
+    if (_isDisposed) return;
+
+    // OrderViewModel processes the socket event synchronously and updates its state
+    // When it calls notifyListeners(), our _ordersListener will also be triggered
+    // However, we also listen directly to ensure immediate UI updates for status changes
+    
+    // Find the updated order in OrderViewModel's active orders
+    // OrderViewModel should have already updated its state by now
+    final updatedOrder = orderViewModel.activeOrders.firstWhere(
+      (order) => _extractId(order['_id']) == orderId,
+      orElse: () => updatedOrderData,
+    );
+
+    // Update driver location if available in the update
+    final driverLocation = _latLngFrom(updatedOrder['driverId']?['location']);
+    if (driverLocation != null) {
+      final state = _trackedOrders[orderId];
+      if (state != null) {
+        final current = state.driverLocation;
+        if (current == null ||
+            current.latitude != driverLocation.latitude ||
+            current.longitude != driverLocation.longitude) {
+          state.driverLocation = driverLocation;
+          _scheduleRouteRefresh(orderId, updatedOrder);
+        }
+      }
+    }
+
+    // Sync tracked orders with the updated order data from OrderViewModel
+    // This will update the order status and other fields, triggering UI refresh
+    _syncTrackedOrders(orderViewModel.activeOrders);
+    _notifySafely();
   }
 
   Future<void> _bootstrapOrder(

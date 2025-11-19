@@ -1,7 +1,7 @@
 /**
  * Normalizes phone numbers to the format: +9720XXXXXXXX
  * Handles various input formats:
- * - +972593202026 -> +9720593202026 (removes leading zero after country code)
+ٍ * - +972593202026 -> +9720593202026 (removes leading zero after country code)
  * - +9720593202026 -> +9720593202026 (already correct)
  * - 972593202026 -> +9720593202026
  * - 0593202026 -> +9720593202026

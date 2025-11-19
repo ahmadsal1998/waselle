@@ -24,9 +24,9 @@ class HomeScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return [
       l10n.discover,
-      l10n.profile,
       l10n.trackOrder,
       l10n.orderHistory,
+      l10n.profile,
     ];
   }
 
@@ -64,9 +64,9 @@ class _HomeScreenView extends StatelessWidget {
             index: viewModel.currentTabIndex,
             children: [
               _MapTab(viewModel: viewModel),
-              const ProfileScreen(showAppBar: false),
-              const OrderTrackingScreen(showAppBar: false),
+          const OrderTrackingScreen(showAppBar: false),
               const OrderHistoryScreen(),
+              const ProfileScreen(showAppBar: false),
             ],
           ),
           bottomNavigationBar: _HomeNavigationBar(
@@ -140,11 +140,6 @@ class _HomeNavigationBar extends StatelessWidget {
           label: l10n.discover,
         ),
         NavigationDestination(
-          icon: const Icon(Icons.person_outline),
-          selectedIcon: const Icon(Icons.person),
-          label: l10n.profile,
-        ),
-        NavigationDestination(
           icon: _TrackNavIcon(
             hasActiveOrder: hasActiveOrder,
             isSelected: false,
@@ -159,6 +154,11 @@ class _HomeNavigationBar extends StatelessWidget {
           icon: const Icon(Icons.history_outlined),
           selectedIcon: const Icon(Icons.history),
           label: l10n.orderHistory,
+        ),
+        NavigationDestination(
+          icon: const Icon(Icons.person_outline),
+          selectedIcon: const Icon(Icons.person),
+          label: l10n.profile,
         ),
       ],
     );

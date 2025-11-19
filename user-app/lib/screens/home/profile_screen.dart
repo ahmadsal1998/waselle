@@ -5,6 +5,7 @@ import '../../view_models/auth_view_model.dart';
 import '../../view_models/locale_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../services/socket_service.dart';
+import 'saved_addresses_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   final bool showAppBar;
@@ -42,10 +43,14 @@ class _ProfileContent extends StatelessWidget {
     return Consumer<AuthViewModel>(
       builder: (context, authViewModel, _) {
         final user = authViewModel.user;
+        final isLoggedIn = user != null;
 
-        if (user == null) {
-          return Center(child: Text(l10n.noUserData));
-        }
+        // Create default placeholder values when user is not logged in
+        final displayUser = user ?? {
+          'name': l10n.unknown,
+          'email': 'Not available',
+          'phone': 'Not available',
+        };
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -56,14 +61,17 @@ class _ProfileContent extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              user['name'] ?? l10n.unknown,
+              displayUser['name'] ?? l10n.unknown,
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              user['email'] ?? '',
-              style: TextStyle(color: Colors.grey[600]),
+              displayUser['email'] ?? 'Not available',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontStyle: isLoggedIn ? FontStyle.normal : FontStyle.italic,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -74,6 +82,19 @@ class _ProfileContent extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 // Navigate to order history
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.location_on),
+              title: const Text('Saved Addresses'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const SavedAddressesScreen(),
+                  ),
+                );
               },
             ),
             const Divider(),
@@ -163,25 +184,26 @@ class _ProfileContent extends StatelessWidget {
                 // Navigate to settings
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: Text(l10n.logout),
-              onTap: () async {
-                await authViewModel.logout();
-                SocketService.disconnect();
-                if (!showAppBar) {
-                  // When embedded, ensure outer listeners (e.g. AuthWrapper) react to logout.
-                  return;
-                }
+            if (isLoggedIn)
+              ListTile(
+                leading: const Icon(Icons.logout),
+                title: Text(l10n.logout),
+                onTap: () async {
+                  await authViewModel.logout();
+                  SocketService.disconnect();
+                  if (!showAppBar) {
+                    // When embedded, ensure outer listeners (e.g. AuthWrapper) react to logout.
+                    return;
+                  }
 
-                if (context.mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/',
-                    (route) => false,
-                  );
-                }
-              },
-            ),
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/',
+                      (route) => false,
+                    );
+                  }
+                },
+              ),
           ],
         );
       },

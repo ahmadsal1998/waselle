@@ -79,6 +79,7 @@
   "selectLanguage": "اختر اللغة",
   "verifyEmail": "التحقق من البريد الإلكتروني",
   "verifyYourEmail": "التحقق من بريدك الإلكتروني",
+  "verifyYourPhone": "التحقق من هاتفك",
   "otpSentMessage": "أرسلنا رمز التحقق إلى\n{email}",
   "@otpSentMessage": {
     "placeholders": {

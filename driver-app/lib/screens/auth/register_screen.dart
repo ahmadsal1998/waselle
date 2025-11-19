@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../view_models/auth_view_model.dart';
-import 'otp_verification_screen.dart';
+import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -49,29 +49,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context)!;
+    
     if (success) {
-      // Send OTP to phone number
-      final phoneNumber = _phoneController.text.trim();
-      if (phoneNumber.isNotEmpty) {
-        final otpSent = await authViewModel.sendOTP(phoneNumber);
-        if (otpSent && mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => OTPVerificationScreen(
-                phoneNumber: phoneNumber,
-              ),
-            ),
-          );
-        } else if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to send OTP')),
-          );
-        }
-      }
+      // Registration successful, navigate to login screen
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Registration successful! Please login.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
     } else {
-      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.registrationFailed)),
       );
@@ -165,12 +156,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     prefixIcon: const Icon(Icons.phone),
                     border: const OutlineInputBorder(),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return l10n.pleaseEnterPhoneNumber;
-                    }
-                    return null;
-                  },
+                  // Phone number is optional
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

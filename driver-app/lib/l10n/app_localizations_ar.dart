@@ -208,6 +208,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get verifyYourEmail => 'التحقق من بريدك الإلكتروني';
 
   @override
+  String get verifyYourPhone => 'التحقق من هاتفك';
+
+  @override
   String otpSentMessage(String email) {
     return 'أرسلنا رمز التحقق إلى\n$email';
   }

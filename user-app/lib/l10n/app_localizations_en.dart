@@ -398,4 +398,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get externalDeliveryDescription => 'Delivery within 10 km radius (configurable by admin)';
+
+  @override
+  String get orderProgress => 'Order Progress';
+
+  @override
+  String get showOrderProgress => 'Show Order Progress';
+
+  @override
+  String get hideOrderProgress => 'Hide Order Progress';
+
+  @override
+  String get tapToOpenMap => 'Tap to open map';
+
+  @override
+  String get orderPlaced => 'Order Placed';
+
+  @override
+  String get orderPlacedDescription => 'Your order has been placed and is waiting for a driver';
+
+  @override
+  String get orderAccepted => 'Order Accepted';
+
+  @override
+  String get orderAcceptedDescription => 'A driver has accepted your order';
+
+  @override
+  String get onTheWay => 'On the Way';
+
+  @override
+  String get onTheWayDescription => 'Driver is on the way to your location';
+
+  @override
+  String get delivered => 'Delivered';
+
+  @override
+  String get deliveredDescription => 'Your order has been successfully delivered';
+
+  @override
+  String get current => 'Current';
 }
