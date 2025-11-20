@@ -12,4 +12,19 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  build: {
+    // Generate manifest for cache busting
+    manifest: true,
+    // Ensure unique filenames for cache busting
+    rollupOptions: {
+      output: {
+        // Add hash to filenames for cache busting
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]',
+      },
+    },
+    // Clear output directory on each build
+    emptyOutDir: true,
+  },
 });
