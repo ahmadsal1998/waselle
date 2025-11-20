@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import Payment from '../models/Payment';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
@@ -24,8 +25,11 @@ export const addPayment = async (
       return;
     }
 
+    // Convert driverId to ObjectId
+    const driverObjectId = new mongoose.Types.ObjectId(driverId);
+
     // Check if driver exists
-    const driver = await User.findOne({ _id: driverId, role: 'driver' });
+    const driver = await User.findOne({ _id: driverObjectId, role: 'driver' });
     if (!driver) {
       res.status(404).json({ message: 'Driver not found' });
       return;
@@ -33,18 +37,18 @@ export const addPayment = async (
 
     // Create payment
     const payment = await Payment.create({
-      driverId,
+      driverId: driverObjectId,
       amount,
       date: date ? new Date(date) : new Date(),
       notes: notes || undefined,
     });
 
     // Recalculate balance and check if suspension/reactivation is needed
-    const suspensionResult = await checkAndSuspendDriverIfNeeded(driverId);
-    const balanceInfo = await calculateDriverBalance(driverId);
+    const suspensionResult = await checkAndSuspendDriverIfNeeded(driverObjectId);
+    const balanceInfo = await calculateDriverBalance(driverObjectId);
 
     // Refresh driver data after potential status change
-    const updatedDriver = await User.findById(driverId)
+    const updatedDriver = await User.findById(driverObjectId)
       .select('-password -otpCode -otpExpires');
 
     // Determine success message based on status change
@@ -86,14 +90,17 @@ export const getDriverPayments = async (
 
     const { driverId } = req.params;
 
+    // Convert driverId to ObjectId
+    const driverObjectId = new mongoose.Types.ObjectId(driverId);
+
     // Check if driver exists
-    const driver = await User.findOne({ _id: driverId, role: 'driver' });
+    const driver = await User.findOne({ _id: driverObjectId, role: 'driver' });
     if (!driver) {
       res.status(404).json({ message: 'Driver not found' });
       return;
     }
 
-    const payments = await Payment.find({ driverId })
+    const payments = await Payment.find({ driverId: driverObjectId })
       .sort({ date: -1, createdAt: -1 });
 
     res.status(200).json({ payments });
@@ -115,14 +122,17 @@ export const getDriverBalance = async (
 
     const { driverId } = req.params;
 
+    // Convert driverId to ObjectId
+    const driverObjectId = new mongoose.Types.ObjectId(driverId);
+
     // Check if driver exists
-    const driver = await User.findOne({ _id: driverId, role: 'driver' });
+    const driver = await User.findOne({ _id: driverObjectId, role: 'driver' });
     if (!driver) {
       res.status(404).json({ message: 'Driver not found' });
       return;
     }
 
-    const balanceInfo = await calculateDriverBalance(driverId);
+    const balanceInfo = await calculateDriverBalance(driverObjectId);
 
     res.status(200).json({ balanceInfo });
   } catch (error: any) {
