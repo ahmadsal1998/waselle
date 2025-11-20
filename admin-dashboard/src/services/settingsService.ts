@@ -25,6 +25,8 @@ export interface Settings {
     car: VehicleTypeConfig;
     cargo: VehicleTypeConfig;
   };
+  commissionPercentage?: number;
+  maxAllowedBalance?: number;
   createdAt?: string;
   updatedAt?: string;
 }

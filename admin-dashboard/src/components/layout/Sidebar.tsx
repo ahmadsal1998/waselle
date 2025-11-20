@@ -10,6 +10,7 @@ import {
   Settings,
   Menu,
   X,
+  DollarSign,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -23,6 +24,7 @@ const navItems: NavItem[] = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/users', label: 'Users', icon: Users },
   { path: '/drivers', label: 'Drivers', icon: Truck },
+  { path: '/driver-balance', label: 'Driver Balance', icon: DollarSign },
   { path: '/orders', label: 'Orders', icon: Package },
   { path: '/cities', label: 'Cities & Villages', icon: MapPin },
   { path: '/order-categories', label: 'Order Categories', icon: FolderTree },

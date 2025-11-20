@@ -9,6 +9,7 @@ import MapView from '@/pages/MapView';
 import Settings from '@/pages/Settings';
 import Cities from '@/pages/Cities';
 import OrderCategories from '@/pages/OrderCategories';
+import DriverBalance from '@/pages/DriverBalance';
 import Layout from '@/components/layout/Layout';
 import { AuthProvider, useAuth } from '@/store/auth';
 
@@ -54,6 +55,7 @@ function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="cities" element={<Cities />} />
             <Route path="order-categories" element={<OrderCategories />} />
+            <Route path="driver-balance" element={<DriverBalance />} />
           </Route>
         </Routes>
       </Router>

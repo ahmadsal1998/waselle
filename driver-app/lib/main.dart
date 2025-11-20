@@ -11,6 +11,7 @@ import 'view_models/map_style_view_model.dart';
 import 'view_models/order_view_model.dart';
 import 'view_models/region_view_model.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/suspended_account_screen.dart';
 import 'screens/home/home_screen.dart';
 
 void main() async {
@@ -50,12 +51,22 @@ class MyApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             theme: AppTheme.lightTheme,
+            navigatorKey: GlobalNavigatorKey.navigatorKey,
+            routes: {
+              '/home': (context) => const HomeScreen(),
+              '/suspended': (context) => const SuspendedAccountScreen(),
+            },
             home: const AuthWrapper(),
           );
         },
       ),
     );
   }
+}
+
+// Global navigator key for navigation from API client
+class GlobalNavigatorKey {
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 }
 
 class AuthWrapper extends StatelessWidget {
@@ -72,6 +83,11 @@ class AuthWrapper extends StatelessWidget {
               child: CircularProgressIndicator(),
             ),
           );
+        }
+        
+        // Check if account is suspended
+        if (authViewModel.isAuthenticated && authViewModel.isSuspended) {
+          return const SuspendedAccountScreen();
         }
         
         if (authViewModel.isAuthenticated) {

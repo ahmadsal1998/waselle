@@ -72,3 +72,67 @@ export const deleteDriver = async (driverId: string): Promise<void> => {
   await apiClient.delete(`/drivers/${driverId}`);
 };
 
+// Payment related interfaces and functions
+export interface Payment {
+  _id: string;
+  driverId: string;
+  amount: number;
+  date: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePaymentData {
+  amount: number;
+  date?: string;
+  notes?: string;
+}
+
+export interface DriverBalanceInfo {
+  totalDeliveryRevenue: number;
+  commissionPercentage: number;
+  totalCommissionOwed: number;
+  totalPaymentsMade: number;
+  currentBalance: number;
+  isSuspended: boolean;
+}
+
+export interface AddPaymentResponse {
+  message: string;
+  payment: Payment;
+  balanceInfo: DriverBalanceInfo;
+  driver?: Driver;
+  suspensionStatus: {
+    suspended: boolean;
+    reactivated: boolean;
+    balance: number;
+    maxAllowed: number;
+  };
+}
+
+export const addDriverPayment = async (
+  driverId: string,
+  data: CreatePaymentData
+): Promise<AddPaymentResponse> => {
+  const response = await apiClient.post<AddPaymentResponse>(
+    `/payments/drivers/${driverId}`,
+    data
+  );
+  return response.data;
+};
+
+export const getDriverPayments = async (driverId: string): Promise<Payment[]> => {
+  const response = await apiClient.get<{ payments: Payment[] }>(
+    `/payments/drivers/${driverId}`
+  );
+  return response.data.payments;
+};
+
+export const getDriverBalance = async (driverId: string): Promise<DriverBalanceInfo> => {
+  const response = await apiClient.get<{ balanceInfo: DriverBalanceInfo }>(
+    `/payments/drivers/${driverId}/balance`
+  );
+  return response.data.balanceInfo;
+};
+

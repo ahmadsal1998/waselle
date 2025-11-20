@@ -18,6 +18,7 @@ import { generateToken } from '../utils/jwt';
 import { normalizeAddress } from '../utils/address';
 import { admin } from '../utils/firebase';
 import { normalizePhoneNumber, splitPhoneNumber } from '../utils/phone';
+import { checkAndSuspendDriverIfNeeded } from '../utils/balance';
 
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -571,6 +572,13 @@ export const acceptOrder = async (
       return;
     }
 
+    if (driver.isActive === false) {
+      res.status(403).json({
+        message: 'Your account has been suspended. Please contact admin to resolve your balance.',
+      });
+      return;
+    }
+
     if (!driver.vehicleType) {
       res.status(400).json({
         message: 'Driver must have a vehicle type set before accepting orders',
@@ -650,6 +658,21 @@ export const updateOrderStatus = async (
 
     order.status = status;
     await order.save();
+
+    // If order is marked as delivered and has a driver, check balance and suspend if needed
+    if (status === 'delivered' && order.driverId) {
+      try {
+        const suspensionResult = await checkAndSuspendDriverIfNeeded(order.driverId);
+        if (suspensionResult.suspended) {
+          console.log(
+            `Driver ${order.driverId} automatically suspended due to balance limit. Balance: ${suspensionResult.balance}, Max Allowed: ${suspensionResult.maxAllowed}`
+          );
+        }
+      } catch (balanceError: any) {
+        // Log error but don't fail the order update
+        console.error('Error checking driver balance:', balanceError);
+      }
+    }
 
     await order.populate([
       { path: 'customerId', select: 'name email phone countryCode' },

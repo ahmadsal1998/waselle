@@ -1,6 +1,7 @@
 import { Response, Request } from 'express';
 import Settings from '../models/Settings';
 import { AuthRequest } from '../middleware/auth';
+import { checkAllDriversBalance } from '../utils/balance';
 
 export const getSettings = async (
   req: AuthRequest,
@@ -38,6 +39,10 @@ export const updateSettings = async (
       serviceAreaCenter,
       serviceAreaRadiusKm,
       vehicleTypes,
+      commissionPercentage,
+      maxAllowedBalance,
+      mapDefaultCenter,
+      mapDefaultZoom,
     } = req.body;
 
     // Validate orderNotificationRadiusKm (backward compatibility)
@@ -181,7 +186,77 @@ export const updateSettings = async (
       }
     }
 
+    // Update commission percentage if provided
+    if (commissionPercentage !== undefined) {
+      if (typeof commissionPercentage !== 'number' || commissionPercentage < 0 || commissionPercentage > 100) {
+        res.status(400).json({
+          message: 'commissionPercentage must be a number between 0 and 100',
+        });
+        return;
+      }
+      settings.commissionPercentage = commissionPercentage;
+    }
+
+    // Update max allowed balance if provided
+    if (maxAllowedBalance !== undefined) {
+      if (typeof maxAllowedBalance !== 'number' || maxAllowedBalance < 0) {
+        res.status(400).json({
+          message: 'maxAllowedBalance must be a non-negative number',
+        });
+        return;
+      }
+      settings.maxAllowedBalance = maxAllowedBalance;
+    }
+
+    // Update map default center if provided
+    if (mapDefaultCenter !== undefined) {
+      if (
+        typeof mapDefaultCenter !== 'object' ||
+        typeof mapDefaultCenter.lat !== 'number' ||
+        typeof mapDefaultCenter.lng !== 'number' ||
+        mapDefaultCenter.lat < -90 ||
+        mapDefaultCenter.lat > 90 ||
+        mapDefaultCenter.lng < -180 ||
+        mapDefaultCenter.lng > 180
+      ) {
+        res.status(400).json({
+          message:
+            'mapDefaultCenter must be an object with valid lat (-90 to 90) and lng (-180 to 180)',
+        });
+        return;
+      }
+      settings.mapDefaultCenter = mapDefaultCenter;
+    }
+
+    // Update map default zoom if provided
+    if (mapDefaultZoom !== undefined) {
+      if (typeof mapDefaultZoom !== 'number' || mapDefaultZoom < 1 || mapDefaultZoom > 18) {
+        res.status(400).json({
+          message: 'mapDefaultZoom must be a number between 1 and 18',
+        });
+        return;
+      }
+      settings.mapDefaultZoom = mapDefaultZoom;
+    }
+
     await settings.save();
+
+    // If commission percentage or max allowed balance changed, check all drivers
+    const commissionChanged = commissionPercentage !== undefined;
+    const maxBalanceChanged = maxAllowedBalance !== undefined;
+    
+    if (commissionChanged || maxBalanceChanged) {
+      try {
+        const checkResult = await checkAllDriversBalance();
+        console.log(
+          `Settings updated: Checked ${checkResult.checked} drivers, ` +
+          `suspended ${checkResult.suspended}, errors: ${checkResult.errors}`
+        );
+      } catch (error) {
+        console.error('Error checking all drivers balance after settings update:', error);
+        // Don't fail the settings update if balance check fails
+      }
+    }
 
     res.status(200).json({
       message: 'Settings updated successfully',

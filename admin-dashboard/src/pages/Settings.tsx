@@ -15,6 +15,8 @@ const Settings = () => {
   const [mapDefaultLat, setMapDefaultLat] = useState<number>(32.462502185826004);
   const [mapDefaultLng, setMapDefaultLng] = useState<number>(35.29172911766705);
   const [mapDefaultZoom, setMapDefaultZoom] = useState<number>(12);
+  const [commissionPercentage, setCommissionPercentage] = useState<number>(2);
+  const [maxAllowedBalance, setMaxAllowedBalance] = useState<number>(50);
   const [vehicleTypes, setVehicleTypes] = useState<{
     bike: { enabled: boolean; basePrice: number };
     car: { enabled: boolean; basePrice: number };
@@ -49,6 +51,12 @@ const Settings = () => {
       }
       if (data.vehicleTypes) {
         setVehicleTypes(data.vehicleTypes);
+      }
+      if (data.commissionPercentage !== undefined) {
+        setCommissionPercentage(data.commissionPercentage);
+      }
+      if (data.maxAllowedBalance !== undefined) {
+        setMaxAllowedBalance(data.maxAllowedBalance);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load settings');
@@ -120,6 +128,8 @@ const Settings = () => {
         },
         mapDefaultZoom: mapDefaultZoom,
         vehicleTypes: vehicleTypes,
+        commissionPercentage: commissionPercentage,
+        maxAllowedBalance: maxAllowedBalance,
       });
       setSettings(updated);
       setSuccess('Settings saved successfully!');
@@ -466,6 +476,74 @@ const Settings = () => {
       </div>
 
       <div className="card p-6">
+        <h2 className="text-xl font-semibold mb-4 text-slate-900">Driver Commission Settings</h2>
+        <div className="space-y-6">
+          <p className="text-sm text-slate-600 mb-4">
+            Configure commission percentage and maximum allowed balance for drivers. When a driver's balance reaches the maximum, their account will be automatically suspended.
+          </p>
+
+          <div>
+            <label
+              htmlFor="commissionPercentage"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
+              Commission Percentage (%)
+            </label>
+            <p className="text-sm text-slate-600 mb-3">
+              The percentage of delivery revenue that drivers owe to the admin. Range: 0-100%
+            </p>
+            <div className="flex items-center space-x-4">
+              <input
+                type="number"
+                id="commissionPercentage"
+                min="0"
+                max="100"
+                step="0.1"
+                value={commissionPercentage}
+                onChange={(e) => setCommissionPercentage(Number(e.target.value))}
+                className="input w-32"
+              />
+              <span className="text-sm text-slate-600">%</span>
+            </div>
+            {settings && (
+              <p className="mt-2 text-xs text-slate-500">
+                Current value: {settings.commissionPercentage || 2}%
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="maxAllowedBalance"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
+              Maximum Allowed Balance (NIS)
+            </label>
+            <p className="text-sm text-slate-600 mb-3">
+              The maximum balance a driver can accumulate before automatic account suspension. Range: 0+
+            </p>
+            <div className="flex items-center space-x-4">
+              <input
+                type="number"
+                id="maxAllowedBalance"
+                min="0"
+                step="0.01"
+                value={maxAllowedBalance}
+                onChange={(e) => setMaxAllowedBalance(Number(e.target.value))}
+                className="input w-32"
+              />
+              <span className="text-sm text-slate-600">NIS</span>
+            </div>
+            {settings && (
+              <p className="mt-2 text-xs text-slate-500">
+                Current value: {settings.maxAllowedBalance || 50} NIS
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="card p-6">
         <h2 className="text-xl font-semibold mb-4 text-slate-900">System Information</h2>
         <div className="space-y-4">
           <div>
@@ -500,7 +578,10 @@ const Settings = () => {
               mapDefaultLng < -180 ||
               mapDefaultLng > 180 ||
               mapDefaultZoom < 1 ||
-              mapDefaultZoom > 18
+              mapDefaultZoom > 18 ||
+              commissionPercentage < 0 ||
+              commissionPercentage > 100 ||
+              maxAllowedBalance < 0
             }
             className="btn-primary px-8 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >

@@ -137,8 +137,26 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Check if driver account is active
     if (user.role === 'driver' && user.isActive === false) {
-      res.status(403).json({ message: 'Your account has been deactivated. Please contact administrator.' });
-      return;
+      // Check balance and potentially reactivate if balance <= 0
+      const { checkAndSuspendDriverIfNeeded } = await import('../utils/balance');
+      const suspensionResult = await checkAndSuspendDriverIfNeeded(user._id);
+      
+      // Refresh user data after potential reactivation
+      const updatedUser = await User.findById(user._id);
+      
+      // If driver was reactivated, allow login to proceed
+      if (suspensionResult.reactivated && updatedUser?.isActive === true) {
+        // Use updated user data for the rest of login
+        Object.assign(user, updatedUser?.toObject());
+      } else if (suspensionResult.suspended) {
+        res.status(403).json({ 
+          message: `Your account has been suspended due to exceeding the balance limit. Current balance: ${suspensionResult.balance.toFixed(2)} NIS (Limit: ${suspensionResult.maxAllowed} NIS). Please contact administrator to make a payment.` 
+        });
+        return;
+      } else {
+        res.status(403).json({ message: 'Your account has been deactivated. Please contact administrator.' });
+        return;
+      }
     }
 
     if (!user.isEmailVerified) {
@@ -177,6 +195,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         email: user.email,
         role: user.role,
         isAvailable: user.isAvailable,
+        isActive: user.isActive,
         vehicleType: user.vehicleType,
         profilePicture: user.profilePicture,
       },
@@ -495,6 +514,7 @@ export const getCurrentUser = async (
       role: user.role,
       vehicleType: user.vehicleType,
       isAvailable: user.isAvailable,
+      isActive: user.isActive,
       location: user.location,
       profilePicture: user.profilePicture,
       createdAt: user.createdAt,

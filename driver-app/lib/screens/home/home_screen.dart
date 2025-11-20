@@ -6,6 +6,7 @@ import '../../view_models/auth_view_model.dart';
 import '../../view_models/location_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../services/socket_service.dart';
+import '../auth/suspended_account_screen.dart';
 import 'available_orders_screen.dart';
 import 'active_order_screen.dart';
 import 'order_history_screen.dart';
@@ -30,6 +31,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initializeApp() async {
     if (!mounted) return;
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    
+    // Check if account is suspended before proceeding
+    await authViewModel.refreshCurrentUser();
+    if (!mounted) return;
+    
+    if (authViewModel.isSuspended) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const SuspendedAccountScreen()),
+      );
+      return;
+    }
+    
     final locationViewModel =
         Provider.of<LocationViewModel>(context, listen: false);
     await locationViewModel.getCurrentLocation();
@@ -50,7 +64,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return;
     final orderViewModel = Provider.of<OrderViewModel>(context, listen: false);
-    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
     
     // Setup socket listeners after socket is initialized
     orderViewModel.setupSocketListeners();
@@ -69,12 +82,29 @@ class _HomeScreenState extends State<HomeScreen> {
     // Fetch available orders to populate the list initially
     await orderViewModel.fetchAvailableOrders();
   }
+  
+  void _checkSuspensionStatus() {
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    if (authViewModel.isSuspended) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const SuspendedAccountScreen()),
+      );
+    }
+  }
 
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final activeOrdersCount = context.watch<OrderViewModel>().activeOrders.length;
+    final authViewModel = context.watch<AuthViewModel>();
+    
+    // Check suspension status whenever widget rebuilds
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (authViewModel.isSuspended) {
+        _checkSuspensionStatus();
+      }
+    });
     
     return Scaffold(
       body: Column(

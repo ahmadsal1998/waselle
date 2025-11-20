@@ -12,6 +12,7 @@ import cityRoutes from './routes/cityRoutes';
 import villageRoutes from './routes/villageRoutes';
 import orderCategoryRoutes from './routes/orderCategoryRoutes';
 import settingsRoutes from './routes/settingsRoutes';
+import paymentRoutes from './routes/paymentRoutes';
 import { initializeSocket } from './services/socketService';
 
 dotenv.config();
@@ -77,6 +78,7 @@ app.use('/api/cities', cityRoutes);
 app.use('/api/villages', villageRoutes);
 app.use('/api/order-categories', orderCategoryRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

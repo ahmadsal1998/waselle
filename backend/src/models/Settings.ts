@@ -24,6 +24,8 @@ export interface ISettings extends Document {
     car: VehicleTypeConfig;
     cargo: VehicleTypeConfig;
   };
+  commissionPercentage: number; // Commission percentage (e.g., 2 for 2%)
+  maxAllowedBalance: number; // Maximum allowed balance in NIS before suspension
   createdAt: Date;
   updatedAt: Date;
 }
@@ -127,6 +129,19 @@ const SettingsSchema: Schema = new Schema(
         },
       },
     },
+    commissionPercentage: {
+      type: Number,
+      required: true,
+      default: 2, // Default 2%
+      min: 0,
+      max: 100,
+    },
+    maxAllowedBalance: {
+      type: Number,
+      required: true,
+      default: 50, // Default 50 NIS
+      min: 0,
+    },
   },
   {
     timestamps: true,
@@ -150,6 +165,8 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
         car: { enabled: true, basePrice: 10 },
         cargo: { enabled: false, basePrice: 15 },
       },
+      commissionPercentage: 2,
+      maxAllowedBalance: 50,
     });
   } else {
     // Migrate existing settings if needed
@@ -190,6 +207,13 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
       if (!settings.vehicleTypes.cargo) {
         settings.vehicleTypes.cargo = { enabled: false, basePrice: 15 };
       }
+    }
+    // Migrate commission settings if needed
+    if (settings.commissionPercentage === undefined) {
+      settings.commissionPercentage = 2;
+    }
+    if (settings.maxAllowedBalance === undefined) {
+      settings.maxAllowedBalance = 50;
     }
     await settings.save();
   }

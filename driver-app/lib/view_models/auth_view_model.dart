@@ -19,10 +19,12 @@ class AuthViewModel with ChangeNotifier {
   bool _isAuthenticated = false;
   bool _isCheckingAuth = true; // Track if we're checking auth status
   Map<String, dynamic>? _user;
+  bool _isSuspended = false;
 
   bool get isAuthenticated => _isAuthenticated;
   bool get isCheckingAuth => _isCheckingAuth;
   Map<String, dynamic>? get user => _user;
+  bool get isSuspended => _isSuspended;
   // Default to Available (true) unless explicitly set to false
   bool get isAvailable => _user?['isAvailable'] != false;
 
@@ -36,6 +38,7 @@ class AuthViewModel with ChangeNotifier {
     if (token == null) {
       _isAuthenticated = false;
       _user = null;
+      _isSuspended = false;
       _isCheckingAuth = false;
       notifyListeners();
       return;
@@ -48,11 +51,13 @@ class AuthViewModel with ChangeNotifier {
         await _applyUserData(userData);
       }
       _isAuthenticated = true;
+      _isSuspended = _user?['isActive'] == false;
     } catch (e) {
       await prefs.remove('token');
       await prefs.remove('vehicleType');
       _isAuthenticated = false;
       _user = null;
+      _isSuspended = false;
       debugPrint('Error checking auth status: $e');
     }
 
@@ -104,12 +109,18 @@ class AuthViewModel with ChangeNotifier {
         }
 
         _isAuthenticated = true;
+        _isSuspended = _user?['isActive'] == false;
         notifyListeners();
         return true;
       }
       return false;
     } catch (e) {
       debugPrint('Error logging in: $e');
+      // Check if error is due to suspension
+      if (e.toString().contains('suspended') || e.toString().contains('403')) {
+        _isSuspended = true;
+        notifyListeners();
+      }
       return false;
     }
   }
@@ -144,10 +155,16 @@ class AuthViewModel with ChangeNotifier {
       final userData = response['user'];
       if (userData is Map<String, dynamic>) {
         await _applyUserData(userData);
-        notifyListeners();
       }
+      _isSuspended = _user?['isActive'] == false;
+      notifyListeners();
     } catch (e) {
       debugPrint('Error refreshing current user: $e');
+      // If 403 error, mark as suspended
+      if (e.toString().contains('403')) {
+        _isSuspended = true;
+        notifyListeners();
+      }
     }
   }
 
@@ -181,11 +198,18 @@ class AuthViewModel with ChangeNotifier {
     await prefs.remove('vehicleType');
     _isAuthenticated = false;
     _user = null;
+    _isSuspended = false;
+    notifyListeners();
+  }
+
+  void setSuspended(bool suspended) {
+    _isSuspended = suspended;
     notifyListeners();
   }
 
   Future<void> _applyUserData(Map<String, dynamic> userData) async {
     _user = Map<String, dynamic>.from(userData);
+    _isSuspended = _user?['isActive'] == false;
     final prefs = await SharedPreferences.getInstance();
     final vehicleType = _user?['vehicleType'];
 

@@ -6,8 +6,12 @@ import {
   deleteDriver,
   resetDriverPassword,
   toggleDriverStatus,
+  addDriverPayment,
+  getDriverBalance,
   type CreateDriverData,
   type UpdateDriverData,
+  type CreatePaymentData,
+  type DriverBalanceInfo,
 } from '@/services/driverService';
 import {
   Plus,
@@ -17,6 +21,7 @@ import {
   Key,
   Power,
   X,
+  DollarSign,
 } from 'lucide-react';
 import type { Driver } from '@/types';
 
@@ -26,6 +31,7 @@ const Drivers = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -98,6 +104,30 @@ const Drivers = () => {
       await refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to toggle driver status');
+    }
+  };
+
+  const handleAddPayment = async (data: CreatePaymentData) => {
+    if (!selectedDriver) return;
+    setIsSubmitting(true);
+    try {
+      const result = await addDriverPayment(selectedDriver._id, data);
+      await refresh();
+      setShowPaymentModal(false);
+      setSelectedDriver(null);
+      
+      // Show appropriate message based on reactivation status
+      if (result.suspensionStatus.reactivated) {
+        alert('Payment added successfully! Driver account has been automatically reactivated (balance cleared).');
+      } else if (result.suspensionStatus.suspended) {
+        alert('Payment added successfully. Driver account remains suspended (balance still exceeds limit).');
+      } else {
+        alert('Payment added successfully');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to add payment');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -178,6 +208,9 @@ const Drivers = () => {
                   Vehicle
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Balance
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
@@ -191,7 +224,7 @@ const Drivers = () => {
             <tbody className="bg-white divide-y divide-slate-200">
               {drivers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     No drivers found
                   </td>
                 </tr>
@@ -225,15 +258,44 @@ const Drivers = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          driver.isActive !== false
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {driver.isActive !== false ? 'Active' : 'Inactive'}
-                      </span>
+                      <div className="flex flex-col">
+                        <span
+                          className={`text-sm font-medium ${
+                            driver.balanceExceeded
+                              ? 'text-red-600'
+                              : typeof driver.balance === 'number' && driver.balance >= 0
+                              ? 'text-slate-900'
+                              : 'text-green-600'
+                          }`}
+                        >
+                          {typeof driver.balance === 'number'
+                            ? `${driver.balance >= 0 ? '+' : ''}${driver.balance.toFixed(2)} NIS`
+                            : 'N/A'}
+                        </span>
+                        {driver.maxAllowedBalance && (
+                          <span className="text-xs text-slate-500">
+                            Limit: {driver.maxAllowedBalance} NIS
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            driver.isActive !== false
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {driver.isActive !== false ? 'Active' : 'Suspended'}
+                        </span>
+                        {driver.suspensionReason && (
+                          <span className="text-xs text-red-600 font-medium">
+                            {driver.suspensionReason}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -248,6 +310,16 @@ const Drivers = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedDriver(driver);
+                            setShowPaymentModal(true);
+                          }}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Add Payment"
+                        >
+                          <DollarSign className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => {
                             setSelectedDriver(driver);
@@ -327,6 +399,19 @@ const Drivers = () => {
             setSelectedDriver(null);
           }}
           onSubmit={(password) => handleResetPassword(selectedDriver._id, password)}
+          isSubmitting={isSubmitting}
+        />
+      )}
+
+      {/* Add Payment Modal */}
+      {showPaymentModal && selectedDriver && (
+        <PaymentModal
+          driver={selectedDriver}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedDriver(null);
+          }}
+          onSubmit={handleAddPayment}
           isSubmitting={isSubmitting}
         />
       )}
@@ -587,6 +672,110 @@ const PasswordModal = ({ driver, onClose, onSubmit, isSubmitting }: PasswordModa
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Resetting...' : 'Reset Password'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Payment Modal Component
+interface PaymentModalProps {
+  driver: Driver;
+  onClose: () => void;
+  onSubmit: (data: CreatePaymentData) => Promise<void>;
+  isSubmitting: boolean;
+}
+
+const PaymentModal = ({ driver, onClose, onSubmit, isSubmitting }: PaymentModalProps) => {
+  const [amount, setAmount] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const paymentAmount = parseFloat(amount);
+    if (isNaN(paymentAmount) || paymentAmount <= 0) {
+      alert('Please enter a valid payment amount');
+      return;
+    }
+    await onSubmit({
+      amount: paymentAmount,
+      date,
+      notes: notes.trim() || undefined,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+          <h2 className="text-xl font-semibold text-slate-900">
+            Add Payment for {driver.name}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Payment Amount (NIS) *
+            </label>
+            <input
+              type="number"
+              required
+              min="0.01"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="input"
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Date *
+            </label>
+            <input
+              type="date"
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="input"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Notes (Optional)
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="input"
+              rows={3}
+              placeholder="Payment notes..."
+            />
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary flex-1"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn-primary flex-1"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Adding...' : 'Add Payment'}
             </button>
           </div>
         </form>

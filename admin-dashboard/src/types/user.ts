@@ -19,6 +19,10 @@ export interface Driver extends BaseUser {
   vehicleType?: 'car' | 'bike' | 'cargo';
   location?: LocationPoint | null;
   phone?: string;
+  balance?: number;
+  balanceExceeded?: boolean;
+  suspensionReason?: string | null;
+  maxAllowedBalance?: number;
 }
 
 export interface Customer extends BaseUser {

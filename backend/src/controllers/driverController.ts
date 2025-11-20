@@ -2,6 +2,8 @@ import { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
+import { checkAndSuspendDriverIfNeeded, calculateDriverBalance } from '../utils/balance';
+import Settings from '../models/Settings';
 
 // Get all drivers (admin only)
 export const getAllDrivers = async (
@@ -37,7 +39,50 @@ export const getAllDrivers = async (
       .select('-password -otpCode -otpExpires')
       .sort({ createdAt: -1 });
 
-    res.status(200).json({ drivers });
+    // Get settings for max allowed balance
+    const settings = await Settings.getSettings();
+    const maxAllowedBalance = settings.maxAllowedBalance || 50;
+
+    // Check balances for all drivers and suspend if needed
+    // Also include balance info in response
+    const driversWithBalance = await Promise.all(
+      drivers.map(async (driver) => {
+        try {
+          // Check and suspend if balance exceeds limit
+          await checkAndSuspendDriverIfNeeded(driver._id);
+          
+          // Get balance info
+          const balanceInfo = await calculateDriverBalance(driver._id);
+          
+          // Refresh driver data after potential suspension
+          const updatedDriver = await User.findById(driver._id)
+            .select('-password -otpCode -otpExpires');
+          
+          const balanceExceeded = balanceInfo.currentBalance >= maxAllowedBalance;
+          const suspensionReason = balanceExceeded && updatedDriver?.isActive === false 
+            ? 'Exceeded Balance Limit' 
+            : null;
+          
+          // Check if driver was reactivated (balance <= 0)
+          const wasReactivated = balanceInfo.currentBalance <= 0 && updatedDriver?.isActive === true;
+          
+          return {
+            ...updatedDriver?.toObject(),
+            balance: balanceInfo.currentBalance,
+            balanceExceeded,
+            suspensionReason,
+            maxAllowedBalance,
+            wasReactivated,
+          };
+        } catch (error) {
+          // If balance check fails, return driver without balance info
+          console.error(`Error checking balance for driver ${driver._id}:`, error);
+          return driver.toObject();
+        }
+      })
+    );
+
+    res.status(200).json({ drivers: driversWithBalance });
   } catch (error: any) {
     res.status(500).json({ message: error.message || 'Failed to get drivers' });
   }
