@@ -14,27 +14,73 @@ const TRACKED_ORDER_STATUSES: readonly OrderStatus[] = ['pending', 'accepted', '
 const isTrackedStatus = (status: string): status is OrderStatus =>
   TRACKED_ORDER_STATUSES.includes(status as OrderStatus);
 
-const normalizeDriver = (driver: ApiUser): Driver => ({
-  _id: driver._id,
-  name: driver.name,
-  email: driver.email,
-  role: 'driver',
-  isAvailable: Boolean(driver.isAvailable),
-  vehicleType: driver.vehicleType,
-  location: driver.location ?? null,
-  createdAt: driver.createdAt,
-  updatedAt: driver.updatedAt,
-});
+const normalizeDriver = (driver: ApiUser): Driver => {
+  // Normalize location data - handle various formats
+  let location = null;
+  if (driver.location) {
+    // Handle both {lat, lng} and potentially other formats
+    if (
+      typeof driver.location === 'object' &&
+      'lat' in driver.location &&
+      'lng' in driver.location &&
+      typeof driver.location.lat === 'number' &&
+      typeof driver.location.lng === 'number' &&
+      !isNaN(driver.location.lat) &&
+      !isNaN(driver.location.lng)
+    ) {
+      location = {
+        lat: driver.location.lat,
+        lng: driver.location.lng,
+        address: driver.location.address,
+      };
+    }
+  }
 
-const normalizeCustomer = (customer: ApiUser): Customer & { location?: { lat: number; lng: number } | null } => ({
-  _id: customer._id,
-  name: customer.name,
-  email: customer.email,
-  role: 'customer',
-  location: customer.location ?? null,
-  createdAt: customer.createdAt,
-  updatedAt: customer.updatedAt,
-});
+  return {
+    _id: driver._id,
+    name: driver.name,
+    email: driver.email || '',
+    role: 'driver',
+    isAvailable: Boolean(driver.isAvailable),
+    vehicleType: driver.vehicleType,
+    location,
+    createdAt: driver.createdAt,
+    updatedAt: driver.updatedAt,
+  };
+};
+
+const normalizeCustomer = (customer: ApiUser): Customer & { location?: { lat: number; lng: number } | null } => {
+  // Normalize location data - handle various formats
+  let location = null;
+  if (customer.location) {
+    // Handle both {lat, lng} and potentially other formats
+    if (
+      typeof customer.location === 'object' &&
+      'lat' in customer.location &&
+      'lng' in customer.location &&
+      typeof customer.location.lat === 'number' &&
+      typeof customer.location.lng === 'number' &&
+      !isNaN(customer.location.lat) &&
+      !isNaN(customer.location.lng)
+    ) {
+      location = {
+        lat: customer.location.lat,
+        lng: customer.location.lng,
+        address: customer.location.address,
+      };
+    }
+  }
+
+  return {
+    _id: customer._id,
+    name: customer.name,
+    email: customer.email || '',
+    role: 'customer',
+    location,
+    createdAt: customer.createdAt,
+    updatedAt: customer.updatedAt,
+  };
+};
 
 export const useMapData = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -87,10 +133,53 @@ export const useMapData = () => {
         .map((driver) => normalizeDriver(driver));
 
       const customerUsers = usersResponse
-        .filter((user) => (user.role as string) === 'customer' && user.location !== undefined)
+        .filter((user) => (user.role as string) === 'customer')
         .map((customer) => normalizeCustomer(customer));
 
       const trackedOrders = ordersResponse.filter((order) => isTrackedStatus(order.status));
+
+      // Detailed logging to debug missing markers
+      const driversWithLocation = driverUsers.filter(d => d.location && d.location.lat && d.location.lng);
+      const customersWithLocation = customerUsers.filter(c => c.location && c.location.lat && c.location.lng);
+      
+      console.log('Map data fetched:', {
+        totalUsers: usersResponse.length,
+        drivers: driverUsers.length,
+        customers: customerUsers.length,
+        orders: trackedOrders.length,
+        driversWithLocation: driversWithLocation.length,
+        customersWithLocation: customersWithLocation.length,
+      });
+
+      // Log sample data to verify structure
+      if (driverUsers.length > 0) {
+        console.log('Sample driver data:', {
+          firstDriver: {
+            id: driverUsers[0]._id,
+            name: driverUsers[0].name,
+            hasLocation: !!driverUsers[0].location,
+            location: driverUsers[0].location,
+          },
+        });
+      }
+      if (customerUsers.length > 0) {
+        console.log('Sample customer data:', {
+          firstCustomer: {
+            id: customerUsers[0]._id,
+            name: customerUsers[0].name,
+            hasLocation: !!customerUsers[0].location,
+            location: customerUsers[0].location,
+          },
+        });
+      }
+      
+      // Log raw API response for debugging
+      console.log('Raw users response sample:', usersResponse.slice(0, 3).map(u => ({
+        id: u._id,
+        name: u.name,
+        role: u.role,
+        location: u.location,
+      })));
 
       setDrivers(driverUsers);
       setCustomers(customerUsers);
@@ -129,19 +218,27 @@ export const useMapData = () => {
     setLocationLoading(false);
 
     // Optionally try to get user's actual location, but fallback to settings default
-    if (navigator.geolocation) {
+    // Set to false to disable geolocation and eliminate browser console errors
+    const ENABLE_GEOLOCATION = false; // Disabled to prevent CoreLocation console errors
+
+    if (ENABLE_GEOLOCATION && navigator.geolocation) {
+      // Use a more lenient approach to reduce browser console errors
       navigator.geolocation.getCurrentPosition(
         (position) => {
           // Only use user location if we have valid coordinates
-          setUserLocation([position.coords.latitude, position.coords.longitude]);
+          if (position?.coords?.latitude && position?.coords?.longitude) {
+            setUserLocation([position.coords.latitude, position.coords.longitude]);
+          }
         },
-        () => {
-          // Silent failure; retain default location from settings
+        (error) => {
+          // Silently handle geolocation errors - these are expected in many scenarios
+          // (e.g., user denied permission, location unavailable, etc.)
+          // No need to log or handle - just use default location from settings
         },
         {
-          timeout: 5000,
-          enableHighAccuracy: false,
-          maximumAge: 300000,
+          timeout: 3000, // Reduced timeout to fail faster
+          enableHighAccuracy: false, // Use less accurate but faster location
+          maximumAge: 600000, // Accept cached location up to 10 minutes old
         }
       );
     }

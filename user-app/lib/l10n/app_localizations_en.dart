@@ -303,6 +303,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get provideDirections => 'Provide directions, building access codes, or other details.';
 
   @override
+  String get sendRequestNotesHint => 'Enter send request details';
+
+  @override
+  String get receiveRequestNotesHint => 'Enter receive request details';
+
+  @override
   String get pleaseEnterDeliveryNotes => 'Please enter delivery notes';
 
   @override

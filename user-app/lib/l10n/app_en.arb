@@ -399,6 +399,14 @@
   "@provideDirections": {
     "description": "Delivery notes hint"
   },
+  "sendRequestNotesHint": "Enter send request details",
+  "@sendRequestNotesHint": {
+    "description": "Send request notes hint"
+  },
+  "receiveRequestNotesHint": "Enter receive request details",
+  "@receiveRequestNotesHint": {
+    "description": "Receive request notes hint"
+  },
   "pleaseEnterDeliveryNotes": "Please enter delivery notes",
   "@pleaseEnterDeliveryNotes": {
     "description": "Delivery notes validation error"

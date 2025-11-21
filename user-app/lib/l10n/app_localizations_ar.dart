@@ -104,7 +104,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sendRequest => 'إرسال طلب';
 
   @override
-  String get receiveRequest => 'إحضار طلب';
+  String get receiveRequest => ' إحضار طلب';
 
   @override
   String get sendDelivery => 'إرسال طلب';
@@ -192,7 +192,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get whoShouldDriverContact => 'من يجب أن يتواصل السائق معه عند الوصول؟';
 
   @override
-  String get deliveryNotes => 'ملاحظات التوصيل';
+  String get deliveryNotes => 'تفاصيل الطلب';
 
   @override
   String get shareHelpfulTips => 'شارك أي نصائح مفيدة للسائق.';
@@ -303,7 +303,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get provideDirections => 'قدم الاتجاهات، رموز الوصول للمبنى، أو تفاصيل أخرى.';
 
   @override
-  String get pleaseEnterDeliveryNotes => 'الرجاء إدخال ملاحظات التوصيل';
+  String get sendRequestNotesHint => '"مثال: عندي طلب بمخزن الشلبي شارع حيفا وبدي أرسله على المحل بجنين شارع أبو بكر عمارة النفاع." ';
+
+  @override
+  String get receiveRequestNotesHint => '"مثال: عندي طلب موجود بمخزن الشلبي شارع حيفا وبدّي تجيبه/تحضّره للمحل بجنين شارع أبو بكر."';
+
+  @override
+  String get pleaseEnterDeliveryNotes => 'الرجاء إدخال تفاصيل الطلب';
 
   @override
   String get liveCostPreview => 'معاينة التكلفة المباشرة';

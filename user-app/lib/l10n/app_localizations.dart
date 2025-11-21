@@ -671,6 +671,18 @@ abstract class AppLocalizations {
   /// **'Provide directions, building access codes, or other details.'**
   String get provideDirections;
 
+  /// Send request notes hint
+  ///
+  /// In en, this message translates to:
+  /// **'Enter send request details'**
+  String get sendRequestNotesHint;
+
+  /// Receive request notes hint
+  ///
+  /// In en, this message translates to:
+  /// **'Enter receive request details'**
+  String get receiveRequestNotesHint;
+
   /// Delivery notes validation error
   ///
   /// In en, this message translates to:

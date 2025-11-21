@@ -1585,13 +1585,16 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
     DeliveryRequestFormController controller,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final isSendRequest = controller.requestType == 'send';
     return TextFormField(
       controller: controller.notesController,
       minLines: 3,
       maxLines: 5,
       decoration: InputDecoration(
         labelText: l10n.deliveryNotes,
-        hintText: l10n.provideDirections,
+        hintText: isSendRequest 
+            ? l10n.sendRequestNotesHint 
+            : l10n.receiveRequestNotesHint,
         alignLabelWithHint: true,
         prefixIcon: const Icon(Icons.edit_outlined),
         border: OutlineInputBorder(
