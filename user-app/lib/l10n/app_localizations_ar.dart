@@ -104,7 +104,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sendRequest => 'إرسال طلب';
 
   @override
-  String get receiveRequest => 'استلام إحضار';
+  String get receiveRequest => ' اخضار طلب';
 
   @override
   String get sendDelivery => 'إرسال طلب';

@@ -7,14 +7,9 @@ export interface VehicleTypeConfig {
 
 export interface Settings {
   _id?: string;
-  orderNotificationRadiusKm?: number; // Deprecated, kept for backward compatibility
   internalOrderRadiusKm: number;
-  externalOrderRadiusKm: number;
-  serviceAreaCenter: {
-    lat: number;
-    lng: number;
-  };
-  serviceAreaRadiusKm: number;
+  externalOrderMinRadiusKm: number;
+  externalOrderMaxRadiusKm: number;
   mapDefaultCenter?: {
     lat: number;
     lng: number;

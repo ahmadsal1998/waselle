@@ -3,20 +3,22 @@ import type { City, Village } from '@/types';
 
 interface CityPayload {
   name?: string;
+  nameEn?: string;
   isActive?: boolean;
   serviceCenter?: {
     center?: {
       lat: number;
       lng: number;
     };
-    serviceAreaRadiusKm?: number;
     internalOrderRadiusKm?: number;
-    externalOrderRadiusKm?: number;
+    externalOrderMinRadiusKm?: number;
+    externalOrderMaxRadiusKm?: number;
   } | null;
 }
 
 interface VillagePayload {
   name?: string;
+  nameEn?: string;
   isActive?: boolean;
 }
 
@@ -25,7 +27,7 @@ export const getCities = async () => {
   return data.cities ?? [];
 };
 
-export const createCity = async (payload: { name: string }) => {
+export const createCity = async (payload: { name: string; nameEn?: string }) => {
   const { data } = await apiClient.post<{ city: City }>('/cities', payload);
   return data.city;
 };
@@ -49,7 +51,7 @@ export const getVillages = async (cityId: string) => {
   return data.villages ?? [];
 };
 
-export const createVillage = async (payload: { cityId: string; name: string }) => {
+export const createVillage = async (payload: { cityId: string; name: string; nameEn?: string }) => {
   const { data } = await apiClient.post<{ village: Village }>('/villages', payload);
   return data.village;
 };

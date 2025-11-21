@@ -35,7 +35,7 @@ const formatCityResponse = (
 
 export const createCity = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name } = req.body;
+    const { name, nameEn } = req.body;
 
     if (typeof name !== 'string' || !name.trim()) {
       res.status(400).json({ message: 'City name is required' });
@@ -43,6 +43,7 @@ export const createCity = async (req: AuthRequest, res: Response): Promise<void>
     }
 
     const trimmedName = name.trim();
+    const trimmedNameEn = typeof nameEn === 'string' ? nameEn.trim() : undefined;
 
     const existingCity = await City.findOne({
       name: { $regex: `^${escapeRegExp(trimmedName)}$`, $options: 'i' },
@@ -53,7 +54,10 @@ export const createCity = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    const city = await City.create({ name: trimmedName });
+    const city = await City.create({ 
+      name: trimmedName,
+      ...(trimmedNameEn ? { nameEn: trimmedNameEn } : {}),
+    });
 
     res.status(201).json({
       message: 'City created successfully',
@@ -97,7 +101,7 @@ export const getCities = async (req: Request, res: Response): Promise<void> => {
 export const updateCity = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, isActive, serviceCenter } = req.body;
+    const { name, nameEn, isActive, serviceCenter } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ message: 'Invalid city id' });
@@ -106,6 +110,7 @@ export const updateCity = async (req: AuthRequest, res: Response): Promise<void>
 
     if (
       (name === undefined || (typeof name === 'string' && !name.trim())) &&
+      nameEn === undefined &&
       typeof isActive !== 'boolean' &&
       serviceCenter === undefined
     ) {
@@ -137,6 +142,11 @@ export const updateCity = async (req: AuthRequest, res: Response): Promise<void>
       }
 
       city.name = trimmedName;
+    }
+
+    if (nameEn !== undefined) {
+      const trimmedNameEn = typeof nameEn === 'string' ? nameEn.trim() : undefined;
+      (city as any).nameEn = trimmedNameEn || undefined;
     }
 
     let villagesDeactivated = false;
@@ -176,18 +186,6 @@ export const updateCity = async (req: AuthRequest, res: Response): Promise<void>
         }
 
         if (
-          serviceCenter.serviceAreaRadiusKm !== undefined &&
-          (typeof serviceCenter.serviceAreaRadiusKm !== 'number' ||
-            serviceCenter.serviceAreaRadiusKm < 1 ||
-            serviceCenter.serviceAreaRadiusKm > 500)
-        ) {
-          res.status(400).json({
-            message: 'Service area radius must be a number between 1 and 500',
-          });
-          return;
-        }
-
-        if (
           serviceCenter.internalOrderRadiusKm !== undefined &&
           (typeof serviceCenter.internalOrderRadiusKm !== 'number' ||
             serviceCenter.internalOrderRadiusKm < 1 ||
@@ -199,39 +197,88 @@ export const updateCity = async (req: AuthRequest, res: Response): Promise<void>
           return;
         }
 
+        // Validate externalOrderMinRadiusKm
         if (
-          serviceCenter.externalOrderRadiusKm !== undefined &&
-          (typeof serviceCenter.externalOrderRadiusKm !== 'number' ||
-            serviceCenter.externalOrderRadiusKm < 1 ||
-            serviceCenter.externalOrderRadiusKm > 100)
+          serviceCenter.externalOrderMinRadiusKm !== undefined &&
+          (typeof serviceCenter.externalOrderMinRadiusKm !== 'number' ||
+            serviceCenter.externalOrderMinRadiusKm < 1 ||
+            serviceCenter.externalOrderMinRadiusKm > 100)
         ) {
           res.status(400).json({
-            message: 'External order radius must be a number between 1 and 100',
+            message: 'External order min radius must be a number between 1 and 100',
           });
           return;
+        }
+
+        // Validate externalOrderMaxRadiusKm
+        if (
+          serviceCenter.externalOrderMaxRadiusKm !== undefined &&
+          (typeof serviceCenter.externalOrderMaxRadiusKm !== 'number' ||
+            serviceCenter.externalOrderMaxRadiusKm < 1 ||
+            serviceCenter.externalOrderMaxRadiusKm > 100)
+        ) {
+          res.status(400).json({
+            message: 'External order max radius must be a number between 1 and 100',
+          });
+          return;
+        }
+
+        // Validate that min <= max if both are provided
+        if (
+          serviceCenter.externalOrderMinRadiusKm !== undefined &&
+          serviceCenter.externalOrderMaxRadiusKm !== undefined &&
+          serviceCenter.externalOrderMinRadiusKm > serviceCenter.externalOrderMaxRadiusKm
+        ) {
+          res.status(400).json({
+            message: 'External order min radius must be less than or equal to max radius',
+          });
+          return;
+        }
+
+        // Handle backward compatibility: if externalOrderRadiusKm is provided, migrate to min/max
+        if (serviceCenter.externalOrderRadiusKm !== undefined) {
+          const oldRadius = serviceCenter.externalOrderRadiusKm;
+          if (typeof oldRadius === 'number' && oldRadius >= 1 && oldRadius <= 100) {
+            // Migrate old single radius to min/max range
+            serviceCenter.externalOrderMinRadiusKm = oldRadius;
+            serviceCenter.externalOrderMaxRadiusKm = oldRadius + 5; // Default range: old value to old value + 5km
+          } else {
+            res.status(400).json({
+              message: 'External order radius (legacy) must be a number between 1 and 100',
+            });
+            return;
+          }
         }
 
         // Update service center configuration
         if (!city.serviceCenter) {
           city.serviceCenter = {
             center: { lat: 0, lng: 0 },
-            serviceAreaRadiusKm: 20,
-            internalOrderRadiusKm: 5,
-            externalOrderRadiusKm: 10,
+            internalOrderRadiusKm: 2,
+            externalOrderMinRadiusKm: 10,
+            externalOrderMaxRadiusKm: 15,
           };
         }
 
         if (serviceCenter.center) {
           city.serviceCenter.center = serviceCenter.center;
         }
-        if (serviceCenter.serviceAreaRadiusKm !== undefined) {
-          city.serviceCenter.serviceAreaRadiusKm = serviceCenter.serviceAreaRadiusKm;
-        }
         if (serviceCenter.internalOrderRadiusKm !== undefined) {
           city.serviceCenter.internalOrderRadiusKm = serviceCenter.internalOrderRadiusKm;
         }
-        if (serviceCenter.externalOrderRadiusKm !== undefined) {
-          city.serviceCenter.externalOrderRadiusKm = serviceCenter.externalOrderRadiusKm;
+        if (serviceCenter.externalOrderMinRadiusKm !== undefined) {
+          city.serviceCenter.externalOrderMinRadiusKm = serviceCenter.externalOrderMinRadiusKm;
+          // Ensure max is still >= min if max wasn't updated
+          if (city.serviceCenter.externalOrderMaxRadiusKm < serviceCenter.externalOrderMinRadiusKm) {
+            city.serviceCenter.externalOrderMaxRadiusKm = serviceCenter.externalOrderMinRadiusKm;
+          }
+        }
+        if (serviceCenter.externalOrderMaxRadiusKm !== undefined) {
+          city.serviceCenter.externalOrderMaxRadiusKm = serviceCenter.externalOrderMaxRadiusKm;
+          // Ensure min is still <= max if min wasn't updated
+          if (city.serviceCenter.externalOrderMinRadiusKm > serviceCenter.externalOrderMaxRadiusKm) {
+            city.serviceCenter.externalOrderMinRadiusKm = serviceCenter.externalOrderMaxRadiusKm;
+          }
         }
       }
     }

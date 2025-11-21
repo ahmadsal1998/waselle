@@ -5,7 +5,7 @@ import Order from '../models/Order';
 import User from '../models/User';
 import Settings from '../models/Settings';
 import City from '../models/City';
-import { calculateDistance, isInternalOrder, findCityForLocation } from '../utils/distance';
+import { calculateDistance, findCityForLocation } from '../utils/distance';
 
 let io: SocketServer;
 
@@ -101,6 +101,114 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
   return io;
 };
 
+/**
+ * Helper function to find drivers within radius/range
+ */
+const findDriversWithinRadius = (
+  drivers: any[],
+  userLocation: { lat: number; lng: number },
+  deliveryType: string,
+  internalRadiusKm: number,
+  externalMinRadiusKm: number,
+  externalMaxRadiusKm: number
+): any[] => {
+  return drivers.filter((driver) => {
+    if (!driver.location || !userLocation) {
+      return false;
+    }
+    const distance = calculateDistance(driver.location, userLocation);
+    
+    if (deliveryType === 'internal') {
+      // Internal orders: Fixed radius (distance <= 2km)
+      return distance <= internalRadiusKm;
+    } else {
+      // External orders: Must be within min and max radius range
+      return distance >= externalMinRadiusKm && distance <= externalMaxRadiusKm;
+    }
+  });
+};
+
+/**
+ * Expanding radius fallback mechanism for external orders
+ * Expands the radius step by step if no drivers are found
+ */
+const tryExpandingRadius = async (
+  order: any,
+  drivers: any[],
+  userLocation: { lat: number; lng: number },
+  initialMinRadius: number,
+  initialMaxRadius: number,
+  cityName?: string
+): Promise<boolean> => {
+  const MAX_EXPANSIONS = 3;
+  const EXPANSION_STEP = 5; // Expand by 5km each time
+  const WAIT_TIME_MS = 12000; // Wait 12 seconds between expansions
+
+  let currentMinRadius = initialMinRadius;
+  let currentMaxRadius = initialMaxRadius;
+
+  for (let expansion = 0; expansion < MAX_EXPANSIONS; expansion++) {
+    // Wait before expanding (except for first expansion)
+    if (expansion > 0) {
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIME_MS));
+      
+      // Check if order was already accepted
+      const updatedOrder = await Order.findById(order._id);
+      if (!updatedOrder || updatedOrder.status !== 'pending' || updatedOrder.driverId) {
+        console.log(`Order ${order._id} was accepted during expansion, stopping expansion`);
+        return true; // Order was accepted
+      }
+    }
+
+    // Expand radius
+    currentMinRadius = currentMaxRadius;
+    currentMaxRadius = currentMinRadius + EXPANSION_STEP;
+
+    console.log(
+      `[Expanding Radius] Attempt ${expansion + 1}/${MAX_EXPANSIONS}: Trying range ${currentMinRadius}-${currentMaxRadius}km for order ${order._id}`
+    );
+
+    // Find drivers within expanded range
+    const driversWithinRange = drivers.filter((driver) => {
+      if (!driver.location || !userLocation) {
+        return false;
+      }
+      const distance = calculateDistance(driver.location, userLocation);
+      return distance >= currentMinRadius && distance <= currentMaxRadius;
+    });
+
+    if (driversWithinRange.length > 0) {
+      // Emit to drivers within expanded range
+      driversWithinRange.forEach((driver) => {
+        io.to(`user:${driver._id.toString()}`).emit('new-order', order);
+      });
+
+      const cityInfo = cityName ? ` (city: ${cityName})` : '';
+      console.log(
+        `Order ${order._id} (external)${cityInfo} sent to ${driversWithinRange.length} driver(s) within expanded range ${currentMinRadius}-${currentMaxRadius}km (expansion ${expansion + 1})`
+      );
+      return true; // Found drivers
+    }
+  }
+
+  // No drivers found after all expansions
+  const cityInfo = cityName ? ` for city ${cityName}` : '';
+  console.log(
+    `No drivers available after ${MAX_EXPANSIONS} expansions for external order ${order._id}${cityInfo}. Maximum range tried: ${currentMinRadius}-${currentMaxRadius}km`
+  );
+
+  // Notify customer that no drivers are available
+  const customerId = order?.customerId?._id?.toString() ?? order?.customerId?.toString();
+  if (customerId) {
+    emitToUserRoom(customerId, 'no-drivers-available', {
+      orderId: order._id?.toString() ?? order?.id,
+      message: 'No drivers available within the service area',
+    });
+  }
+
+  return false; // No drivers found
+};
+
 export const emitNewOrder = async (order: any): Promise<void> => {
   try {
     if (!io) {
@@ -122,6 +230,9 @@ export const emitNewOrder = async (order: any): Promise<void> => {
 
     const userLocation = customer.location;
 
+    // Get deliveryType from order (required field)
+    const deliveryType: string = order.deliveryType || 'internal';
+    
     // Get all active cities with service centers configured
     const citiesWithServiceCenters = await City.find({
       isActive: true,
@@ -129,41 +240,10 @@ export const emitNewOrder = async (order: any): Promise<void> => {
       'serviceCenter.center.lng': { $exists: true, $ne: null },
     }).lean();
 
-    let radiusKm: number;
-    let deliveryType: string = order.deliveryType || 'internal';
+    let internalRadiusKm: number;
+    let externalMinRadiusKm: number;
+    let externalMaxRadiusKm: number;
     let cityName: string | undefined;
-
-    // Use the deliveryType from the order if available, otherwise determine from location
-    if (!order.deliveryType) {
-      // Fallback: Determine delivery type based on location if not provided
-      if (citiesWithServiceCenters.length > 0) {
-        const cityServiceCenter = findCityForLocation(
-          userLocation,
-          citiesWithServiceCenters as any
-        );
-
-        if (cityServiceCenter) {
-          cityName = cityServiceCenter.cityName;
-          const isInternal = isInternalOrder(
-            userLocation,
-            cityServiceCenter.center,
-            cityServiceCenter.serviceAreaRadiusKm
-          );
-          deliveryType = isInternal ? 'internal' : 'external';
-        }
-      }
-
-      // Fall back to global settings if no city found
-      if (!cityName) {
-        const settings = await Settings.getSettings();
-        const isInternal = isInternalOrder(
-          userLocation,
-          settings.serviceAreaCenter,
-          settings.serviceAreaRadiusKm
-        );
-        deliveryType = isInternal ? 'internal' : 'external';
-      }
-    }
 
     // Get radius based on delivery type and city/global settings
     if (citiesWithServiceCenters.length > 0) {
@@ -174,22 +254,22 @@ export const emitNewOrder = async (order: any): Promise<void> => {
 
       if (cityServiceCenter) {
         cityName = cityServiceCenter.cityName;
-        radiusKm = deliveryType === 'internal'
-          ? cityServiceCenter.internalOrderRadiusKm
-          : cityServiceCenter.externalOrderRadiusKm;
+        internalRadiusKm = cityServiceCenter.internalOrderRadiusKm;
+        externalMinRadiusKm = cityServiceCenter.externalOrderMinRadiusKm;
+        externalMaxRadiusKm = cityServiceCenter.externalOrderMaxRadiusKm;
       } else {
         // Use global settings
         const settings = await Settings.getSettings();
-        radiusKm = deliveryType === 'internal'
-          ? settings.internalOrderRadiusKm
-          : settings.externalOrderRadiusKm;
+        internalRadiusKm = settings.internalOrderRadiusKm;
+        externalMinRadiusKm = settings.externalOrderMinRadiusKm;
+        externalMaxRadiusKm = settings.externalOrderMaxRadiusKm;
       }
     } else {
       // Use global settings
       const settings = await Settings.getSettings();
-      radiusKm = deliveryType === 'internal'
-        ? settings.internalOrderRadiusKm
-        : settings.externalOrderRadiusKm;
+      internalRadiusKm = settings.internalOrderRadiusKm;
+      externalMinRadiusKm = settings.externalOrderMinRadiusKm;
+      externalMaxRadiusKm = settings.externalOrderMaxRadiusKm;
     }
 
     // Find all available drivers matching the vehicle type
@@ -201,23 +281,57 @@ export const emitNewOrder = async (order: any): Promise<void> => {
     });
 
     if (drivers.length === 0) {
+      // Notify customer that no drivers are available
+      const customerId = order?.customerId?._id?.toString() ?? order?.customerId?.toString();
+      if (customerId) {
+        emitToUserRoom(customerId, 'no-drivers-available', {
+          orderId: order._id?.toString() ?? order?.id,
+          message: 'No drivers available',
+        });
+      }
       return;
     }
 
-    // Filter drivers within the configured radius from USER'S location (not pickup location)
-    const driversWithinRadius = drivers.filter((driver) => {
-      if (!driver.location || !userLocation) {
-        return false;
-      }
-      const distance = calculateDistance(driver.location, userLocation);
-      return distance <= radiusKm;
-    });
+    // Filter drivers based on delivery type and radius logic
+    // Internal orders: Fixed radius (distance <= 2km)
+    // External orders: Range check (distance >= minRadius AND distance <= maxRadius)
+    const driversWithinRadius = findDriversWithinRadius(
+      drivers,
+      userLocation,
+      deliveryType,
+      internalRadiusKm,
+      externalMinRadiusKm,
+      externalMaxRadiusKm
+    );
 
     if (driversWithinRadius.length === 0) {
       const cityInfo = cityName ? ` for city ${cityName}` : '';
-      console.log(
-        `No drivers found within ${radiusKm}km radius from user location for ${deliveryType} order ${order._id}${cityInfo}`
-      );
+      if (deliveryType === 'internal') {
+        console.log(
+          `No drivers found within ${internalRadiusKm}km radius from user location for ${deliveryType} order ${order._id}${cityInfo}`
+        );
+        // For internal orders, notify customer immediately (no expansion)
+        const customerId = order?.customerId?._id?.toString() ?? order?.customerId?.toString();
+        if (customerId) {
+          emitToUserRoom(customerId, 'no-drivers-available', {
+            orderId: order._id?.toString() ?? order?.id,
+            message: 'No drivers available within the service area',
+          });
+        }
+      } else {
+        console.log(
+          `No drivers found within ${externalMinRadiusKm}-${externalMaxRadiusKm}km range from user location for ${deliveryType} order ${order._id}${cityInfo}. Starting expanding radius fallback...`
+        );
+        // For external orders, try expanding radius
+        await tryExpandingRadius(
+          order,
+          drivers,
+          userLocation,
+          externalMinRadiusKm,
+          externalMaxRadiusKm,
+          cityName
+        );
+      }
       return;
     }
 
@@ -227,9 +341,15 @@ export const emitNewOrder = async (order: any): Promise<void> => {
     });
 
     const cityInfo = cityName ? ` (city: ${cityName})` : '';
-    console.log(
-      `Order ${order._id} (${deliveryType})${cityInfo} sent to ${driversWithinRadius.length} driver(s) within ${radiusKm}km radius from user location`
-    );
+    if (deliveryType === 'internal') {
+      console.log(
+        `Order ${order._id} (${deliveryType})${cityInfo} sent to ${driversWithinRadius.length} driver(s) within ${internalRadiusKm}km radius from user location`
+      );
+    } else {
+      console.log(
+        `Order ${order._id} (${deliveryType})${cityInfo} sent to ${driversWithinRadius.length} driver(s) within ${externalMinRadiusKm}-${externalMaxRadiusKm}km range from user location`
+      );
+    }
   } catch (error) {
     console.error('Error emitting new order:', error);
   }

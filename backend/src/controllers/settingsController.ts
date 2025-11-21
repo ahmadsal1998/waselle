@@ -33,31 +33,15 @@ export const updateSettings = async (
     }
 
     const {
-      orderNotificationRadiusKm,
       internalOrderRadiusKm,
-      externalOrderRadiusKm,
-      serviceAreaCenter,
-      serviceAreaRadiusKm,
+      externalOrderMinRadiusKm,
+      externalOrderMaxRadiusKm,
       vehicleTypes,
       commissionPercentage,
       maxAllowedBalance,
       mapDefaultCenter,
       mapDefaultZoom,
     } = req.body;
-
-    // Validate orderNotificationRadiusKm (backward compatibility)
-    if (
-      orderNotificationRadiusKm !== undefined &&
-      (typeof orderNotificationRadiusKm !== 'number' ||
-        orderNotificationRadiusKm < 1 ||
-        orderNotificationRadiusKm > 100)
-    ) {
-      res.status(400).json({
-        message:
-          'orderNotificationRadiusKm must be a number between 1 and 100',
-      });
-      return;
-    }
 
     // Validate internalOrderRadiusKm
     if (
@@ -72,47 +56,40 @@ export const updateSettings = async (
       return;
     }
 
-    // Validate externalOrderRadiusKm
+    // Validate externalOrderMinRadiusKm
     if (
-      externalOrderRadiusKm !== undefined &&
-      (typeof externalOrderRadiusKm !== 'number' ||
-        externalOrderRadiusKm < 1 ||
-        externalOrderRadiusKm > 100)
+      externalOrderMinRadiusKm !== undefined &&
+      (typeof externalOrderMinRadiusKm !== 'number' ||
+        externalOrderMinRadiusKm < 1 ||
+        externalOrderMinRadiusKm > 100)
     ) {
       res.status(400).json({
-        message: 'externalOrderRadiusKm must be a number between 1 and 100',
+        message: 'externalOrderMinRadiusKm must be a number between 1 and 100',
       });
       return;
     }
 
-    // Validate serviceAreaCenter
-    if (serviceAreaCenter !== undefined) {
-      if (
-        typeof serviceAreaCenter !== 'object' ||
-        typeof serviceAreaCenter.lat !== 'number' ||
-        typeof serviceAreaCenter.lng !== 'number' ||
-        serviceAreaCenter.lat < -90 ||
-        serviceAreaCenter.lat > 90 ||
-        serviceAreaCenter.lng < -180 ||
-        serviceAreaCenter.lng > 180
-      ) {
-        res.status(400).json({
-          message:
-            'serviceAreaCenter must be an object with valid lat (-90 to 90) and lng (-180 to 180)',
-        });
-        return;
-      }
-    }
-
-    // Validate serviceAreaRadiusKm
+    // Validate externalOrderMaxRadiusKm
     if (
-      serviceAreaRadiusKm !== undefined &&
-      (typeof serviceAreaRadiusKm !== 'number' ||
-        serviceAreaRadiusKm < 1 ||
-        serviceAreaRadiusKm > 500)
+      externalOrderMaxRadiusKm !== undefined &&
+      (typeof externalOrderMaxRadiusKm !== 'number' ||
+        externalOrderMaxRadiusKm < 1 ||
+        externalOrderMaxRadiusKm > 100)
     ) {
       res.status(400).json({
-        message: 'serviceAreaRadiusKm must be a number between 1 and 500',
+        message: 'externalOrderMaxRadiusKm must be a number between 1 and 100',
+      });
+      return;
+    }
+
+    // Validate that min <= max if both are provided
+    if (
+      externalOrderMinRadiusKm !== undefined &&
+      externalOrderMaxRadiusKm !== undefined &&
+      externalOrderMinRadiusKm > externalOrderMaxRadiusKm
+    ) {
+      res.status(400).json({
+        message: 'externalOrderMinRadiusKm must be less than or equal to externalOrderMaxRadiusKm',
       });
       return;
     }
@@ -120,20 +97,22 @@ export const updateSettings = async (
     let settings = await Settings.getSettings();
 
     // Update fields if provided
-    if (orderNotificationRadiusKm !== undefined) {
-      settings.orderNotificationRadiusKm = orderNotificationRadiusKm;
-    }
     if (internalOrderRadiusKm !== undefined) {
       settings.internalOrderRadiusKm = internalOrderRadiusKm;
     }
-    if (externalOrderRadiusKm !== undefined) {
-      settings.externalOrderRadiusKm = externalOrderRadiusKm;
+    if (externalOrderMinRadiusKm !== undefined) {
+      settings.externalOrderMinRadiusKm = externalOrderMinRadiusKm;
+      // Ensure max is still >= min if max wasn't updated
+      if (settings.externalOrderMaxRadiusKm < externalOrderMinRadiusKm) {
+        settings.externalOrderMaxRadiusKm = externalOrderMinRadiusKm;
+      }
     }
-    if (serviceAreaCenter !== undefined) {
-      settings.serviceAreaCenter = serviceAreaCenter;
-    }
-    if (serviceAreaRadiusKm !== undefined) {
-      settings.serviceAreaRadiusKm = serviceAreaRadiusKm;
+    if (externalOrderMaxRadiusKm !== undefined) {
+      settings.externalOrderMaxRadiusKm = externalOrderMaxRadiusKm;
+      // Ensure min is still <= max if min wasn't updated
+      if (settings.externalOrderMinRadiusKm > externalOrderMaxRadiusKm) {
+        settings.externalOrderMinRadiusKm = externalOrderMaxRadiusKm;
+      }
     }
 
     // Update vehicle types if provided

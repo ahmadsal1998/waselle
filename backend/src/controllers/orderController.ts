@@ -493,7 +493,9 @@ export const getAvailableOrders = async (
         const deliveryType = order.deliveryType || 'internal';
 
         // Determine radius based on delivery type and city/global settings
-        let radiusKm: number;
+        let internalRadiusKm: number;
+        let externalMinRadiusKm: number;
+        let externalMaxRadiusKm: number;
 
         if (citiesWithServiceCenters.length > 0) {
           const cityServiceCenter = findCityForLocation(
@@ -503,36 +505,54 @@ export const getAvailableOrders = async (
 
           if (cityServiceCenter) {
             // Use city-specific radius
-            radiusKm = deliveryType === 'internal'
-              ? cityServiceCenter.internalOrderRadiusKm
-              : cityServiceCenter.externalOrderRadiusKm;
+            internalRadiusKm = cityServiceCenter.internalOrderRadiusKm;
+            externalMinRadiusKm = cityServiceCenter.externalOrderMinRadiusKm;
+            externalMaxRadiusKm = cityServiceCenter.externalOrderMaxRadiusKm;
           } else {
             // Use global settings
-            radiusKm = deliveryType === 'internal'
-              ? settings.internalOrderRadiusKm
-              : settings.externalOrderRadiusKm;
+            internalRadiusKm = settings.internalOrderRadiusKm;
+            externalMinRadiusKm = settings.externalOrderMinRadiusKm;
+            externalMaxRadiusKm = settings.externalOrderMaxRadiusKm;
           }
         } else {
           // Use global settings
-          radiusKm = deliveryType === 'internal'
-            ? settings.internalOrderRadiusKm
-            : settings.externalOrderRadiusKm;
+          internalRadiusKm = settings.internalOrderRadiusKm;
+          externalMinRadiusKm = settings.externalOrderMinRadiusKm;
+          externalMaxRadiusKm = settings.externalOrderMaxRadiusKm;
         }
 
         // Calculate distance from driver to customer location (NOT pickup location)
         const distance = calculateDistance(driver.location!, customerLocation);
 
-        // Only include orders within the allowed radius
-        if (distance <= radiusKm) {
-          console.log(`[getAvailableOrders] Order ${order._id}: Included (distance=${distance.toFixed(2)}km <= radius=${radiusKm}km)`);
+        // Apply radius logic based on delivery type
+        // Internal orders: Fixed radius (distance <= 2km)
+        // External orders: Range check (distance >= minRadius AND distance <= maxRadius)
+        let isWithinRadius: boolean;
+        if (deliveryType === 'internal') {
+          isWithinRadius = distance <= internalRadiusKm;
+          if (isWithinRadius) {
+            console.log(`[getAvailableOrders] Order ${order._id}: Included (distance=${distance.toFixed(2)}km <= radius=${internalRadiusKm}km)`);
+          } else {
+            console.log(`[getAvailableOrders] Order ${order._id}: Excluded (distance=${distance.toFixed(2)}km > radius=${internalRadiusKm}km)`);
+          }
+        } else {
+          isWithinRadius = distance >= externalMinRadiusKm && distance <= externalMaxRadiusKm;
+          if (isWithinRadius) {
+            console.log(`[getAvailableOrders] Order ${order._id}: Included (distance=${distance.toFixed(2)}km within range ${externalMinRadiusKm}-${externalMaxRadiusKm}km)`);
+          } else {
+            console.log(`[getAvailableOrders] Order ${order._id}: Excluded (distance=${distance.toFixed(2)}km outside range ${externalMinRadiusKm}-${externalMaxRadiusKm}km)`);
+          }
+        }
+
+        // Only include orders within the allowed radius/range
+        if (isWithinRadius) {
           return {
             ...order,
             distanceFromDriver: distance,
           };
         }
 
-        // Order is outside the allowed radius - exclude it
-        console.log(`[getAvailableOrders] Order ${order._id}: Excluded (distance=${distance.toFixed(2)}km > radius=${radiusKm}km)`);
+        // Order is outside the allowed radius/range - exclude it
         return null;
       })
       .filter((order) => order !== null) // Remove null entries (filtered out orders)

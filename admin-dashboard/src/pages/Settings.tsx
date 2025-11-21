@@ -7,11 +7,9 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [internalOrderRadius, setInternalOrderRadius] = useState<number>(5);
-  const [externalOrderRadius, setExternalOrderRadius] = useState<number>(10);
-  const [serviceAreaLat, setServiceAreaLat] = useState<number>(0);
-  const [serviceAreaLng, setServiceAreaLng] = useState<number>(0);
-  const [serviceAreaRadius, setServiceAreaRadius] = useState<number>(20);
+  const [internalOrderRadius, setInternalOrderRadius] = useState<number>(2);
+  const [externalOrderMinRadius, setExternalOrderMinRadius] = useState<number>(10);
+  const [externalOrderMaxRadius, setExternalOrderMaxRadius] = useState<number>(15);
   const [mapDefaultLat, setMapDefaultLat] = useState<number>(32.462502185826004);
   const [mapDefaultLng, setMapDefaultLng] = useState<number>(35.29172911766705);
   const [mapDefaultZoom, setMapDefaultZoom] = useState<number>(12);
@@ -38,10 +36,8 @@ const Settings = () => {
       const data = await getSettings();
       setSettings(data);
       setInternalOrderRadius(data.internalOrderRadiusKm);
-      setExternalOrderRadius(data.externalOrderRadiusKm);
-      setServiceAreaLat(data.serviceAreaCenter.lat);
-      setServiceAreaLng(data.serviceAreaCenter.lng);
-      setServiceAreaRadius(data.serviceAreaRadiusKm);
+      setExternalOrderMinRadius(data.externalOrderMinRadiusKm);
+      setExternalOrderMaxRadius(data.externalOrderMaxRadiusKm);
       if (data.mapDefaultCenter) {
         setMapDefaultLat(data.mapDefaultCenter.lat);
         setMapDefaultLng(data.mapDefaultCenter.lng);
@@ -72,25 +68,21 @@ const Settings = () => {
       return;
     }
 
-    // Validate external order radius
-    if (externalOrderRadius < 1 || externalOrderRadius > 100) {
-      setError('External order radius must be between 1 and 100 kilometers');
+    // Validate external order min radius
+    if (externalOrderMinRadius < 1 || externalOrderMinRadius > 100) {
+      setError('External order min radius must be between 1 and 100 kilometers');
       return;
     }
 
-    // Validate service area center
-    if (serviceAreaLat < -90 || serviceAreaLat > 90) {
-      setError('Service area latitude must be between -90 and 90');
-      return;
-    }
-    if (serviceAreaLng < -180 || serviceAreaLng > 180) {
-      setError('Service area longitude must be between -180 and 180');
+    // Validate external order max radius
+    if (externalOrderMaxRadius < 1 || externalOrderMaxRadius > 100) {
+      setError('External order max radius must be between 1 and 100 kilometers');
       return;
     }
 
-    // Validate service area radius
-    if (serviceAreaRadius < 1 || serviceAreaRadius > 500) {
-      setError('Service area radius must be between 1 and 500 kilometers');
+    // Validate that min <= max
+    if (externalOrderMinRadius > externalOrderMaxRadius) {
+      setError('External order min radius must be less than or equal to max radius');
       return;
     }
 
@@ -116,12 +108,8 @@ const Settings = () => {
       setSuccess(null);
       const updated = await updateSettings({
         internalOrderRadiusKm: internalOrderRadius,
-        externalOrderRadiusKm: externalOrderRadius,
-        serviceAreaCenter: {
-          lat: serviceAreaLat,
-          lng: serviceAreaLng,
-        },
-        serviceAreaRadiusKm: serviceAreaRadius,
+        externalOrderMinRadiusKm: externalOrderMinRadius,
+        externalOrderMaxRadiusKm: externalOrderMaxRadius,
         mapDefaultCenter: {
           lat: mapDefaultLat,
           lng: mapDefaultLng,
@@ -185,7 +173,7 @@ const Settings = () => {
               Internal Orders Radius (kilometers)
             </label>
             <p className="text-sm text-slate-600 mb-3">
-              Orders within the service area will be sent to drivers within this distance from the
+              Internal orders will be sent to drivers within this distance from the
               customer's pickup location. Range: 1-100 km
             </p>
             <div className="flex items-center space-x-4">
@@ -213,112 +201,50 @@ const Settings = () => {
               htmlFor="externalOrderRadius"
               className="block text-sm font-medium text-slate-700 mb-2"
             >
-              External Orders Radius (kilometers)
+              External Orders Radius Range (kilometers)
             </label>
             <p className="text-sm text-slate-600 mb-3">
-              Orders outside the service area will be sent to drivers within this distance from the
-              customer's pickup location. Range: 1-100 km
+              External orders will be sent to drivers within this distance range from the
+              customer's location. Only drivers between min and max radius will receive notifications. Range: 1-100 km
             </p>
             <div className="flex items-center space-x-4">
-              <input
-                type="number"
-                id="externalOrderRadius"
-                min="1"
-                max="100"
-                step="0.1"
-                value={externalOrderRadius}
-                onChange={(e) => setExternalOrderRadius(Number(e.target.value))}
-                className="input w-32"
-              />
-              <span className="text-sm text-slate-600">km</span>
+              <div className="flex items-center space-x-2">
+                <label htmlFor="externalOrderMinRadius" className="text-sm text-slate-600">
+                  Min:
+                </label>
+                <input
+                  type="number"
+                  id="externalOrderMinRadius"
+                  min="1"
+                  max="100"
+                  step="0.1"
+                  value={externalOrderMinRadius}
+                  onChange={(e) => setExternalOrderMinRadius(Number(e.target.value))}
+                  className="input w-24"
+                />
+                <span className="text-sm text-slate-600">km</span>
+              </div>
+              <span className="text-slate-400">-</span>
+              <div className="flex items-center space-x-2">
+                <label htmlFor="externalOrderMaxRadius" className="text-sm text-slate-600">
+                  Max:
+                </label>
+                <input
+                  type="number"
+                  id="externalOrderMaxRadius"
+                  min="1"
+                  max="100"
+                  step="0.1"
+                  value={externalOrderMaxRadius}
+                  onChange={(e) => setExternalOrderMaxRadius(Number(e.target.value))}
+                  className="input w-24"
+                />
+                <span className="text-sm text-slate-600">km</span>
+              </div>
             </div>
             {settings && (
               <p className="mt-2 text-xs text-slate-500">
-                Current value: {settings.externalOrderRadiusKm} km
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="card p-6">
-        <h2 className="text-xl font-semibold mb-4 text-slate-900">Service Area Configuration</h2>
-        <div className="space-y-6">
-          <p className="text-sm text-slate-600 mb-4">
-            Configure the service area center point and radius. Orders within this area are considered "internal",
-            while orders outside are considered "external".
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="serviceAreaLat"
-                className="block text-sm font-medium text-slate-700 mb-2"
-              >
-                Service Area Center - Latitude
-              </label>
-              <input
-                type="number"
-                id="serviceAreaLat"
-                min="-90"
-                max="90"
-                step="0.000001"
-                value={serviceAreaLat}
-                onChange={(e) => setServiceAreaLat(Number(e.target.value))}
-                className="input"
-                placeholder="0.0"
-              />
-              <p className="mt-1 text-xs text-slate-500">Range: -90 to 90</p>
-            </div>
-
-            <div>
-              <label
-                htmlFor="serviceAreaLng"
-                className="block text-sm font-medium text-slate-700 mb-2"
-              >
-                Service Area Center - Longitude
-              </label>
-              <input
-                type="number"
-                id="serviceAreaLng"
-                min="-180"
-                max="180"
-                step="0.000001"
-                value={serviceAreaLng}
-                onChange={(e) => setServiceAreaLng(Number(e.target.value))}
-                className="input"
-                placeholder="0.0"
-              />
-              <p className="mt-1 text-xs text-slate-500">Range: -180 to 180</p>
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor="serviceAreaRadius"
-              className="block text-sm font-medium text-slate-700 mb-2"
-            >
-              Service Area Radius (kilometers)
-            </label>
-            <p className="text-sm text-slate-600 mb-3">
-              The radius that defines the service area boundary. Range: 1-500 km
-            </p>
-            <div className="flex items-center space-x-4">
-              <input
-                type="number"
-                id="serviceAreaRadius"
-                min="1"
-                max="500"
-                step="0.1"
-                value={serviceAreaRadius}
-                onChange={(e) => setServiceAreaRadius(Number(e.target.value))}
-                className="input w-32"
-              />
-              <span className="text-sm text-slate-600">km</span>
-            </div>
-            {settings && (
-              <p className="mt-2 text-xs text-slate-500">
-                Current value: {settings.serviceAreaRadiusKm} km
+                Current range: {settings.externalOrderMinRadiusKm} - {settings.externalOrderMaxRadiusKm} km
               </p>
             )}
           </div>
@@ -565,14 +491,11 @@ const Settings = () => {
               saving ||
               internalOrderRadius < 1 ||
               internalOrderRadius > 100 ||
-              externalOrderRadius < 1 ||
-              externalOrderRadius > 100 ||
-              serviceAreaLat < -90 ||
-              serviceAreaLat > 90 ||
-              serviceAreaLng < -180 ||
-              serviceAreaLng > 180 ||
-              serviceAreaRadius < 1 ||
-              serviceAreaRadius > 500 ||
+              externalOrderMinRadius < 1 ||
+              externalOrderMinRadius > 100 ||
+              externalOrderMaxRadius < 1 ||
+              externalOrderMaxRadius > 100 ||
+              externalOrderMinRadius > externalOrderMaxRadius ||
               mapDefaultLat < -90 ||
               mapDefaultLat > 90 ||
               mapDefaultLng < -180 ||

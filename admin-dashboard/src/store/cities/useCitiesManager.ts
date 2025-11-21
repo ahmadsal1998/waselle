@@ -18,23 +18,25 @@ import type { City, Village } from '@/types';
 
 interface CityFormState {
   name: string;
+  nameEn?: string;
   serviceCenter?: {
     center: {
       lat: number;
       lng: number;
     };
-    serviceAreaRadiusKm: number;
     internalOrderRadiusKm: number;
-    externalOrderRadiusKm: number;
+    externalOrderMinRadiusKm: number;
+    externalOrderMaxRadiusKm: number;
   } | null;
 }
 
 interface VillageFormState {
   name: string;
+  nameEn?: string;
 }
 
-const initialCityForm: CityFormState = { name: '' };
-const initialVillageForm: VillageFormState = { name: '' };
+const initialCityForm: CityFormState = { name: '', nameEn: '' };
+const initialVillageForm: VillageFormState = { name: '', nameEn: '' };
 
 export const useCitiesManager = () => {
   const [cities, setCities] = useState<City[]>([]);
@@ -160,6 +162,7 @@ export const useCitiesManager = () => {
       setEditingCity(city);
       setCityForm({
         name: city.name,
+        nameEn: city.nameEn || '',
         serviceCenter: city.serviceCenter || null,
       });
     } else {
@@ -191,6 +194,7 @@ export const useCitiesManager = () => {
       if (editingCity) {
         const { city, villagesDeactivated } = await updateCity(editingCity._id, {
           name: trimmedName,
+          nameEn: cityForm.nameEn?.trim() || undefined,
           serviceCenter: cityForm.serviceCenter,
         });
         setCities((prev) =>
@@ -200,7 +204,10 @@ export const useCitiesManager = () => {
           setVillages((prev) => prev.filter((village) => village.isActive));
         }
       } else {
-        const newCity = await createCity({ name: trimmedName });
+        const newCity = await createCity({ 
+          name: trimmedName,
+          nameEn: cityForm.nameEn?.trim() || undefined,
+        });
         setCities((prev) => [...prev, newCity]);
         setSelectedCityId(newCity._id);
       }
@@ -267,7 +274,10 @@ export const useCitiesManager = () => {
 
     if (village) {
       setEditingVillage(village);
-      setVillageForm({ name: village.name });
+      setVillageForm({ 
+        name: village.name,
+        nameEn: village.nameEn || '',
+      });
     } else {
       setEditingVillage(null);
       setVillageForm(initialVillageForm);
@@ -301,11 +311,15 @@ export const useCitiesManager = () => {
 
     try {
       if (editingVillage) {
-        await updateVillage(editingVillage._id, { name: trimmedName });
+        await updateVillage(editingVillage._id, { 
+          name: trimmedName,
+          nameEn: villageForm.nameEn?.trim() || undefined,
+        });
       } else {
         await createVillage({
           cityId: selectedCityId,
           name: trimmedName,
+          nameEn: villageForm.nameEn?.trim() || undefined,
         });
       }
 

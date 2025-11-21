@@ -3,11 +3,13 @@ import mongoose, { Document, Schema } from 'mongoose';
 export type IVillageSubdocument = mongoose.Types.Subdocument & {
   _id: mongoose.Types.ObjectId;
   name: string;
+  nameEn?: string; // English name for reverse geocoding matching
   isActive: boolean;
 };
 
 export interface ICity extends Document {
   name: string;
+  nameEn?: string; // English name for reverse geocoding matching
   isActive: boolean;
   villages: mongoose.Types.DocumentArray<IVillageSubdocument>;
   serviceCenter?: {
@@ -15,9 +17,9 @@ export interface ICity extends Document {
       lat: number;
       lng: number;
     };
-    serviceAreaRadiusKm: number; // Coverage radius for the city
-    internalOrderRadiusKm: number; // For orders inside the city
-    externalOrderRadiusKm: number; // For orders outside but near the city
+    internalOrderRadiusKm: number; // Fixed radius for internal orders (always 2km)
+    externalOrderMinRadiusKm: number; // Minimum radius for external orders
+    externalOrderMaxRadiusKm: number; // Maximum radius for external orders
   };
   createdAt: Date;
   updatedAt: Date;
@@ -29,6 +31,11 @@ const VillageSubSchema = new Schema<IVillageSubdocument>(
       type: String,
       required: [true, 'Village name is required'],
       trim: true,
+    },
+    nameEn: {
+      type: String,
+      trim: true,
+      default: undefined, // Optional field
     },
     isActive: {
       type: Boolean,
@@ -48,6 +55,11 @@ const CitySchema: Schema<ICity> = new Schema(
       required: [true, 'City name is required'],
       trim: true,
       unique: true,
+    },
+    nameEn: {
+      type: String,
+      trim: true,
+      default: undefined, // Optional field
     },
     isActive: {
       type: Boolean,
@@ -70,23 +82,23 @@ const CitySchema: Schema<ICity> = new Schema(
           max: 180,
         },
       },
-      serviceAreaRadiusKm: {
-        type: Number,
-        min: 1,
-        max: 500,
-        default: 20,
-      },
       internalOrderRadiusKm: {
         type: Number,
         min: 1,
         max: 100,
-        default: 5,
+        default: 2,
       },
-      externalOrderRadiusKm: {
+      externalOrderMinRadiusKm: {
         type: Number,
         min: 1,
         max: 100,
         default: 10,
+      },
+      externalOrderMaxRadiusKm: {
+        type: Number,
+        min: 1,
+        max: 100,
+        default: 15,
       },
     },
   },

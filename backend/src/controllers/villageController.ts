@@ -16,7 +16,7 @@ const escapeRegExp = (value: string): string =>
 
 export const createVillage = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { cityId, name, isActive } = req.body;
+    const { cityId, name, nameEn, isActive } = req.body;
 
     if (!cityId || !mongoose.Types.ObjectId.isValid(cityId)) {
       res.status(400).json({ message: 'Valid cityId is required' });
@@ -35,6 +35,7 @@ export const createVillage = async (req: Request, res: Response): Promise<void> 
     }
 
     const trimmedName = name.trim();
+    const trimmedNameEn = typeof nameEn === 'string' ? nameEn.trim() : undefined;
 
     const duplicate = city.villages.find(
       (village) => village.name.toLowerCase() === trimmedName.toLowerCase()
@@ -52,6 +53,7 @@ export const createVillage = async (req: Request, res: Response): Promise<void> 
 
     city.villages.push({
       name: trimmedName,
+      ...(trimmedNameEn ? { nameEn: trimmedNameEn } : {}),
       isActive: resolvedActive,
     } as any);
 
@@ -115,7 +117,7 @@ export const getVillages = async (req: Request, res: Response): Promise<void> =>
 export const updateVillage = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, isActive } = req.body;
+    const { name, nameEn, isActive } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ message: 'Invalid village id' });
@@ -124,6 +126,7 @@ export const updateVillage = async (req: Request, res: Response): Promise<void> 
 
     if (
       (name === undefined || (typeof name === 'string' && !name.trim())) &&
+      nameEn === undefined &&
       typeof isActive !== 'boolean'
     ) {
       res.status(400).json({ message: 'No valid fields provided for update' });
@@ -163,6 +166,11 @@ export const updateVillage = async (req: Request, res: Response): Promise<void> 
       }
 
       village.name = trimmedName;
+    }
+
+    if (nameEn !== undefined) {
+      const trimmedNameEn = typeof nameEn === 'string' ? nameEn.trim() : undefined;
+      (village as any).nameEn = trimmedNameEn || undefined;
     }
 
     if (typeof isActive === 'boolean' && village.isActive !== isActive) {

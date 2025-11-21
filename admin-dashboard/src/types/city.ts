@@ -1,6 +1,7 @@
 export interface City {
   _id: string;
   name: string;
+  nameEn?: string; // English name for reverse geocoding matching
   isActive: boolean;
   villagesCount?: number;
   serviceCenter?: {
@@ -8,9 +9,9 @@ export interface City {
       lat: number;
       lng: number;
     };
-    serviceAreaRadiusKm: number;
     internalOrderRadiusKm: number;
-    externalOrderRadiusKm: number;
+    externalOrderMinRadiusKm: number;
+    externalOrderMaxRadiusKm: number;
   };
   createdAt?: string;
   updatedAt?: string;
@@ -20,6 +21,7 @@ export interface Village {
   _id: string;
   cityId: string;
   name: string;
+  nameEn?: string; // English name for reverse geocoding matching
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;

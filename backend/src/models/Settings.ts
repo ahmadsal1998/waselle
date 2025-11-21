@@ -6,14 +6,9 @@ export interface VehicleTypeConfig {
 }
 
 export interface ISettings extends Document {
-  orderNotificationRadiusKm: number; // Distance in kilometers for order notifications (deprecated, kept for backward compatibility)
-  internalOrderRadiusKm: number; // Distance in kilometers for internal orders (within service area)
-  externalOrderRadiusKm: number; // Distance in kilometers for external orders (outside service area)
-  serviceAreaCenter: {
-    lat: number;
-    lng: number;
-  }; // Center point of the service area
-  serviceAreaRadiusKm: number; // Radius in kilometers that defines the service area boundary
+  internalOrderRadiusKm: number; // Fixed distance in kilometers for internal orders (always 2km)
+  externalOrderMinRadiusKm: number; // Minimum distance in kilometers for external orders
+  externalOrderMaxRadiusKm: number; // Maximum distance in kilometers for external orders
   mapDefaultCenter: {
     lat: number;
     lng: number;
@@ -36,44 +31,26 @@ interface ISettingsModel extends Model<ISettings> {
 
 const SettingsSchema: Schema = new Schema(
   {
-    orderNotificationRadiusKm: {
-      type: Number,
-      default: 10, // Default 10 kilometers (deprecated, kept for backward compatibility)
-      min: 1,
-      max: 100,
-    },
     internalOrderRadiusKm: {
       type: Number,
       required: true,
-      default: 5, // Default 5 kilometers for internal orders
+      default: 2, // Fixed 2 kilometers for internal orders
       min: 1,
       max: 100,
     },
-    externalOrderRadiusKm: {
+    externalOrderMinRadiusKm: {
       type: Number,
       required: true,
-      default: 10, // Default 10 kilometers for external orders
+      default: 10, // Default minimum 10 kilometers for external orders
       min: 1,
       max: 100,
     },
-    serviceAreaCenter: {
-      lat: {
-        type: Number,
-        required: true,
-        default: 0, // Default to 0,0 (should be configured by admin)
-      },
-      lng: {
-        type: Number,
-        required: true,
-        default: 0,
-      },
-    },
-    serviceAreaRadiusKm: {
+    externalOrderMaxRadiusKm: {
       type: Number,
       required: true,
-      default: 20, // Default 20 kilometers service area radius
+      default: 15, // Default maximum 15 kilometers for external orders
       min: 1,
-      max: 500,
+      max: 100,
     },
     mapDefaultCenter: {
       lat: {
@@ -153,11 +130,9 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
   let settings = await this.findOne();
   if (!settings) {
     settings = await this.create({
-      orderNotificationRadiusKm: 10, // Backward compatibility
-      internalOrderRadiusKm: 5,
-      externalOrderRadiusKm: 10,
-      serviceAreaCenter: { lat: 0, lng: 0 },
-      serviceAreaRadiusKm: 20,
+      internalOrderRadiusKm: 2,
+      externalOrderMinRadiusKm: 10,
+      externalOrderMaxRadiusKm: 15,
       mapDefaultCenter: { lat: 32.462502185826004, lng: 35.29172911766705 },
       mapDefaultZoom: 12,
       vehicleTypes: {
@@ -171,16 +146,13 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
   } else {
     // Migrate existing settings if needed
     if (settings.internalOrderRadiusKm === undefined) {
-      settings.internalOrderRadiusKm = 5;
+      settings.internalOrderRadiusKm = 2;
     }
-    if (settings.externalOrderRadiusKm === undefined) {
-      settings.externalOrderRadiusKm = settings.orderNotificationRadiusKm || 10;
-    }
-    if (!settings.serviceAreaCenter || !settings.serviceAreaCenter.lat) {
-      settings.serviceAreaCenter = { lat: 0, lng: 0 };
-    }
-    if (settings.serviceAreaRadiusKm === undefined) {
-      settings.serviceAreaRadiusKm = 20;
+    // Migrate externalOrderRadiusKm to min/max if needed
+    if (settings.externalOrderMinRadiusKm === undefined || settings.externalOrderMaxRadiusKm === undefined) {
+      const oldExternalRadius = (settings as any).externalOrderRadiusKm || 10;
+      settings.externalOrderMinRadiusKm = oldExternalRadius;
+      settings.externalOrderMaxRadiusKm = oldExternalRadius + 5; // Default range: old value to old value + 5km
     }
     // Migrate map default center if needed
     if (!settings.mapDefaultCenter || settings.mapDefaultCenter.lat === undefined) {

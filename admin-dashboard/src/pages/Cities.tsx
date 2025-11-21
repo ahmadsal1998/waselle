@@ -222,6 +222,9 @@ const Cities = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-lg font-semibold text-slate-900">{city.name}</h3>
+                          {city.nameEn && (
+                            <span className="text-sm text-slate-500">({city.nameEn})</span>
+                          )}
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               city.isActive
@@ -353,6 +356,9 @@ const Cities = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold text-slate-900">{village.name}</h3>
+                        {village.nameEn && (
+                          <span className="text-sm text-slate-500">({village.nameEn})</span>
+                        )}
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             village.isActive
@@ -433,7 +439,7 @@ const Cities = () => {
               {/* City Name */}
               <div>
                 <label htmlFor="cityName" className="block text-sm font-medium text-slate-700 mb-2">
-                  City Name *
+                  City Name (Arabic) *
                 </label>
                 <input
                   id="cityName"
@@ -444,7 +450,7 @@ const Cities = () => {
                     if (formErrors.city) setFormErrors({});
                   }}
                   className={`input ${formErrors.city ? 'border-red-300 focus:ring-red-500' : ''}`}
-                  placeholder="Enter city name"
+                  placeholder="Enter city name in Arabic (e.g., جنين)"
                   autoFocus
                 />
                 {formErrors.city && (
@@ -453,6 +459,29 @@ const Cities = () => {
                     {formErrors.city}
                   </p>
                 )}
+              </div>
+
+              {/* City Name English */}
+              <div>
+                <label htmlFor="cityNameEn" className="block text-sm font-medium text-slate-700 mb-2">
+                  City Name (English)
+                  <span className="text-xs text-slate-500 ml-2 font-normal">
+                    (Optional - for reverse geocoding matching)
+                  </span>
+                </label>
+                <input
+                  id="cityNameEn"
+                  type="text"
+                  value={cityForm.nameEn || ''}
+                  onChange={(e) => {
+                    setCityForm((prev) => ({ ...prev, nameEn: e.target.value }));
+                  }}
+                  className="input"
+                  placeholder="Enter city name in English (e.g., Jenin)"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  This helps match cities when reverse geocoding returns English names.
+                </p>
               </div>
 
               {/* Service Center Configuration */}
@@ -469,9 +498,9 @@ const Cities = () => {
                             ...prev,
                             serviceCenter: {
                               center: { lat: 0, lng: 0 },
-                              serviceAreaRadiusKm: 20,
-                              internalOrderRadiusKm: 5,
-                              externalOrderRadiusKm: 10,
+                              internalOrderRadiusKm: 2,
+                              externalOrderMinRadiusKm: 10,
+                              externalOrderMaxRadiusKm: 15,
                             },
                           }));
                         } else {
@@ -547,34 +576,6 @@ const Cities = () => {
                       </div>
                     </div>
 
-                    <div>
-                      <label htmlFor="serviceAreaRadius" className="block text-xs font-medium text-slate-700 mb-1">
-                        Service Area Radius (km)
-                      </label>
-                      <input
-                        id="serviceAreaRadius"
-                        type="number"
-                        step="0.1"
-                        min="1"
-                        max="500"
-                        value={cityForm.serviceCenter.serviceAreaRadiusKm}
-                        onChange={(e) =>
-                          setCityForm((prev) => ({
-                            ...prev,
-                            serviceCenter: prev.serviceCenter
-                              ? {
-                                  ...prev.serviceCenter,
-                                  serviceAreaRadiusKm: Number(e.target.value),
-                                }
-                              : undefined,
-                          }))
-                        }
-                        className="input text-sm"
-                        placeholder="20"
-                      />
-                      <p className="mt-1 text-xs text-slate-500">Coverage radius for this city (1-500 km)</p>
-                    </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label htmlFor="internalOrderRadius" className="block text-xs font-medium text-slate-700 mb-1">
@@ -604,23 +605,23 @@ const Cities = () => {
                         <p className="mt-1 text-xs text-slate-500">For orders inside city</p>
                       </div>
                       <div>
-                        <label htmlFor="externalOrderRadius" className="block text-xs font-medium text-slate-700 mb-1">
-                          External Orders Radius (km)
+                        <label htmlFor="externalOrderMinRadius" className="block text-xs font-medium text-slate-700 mb-1">
+                          External Orders Min Radius (km)
                         </label>
                         <input
-                          id="externalOrderRadius"
+                          id="externalOrderMinRadius"
                           type="number"
                           step="0.1"
                           min="1"
                           max="100"
-                          value={cityForm.serviceCenter.externalOrderRadiusKm}
+                          value={cityForm.serviceCenter.externalOrderMinRadiusKm}
                           onChange={(e) =>
                             setCityForm((prev) => ({
                               ...prev,
                               serviceCenter: prev.serviceCenter
                                 ? {
                                     ...prev.serviceCenter,
-                                    externalOrderRadiusKm: Number(e.target.value),
+                                    externalOrderMinRadiusKm: Number(e.target.value),
                                   }
                                 : undefined,
                             }))
@@ -628,7 +629,34 @@ const Cities = () => {
                           className="input text-sm"
                           placeholder="10"
                         />
-                        <p className="mt-1 text-xs text-slate-500">For orders outside city</p>
+                        <p className="mt-1 text-xs text-slate-500">Minimum distance for external orders</p>
+                      </div>
+                      <div>
+                        <label htmlFor="externalOrderMaxRadius" className="block text-xs font-medium text-slate-700 mb-1">
+                          External Orders Max Radius (km)
+                        </label>
+                        <input
+                          id="externalOrderMaxRadius"
+                          type="number"
+                          step="0.1"
+                          min="1"
+                          max="100"
+                          value={cityForm.serviceCenter.externalOrderMaxRadiusKm}
+                          onChange={(e) =>
+                            setCityForm((prev) => ({
+                              ...prev,
+                              serviceCenter: prev.serviceCenter
+                                ? {
+                                    ...prev.serviceCenter,
+                                    externalOrderMaxRadiusKm: Number(e.target.value),
+                                  }
+                                : undefined,
+                            }))
+                          }
+                          className="input text-sm"
+                          placeholder="15"
+                        />
+                        <p className="mt-1 text-xs text-slate-500">Maximum distance for external orders</p>
                       </div>
                     </div>
                   </div>
@@ -686,7 +714,7 @@ const Cities = () => {
             <form onSubmit={handleVillageSubmitWithFeedback} className="p-6 space-y-4">
               <div>
                 <label htmlFor="villageName" className="block text-sm font-medium text-slate-700 mb-2">
-                  Village Name *
+                  Village Name (Arabic) *
                 </label>
                 <input
                   id="villageName"
@@ -697,7 +725,7 @@ const Cities = () => {
                     if (formErrors.village) setFormErrors({});
                   }}
                   className={`input ${formErrors.village ? 'border-red-300 focus:ring-red-500' : ''}`}
-                  placeholder="Enter village name"
+                  placeholder="Enter village name in Arabic (e.g., فقوعة)"
                   autoFocus
                 />
                 {formErrors.village && (
@@ -706,6 +734,29 @@ const Cities = () => {
                     {formErrors.village}
                   </p>
                 )}
+              </div>
+
+              {/* Village Name English */}
+              <div>
+                <label htmlFor="villageNameEn" className="block text-sm font-medium text-slate-700 mb-2">
+                  Village Name (English)
+                  <span className="text-xs text-slate-500 ml-2 font-normal">
+                    (Optional - for reverse geocoding matching)
+                  </span>
+                </label>
+                <input
+                  id="villageNameEn"
+                  type="text"
+                  value={villageForm.nameEn || ''}
+                  onChange={(e) => {
+                    setVillageForm((prev) => ({ ...prev, nameEn: e.target.value }));
+                  }}
+                  className="input"
+                  placeholder="Enter village name in English (e.g., Faqqu'a)"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  This helps match villages when reverse geocoding returns English names like "Faqqu'a".
+                </p>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
