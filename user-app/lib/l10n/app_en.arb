@@ -467,6 +467,22 @@
   "@orderCreatedSuccessfully": {
     "description": "Order creation success message"
   },
+  "noDriversAvailable": "No drivers found within the service area. Please try again later.",
+  "@noDriversAvailable": {
+    "description": "No drivers available notification message"
+  },
+  "requestSentSuccessfully": "Request Sent Successfully",
+  "@requestSentSuccessfully": {
+    "description": "Order success screen title"
+  },
+  "requestSentSuccessMessage": "Your delivery request has been received and is being processed. You will be notified when a driver accepts your request.",
+  "@requestSentSuccessMessage": {
+    "description": "Order success screen message"
+  },
+  "backToHome": "Back to Home",
+  "@backToHome": {
+    "description": "Back to home button text"
+  },
   "failedToCreateOrder": "Failed to create order",
   "@failedToCreateOrder": {
     "description": "Order creation failure message"

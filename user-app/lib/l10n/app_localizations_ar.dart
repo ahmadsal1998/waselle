@@ -104,7 +104,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sendRequest => 'إرسال طلب';
 
   @override
-  String get receiveRequest => ' اخضار طلب';
+  String get receiveRequest => 'إحضار طلب';
 
   @override
   String get sendDelivery => 'إرسال طلب';
@@ -352,6 +352,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get orderCreatedSuccessfully => 'تم إنشاء الطلب بنجاح!';
+
+  @override
+  String get noDriversAvailable => 'لم يتم العثور على سائقين في منطقة الخدمة. الرجاء المحاولة مرة أخرى لاحقاً.';
+
+  @override
+  String get requestSentSuccessfully => 'تم إرسال الطلب بنجاح';
+
+  @override
+  String get requestSentSuccessMessage => 'تم استلام طلب التوصيل الخاص بك وهو قيد المعالجة. سيتم إشعارك عند قبول سائق لطلبك.';
+
+  @override
+  String get backToHome => 'العودة إلى الرئيسية';
 
   @override
   String get failedToCreateOrder => 'فشل إنشاء الطلب';

@@ -354,6 +354,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orderCreatedSuccessfully => 'Order created successfully!';
 
   @override
+  String get noDriversAvailable => 'No drivers found within the service area. Please try again later.';
+
+  @override
+  String get requestSentSuccessfully => 'Request Sent Successfully';
+
+  @override
+  String get requestSentSuccessMessage => 'Your delivery request has been received and is being processed. You will be notified when a driver accepts your request.';
+
+  @override
+  String get backToHome => 'Back to Home';
+
+  @override
   String get failedToCreateOrder => 'Failed to create order';
 
   @override

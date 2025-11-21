@@ -773,6 +773,30 @@ abstract class AppLocalizations {
   /// **'Order created successfully!'**
   String get orderCreatedSuccessfully;
 
+  /// No drivers available notification message
+  ///
+  /// In en, this message translates to:
+  /// **'No drivers found within the service area. Please try again later.'**
+  String get noDriversAvailable;
+
+  /// Order success screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Request Sent Successfully'**
+  String get requestSentSuccessfully;
+
+  /// Order success screen message
+  ///
+  /// In en, this message translates to:
+  /// **'Your delivery request has been received and is being processed. You will be notified when a driver accepts your request.'**
+  String get requestSentSuccessMessage;
+
+  /// Back to home button text
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Home'**
+  String get backToHome;
+
   /// Order creation failure message
   ///
   /// In en, this message translates to:

@@ -98,10 +98,18 @@ class DeliveryRequestFormController extends ChangeNotifier {
   String? _firebaseVerificationId; // Store Firebase verification ID
   final FirebaseAuthService _firebaseAuth = FirebaseAuthService();
   
+  // Localization callback for getting localized messages
+  String? Function(String key)? _getLocalizedMessage;
+  
   bool get isSendingOTP => _isSendingOTP;
   bool get isVerifyingOTP => _isVerifyingOTP;
   bool get otpSent => _otpSent;
   String? get otpError => _otpError;
+  
+  /// Set the localization callback function
+  void setLocalizationCallback(String? Function(String key)? getLocalizedMessage) {
+    _getLocalizedMessage = getLocalizedMessage;
+  }
 
   void initialize({
     required LocationViewModel locationProvider,
@@ -111,6 +119,9 @@ class DeliveryRequestFormController extends ChangeNotifier {
   }) {
     if (_isInitialized) return;
     _isInitialized = true;
+    
+    // Set up socket listeners for order notifications (async, but don't await)
+    _setupSocketListeners();
     
     // Ensure address field is empty for new orders
     // User must enter street address/details manually for each order
@@ -1805,6 +1816,36 @@ class DeliveryRequestFormController extends ChangeNotifier {
   void _notifyListenersSafely() {
     if (_isDisposed) return;
     notifyListeners();
+  }
+
+  /// Set up socket listeners for order-related events
+  void _setupSocketListeners() async {
+    // Ensure socket service is initialized
+    await SocketService.initialize();
+    
+    // Listen for no-drivers-available event
+    SocketService.off('no-drivers-available');
+    SocketService.on('no-drivers-available', (data) {
+      if (_isDisposed) return;
+      
+      // Use localized Arabic message if available, otherwise use backend message or default
+      String message;
+      if (_getLocalizedMessage != null) {
+        message = _getLocalizedMessage!('noDriversAvailable') ?? 
+            'لم يتم العثور على سائقين في منطقة الخدمة. الرجاء المحاولة مرة أخرى لاحقاً.';
+      } else if (data is Map && data['message'] != null) {
+        message = data['message'].toString();
+      } else {
+        // Default Arabic message
+        message = 'لم يتم العثور على سائقين في منطقة الخدمة. الرجاء المحاولة مرة أخرى لاحقاً.';
+      }
+      
+      // Emit error message to display to user
+      _emitMessage(
+        message,
+        type: DeliveryRequestFormMessageType.error,
+      );
+    });
   }
 
   @override

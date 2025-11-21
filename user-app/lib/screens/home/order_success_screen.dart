@@ -36,7 +36,7 @@ class OrderSuccessScreen extends StatelessWidget {
               
               // Success Title
               Text(
-                'Request Sent Successfully',
+                l10n.requestSentSuccessfully,
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
@@ -47,7 +47,7 @@ class OrderSuccessScreen extends StatelessWidget {
               
               // Success Message
               Text(
-                'Your delivery request has been received and is being processed. You will be notified when a driver accepts your request.',
+                l10n.requestSentSuccessMessage,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
@@ -69,7 +69,7 @@ class OrderSuccessScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Text('Back to Home'),
+                  child: Text(l10n.backToHome),
                 ),
               ),
             ],

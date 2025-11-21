@@ -92,21 +92,28 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
   void initState() {
     super.initState();
     _controller = context.read<DeliveryRequestFormController>();
+    
     _messageListener = () {
       final message = _controller.messageNotifier.value;
       if (message == null || !mounted) return;
 
       final theme = Theme.of(context);
       Color? backgroundColor;
+      Duration duration;
+      
       switch (message.type) {
         case DeliveryRequestFormMessageType.success:
           backgroundColor = theme.colorScheme.primary;
+          duration = const Duration(seconds: 3);
           break;
         case DeliveryRequestFormMessageType.error:
           backgroundColor = theme.colorScheme.error;
+          // Longer duration for error messages, especially for Arabic text
+          duration = const Duration(seconds: 6);
           break;
         case DeliveryRequestFormMessageType.info:
           backgroundColor = null;
+          duration = const Duration(seconds: 4);
           break;
       }
 
@@ -114,11 +121,32 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
         SnackBar(
           content: Text(message.message),
           backgroundColor: backgroundColor,
+          duration: duration,
         ),
       );
       _controller.clearMessage();
     };
     _controller.messageNotifier.addListener(_messageListener);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // Set up localization callback for the controller
+    // This must be in didChangeDependencies() because Localizations is an inherited widget
+    // and isn't available until after initState() completes
+    final l10n = AppLocalizations.of(context);
+    if (l10n != null) {
+      _controller.setLocalizationCallback((key) {
+        switch (key) {
+          case 'noDriversAvailable':
+            return l10n.noDriversAvailable;
+          default:
+            return null;
+        }
+      });
+    }
   }
 
   @override
