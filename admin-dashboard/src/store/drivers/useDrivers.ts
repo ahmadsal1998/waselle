@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { getDrivers, type DriverFilters } from '@/services/driverService';
+import { getDrivers, type DriverFilters, type DriversResponse } from '@/services/driverService';
 import type { Driver } from '@/types';
 
 export const useDrivers = (filters?: DriverFilters) => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<DriversResponse['pagination'] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -14,9 +15,15 @@ export const useDrivers = (filters?: DriverFilters) => {
       setIsLoading(true);
       setError(null);
       try {
-        const driverUsers = await getDrivers(filters);
+        // Always include balance for drivers page, but use pagination
+        const response = await getDrivers({
+          ...filters,
+          includeBalance: filters?.includeBalance ?? true,
+          limit: filters?.limit ?? 50, // Default to 50 per page
+        });
         if (!cancelled) {
-          setDrivers(driverUsers);
+          setDrivers(response.drivers);
+          setPagination(response.pagination || null);
         }
       } catch (err: any) {
         if (!cancelled) {
@@ -24,6 +31,7 @@ export const useDrivers = (filters?: DriverFilters) => {
           const errorMessage = err?.response?.data?.message || err?.message || 'Failed to fetch drivers';
           setError(errorMessage);
           setDrivers([]);
+          setPagination(null);
         }
       } finally {
         if (!cancelled) {
@@ -37,18 +45,24 @@ export const useDrivers = (filters?: DriverFilters) => {
     return () => {
       cancelled = true;
     };
-  }, [filters?.search, filters?.status]); // Depend on filter values, not the object
+  }, [filters?.search, filters?.status, filters?.page]); // Depend on filter values, not the object
 
   const refresh = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const driverUsers = await getDrivers(filters);
-      setDrivers(driverUsers);
+      const response = await getDrivers({
+        ...filters,
+        includeBalance: filters?.includeBalance ?? true,
+        limit: filters?.limit ?? 50,
+      });
+      setDrivers(response.drivers);
+      setPagination(response.pagination || null);
     } catch (err) {
       console.error('Failed to fetch drivers:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch drivers');
       setDrivers([]);
+      setPagination(null);
     } finally {
       setIsLoading(false);
     }
@@ -58,6 +72,7 @@ export const useDrivers = (filters?: DriverFilters) => {
     drivers,
     isLoading,
     error,
+    pagination,
     refresh,
   };
 };

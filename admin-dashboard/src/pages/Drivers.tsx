@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useDrivers } from '@/store/drivers/useDrivers';
 import {
   createDriver,
@@ -7,11 +7,10 @@ import {
   resetDriverPassword,
   toggleDriverStatus,
   addDriverPayment,
-  getDriverBalance,
+  getDrivers,
   type CreateDriverData,
   type UpdateDriverData,
   type CreatePaymentData,
-  type DriverBalanceInfo,
 } from '@/services/driverService';
 import {
   Plus,
@@ -22,12 +21,15 @@ import {
   Power,
   X,
   DollarSign,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import type { Driver } from '@/types';
 
 const Drivers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -36,21 +38,76 @@ const Drivers = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Memoize filters to prevent unnecessary re-renders
+  // First load: without balances for faster initial render
   const filters = useMemo(
     () => ({
       search: searchTerm || undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
+      page: currentPage,
+      limit: 30, // Reduced page size for faster initial load
+      includeBalance: false, // Load without balances first
     }),
-    [searchTerm, statusFilter]
+    [searchTerm, statusFilter, currentPage]
   );
 
-  const { drivers, isLoading, error, refresh } = useDrivers(filters);
+  const { drivers, isLoading, error, pagination, refresh } = useDrivers(filters);
+  const [driversWithBalance, setDriversWithBalance] = useState<Driver[]>([]);
+  const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+
+  // Two-phase loading: Load balances in background after initial render
+  useEffect(() => {
+    if (drivers.length === 0 || isLoading) {
+      setDriversWithBalance([]);
+      return;
+    }
+
+    // Load balances in background
+    const loadBalances = async () => {
+      setIsLoadingBalances(true);
+      try {
+        const response = await getDrivers({
+          search: searchTerm || undefined,
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          page: currentPage,
+          limit: 30,
+          includeBalance: true,
+        });
+        setDriversWithBalance(response.drivers);
+      } catch (err) {
+        console.error('Failed to load driver balances:', err);
+        // Fallback to drivers without balance
+        setDriversWithBalance(drivers);
+      } finally {
+        setIsLoadingBalances(false);
+      }
+    };
+
+    // Small delay to ensure UI renders first
+    const timeoutId = setTimeout(loadBalances, 100);
+    return () => clearTimeout(timeoutId);
+  }, [drivers, searchTerm, statusFilter, currentPage, isLoading]);
+
+  // Use drivers with balance if available, otherwise use drivers without balance
+  const displayDrivers = driversWithBalance.length > 0 ? driversWithBalance : drivers;
+
+  // Reset to page 1 when filters change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (value: 'all' | 'active' | 'inactive') => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
 
   const handleAddDriver = async (data: CreateDriverData) => {
     setIsSubmitting(true);
     try {
       await createDriver(data);
       await refresh();
+      // Reset balance cache to reload with new driver
+      setDriversWithBalance([]);
       setShowAddModal(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to create driver');
@@ -65,6 +122,8 @@ const Drivers = () => {
     try {
       await updateDriver(selectedDriver._id, data);
       await refresh();
+      // Reset balance cache to reload with updated driver
+      setDriversWithBalance([]);
       setShowEditModal(false);
       setSelectedDriver(null);
     } catch (err) {
@@ -79,6 +138,8 @@ const Drivers = () => {
     try {
       await deleteDriver(driverId);
       await refresh();
+      // Reset balance cache
+      setDriversWithBalance([]);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete driver');
     }
@@ -102,6 +163,8 @@ const Drivers = () => {
     try {
       await toggleDriverStatus(driverId);
       await refresh();
+      // Reset balance cache
+      setDriversWithBalance([]);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to toggle driver status');
     }
@@ -113,6 +176,8 @@ const Drivers = () => {
     try {
       const result = await addDriverPayment(selectedDriver._id, data);
       await refresh();
+      // Reset balance cache to reload with updated balance
+      setDriversWithBalance([]);
       setShowPaymentModal(false);
       setSelectedDriver(null);
       
@@ -131,14 +196,46 @@ const Drivers = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p className="mt-4 text-slate-600">Loading drivers...</p>
-      </div>
-    );
-  }
+  // Skeleton loading component
+  const DriverSkeleton = () => (
+    <tr className="animate-pulse">
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 h-10 w-10 rounded-full bg-slate-200"></div>
+          <div className="ml-4">
+            <div className="h-4 bg-slate-200 rounded w-24 mb-2"></div>
+            <div className="h-3 bg-slate-200 rounded w-32"></div>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-slate-200 rounded w-32 mb-2"></div>
+        <div className="h-3 bg-slate-200 rounded w-24"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-6 bg-slate-200 rounded-full w-16"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-slate-200 rounded w-20 mb-2"></div>
+        <div className="h-3 bg-slate-200 rounded w-24"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-6 bg-slate-200 rounded-full w-20"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-6 bg-slate-200 rounded-full w-20"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-right">
+        <div className="flex items-center justify-end gap-2">
+          <div className="h-8 w-8 bg-slate-200 rounded-lg"></div>
+          <div className="h-8 w-8 bg-slate-200 rounded-lg"></div>
+          <div className="h-8 w-8 bg-slate-200 rounded-lg"></div>
+          <div className="h-8 w-8 bg-slate-200 rounded-lg"></div>
+          <div className="h-8 w-8 bg-slate-200 rounded-lg"></div>
+        </div>
+      </td>
+    </tr>
+  );
 
   if (error) {
     return (
@@ -176,13 +273,13 @@ const Drivers = () => {
               type="text"
               placeholder="Search by name, email, or phone..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="input pl-10"
             />
           </div>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+            onChange={(e) => handleStatusChange(e.target.value as 'all' | 'active' | 'inactive')}
             className="input w-full sm:w-48"
           >
             <option value="all">All Status</option>
@@ -222,14 +319,19 @@ const Drivers = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {drivers.length === 0 ? (
+              {isLoading ? (
+                // Show skeleton loaders
+                Array.from({ length: 10 }).map((_, index) => (
+                  <DriverSkeleton key={`skeleton-${index}`} />
+                ))
+              ) : displayDrivers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     No drivers found
                   </td>
                 </tr>
               ) : (
-                drivers.map((driver) => (
+                displayDrivers.map((driver) => (
                   <tr key={driver._id} className="hover:bg-slate-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -259,23 +361,32 @@ const Drivers = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span
-                          className={`text-sm font-medium ${
-                            driver.balanceExceeded
-                              ? 'text-red-600'
-                              : typeof driver.balance === 'number' && driver.balance >= 0
-                              ? 'text-slate-900'
-                              : 'text-green-600'
-                          }`}
-                        >
-                          {typeof driver.balance === 'number'
-                            ? `${driver.balance >= 0 ? '+' : ''}${driver.balance.toFixed(2)} NIS`
-                            : 'N/A'}
-                        </span>
-                        {driver.maxAllowedBalance && (
-                          <span className="text-xs text-slate-500">
-                            Limit: {driver.maxAllowedBalance} NIS
-                          </span>
+                        {isLoadingBalances && typeof driver.balance !== 'number' ? (
+                          <>
+                            <div className="h-4 bg-slate-200 rounded w-20 mb-1 animate-pulse"></div>
+                            <div className="h-3 bg-slate-200 rounded w-24 animate-pulse"></div>
+                          </>
+                        ) : (
+                          <>
+                            <span
+                              className={`text-sm font-medium ${
+                                driver.balanceExceeded
+                                  ? 'text-red-600'
+                                  : typeof driver.balance === 'number' && driver.balance >= 0
+                                  ? 'text-slate-900'
+                                  : 'text-green-600'
+                              }`}
+                            >
+                              {typeof driver.balance === 'number'
+                                ? `${driver.balance >= 0 ? '+' : ''}${driver.balance.toFixed(2)} NIS`
+                                : 'Loading...'}
+                            </span>
+                            {driver.maxAllowedBalance && (
+                              <span className="text-xs text-slate-500">
+                                Limit: {driver.maxAllowedBalance} NIS
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>
@@ -366,6 +477,37 @@ const Drivers = () => {
             </tbody>
           </table>
         </div>
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+            <div className="text-sm text-slate-600">
+              Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+              {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+              {pagination.total} drivers
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={pagination.page === 1 || isLoading}
+                className="btn-secondary flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </button>
+              <span className="text-sm text-slate-600 px-3">
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                disabled={pagination.page === pagination.totalPages || isLoading}
+                className="btn-secondary flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add Driver Modal */}

@@ -1,8 +1,9 @@
 import { Response } from 'express';
 import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
-import { checkAndSuspendDriverIfNeeded, calculateDriverBalance } from '../utils/balance';
+import { checkAndSuspendDriverIfNeeded, calculateDriverBalance, calculateDriverBalancesBatch, checkAndSuspendDriversBatch } from '../utils/balance';
 import Settings from '../models/Settings';
 
 // Get all drivers (admin only)
@@ -16,7 +17,7 @@ export const getAllDrivers = async (
       return;
     }
 
-    const { search, status } = req.query;
+    const { search, status, page, limit, includeBalance } = req.query;
     const query: any = { role: 'driver' };
 
     // Search by name, email, or phone
@@ -35,55 +36,80 @@ export const getAllDrivers = async (
       query.isActive = false;
     }
 
+    // Pagination
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 50;
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get total count for pagination
+    const totalCount = await User.countDocuments(query);
+
+    // Fetch drivers with pagination
     const drivers = await User.find(query)
       .select('-password -otpCode -otpExpires')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
 
     // Get settings for max allowed balance
     const settings = await Settings.getSettings();
     const maxAllowedBalance = settings.maxAllowedBalance || 50;
 
-    // Check balances for all drivers and suspend if needed
-    // Also include balance info in response
-    const driversWithBalance = await Promise.all(
-      drivers.map(async (driver) => {
-        try {
-          // Check and suspend if balance exceeds limit
-          await checkAndSuspendDriverIfNeeded(driver._id);
-          
-          // Get balance info
-          const balanceInfo = await calculateDriverBalance(driver._id);
-          
-          // Refresh driver data after potential suspension
-          const updatedDriver = await User.findById(driver._id)
-            .select('-password -otpCode -otpExpires');
-          
-          const balanceExceeded = balanceInfo.currentBalance >= maxAllowedBalance;
-          const suspensionReason = balanceExceeded && updatedDriver?.isActive === false 
-            ? 'Exceeded Balance Limit' 
-            : null;
-          
-          // Check if driver was reactivated (balance <= 0)
-          const wasReactivated = balanceInfo.currentBalance <= 0 && updatedDriver?.isActive === true;
-          
-          return {
-            ...updatedDriver?.toObject(),
-            balance: balanceInfo.currentBalance,
-            balanceExceeded,
-            suspensionReason,
-            maxAllowedBalance,
-            wasReactivated,
-          };
-        } catch (error) {
-          // If balance check fails, return driver without balance info
-          console.error(`Error checking balance for driver ${driver._id}:`, error);
+    // Only calculate balances if requested (for performance)
+    let driversWithBalance;
+    if (includeBalance === 'true') {
+      // Batch calculate balances for all drivers efficiently
+      const driverIds = drivers.map((d) => d._id as mongoose.Types.ObjectId);
+      const balanceMap = await calculateDriverBalancesBatch(driverIds);
+
+      // Batch check and suspend/reactivate drivers (much more efficient)
+      await checkAndSuspendDriversBatch(driverIds, balanceMap);
+
+      // Refresh drivers after potential suspension changes
+      const refreshedDrivers = await User.find({
+        _id: { $in: driverIds },
+      }).select('-password -otpCode -otpExpires');
+
+      // Map drivers with balance info
+      driversWithBalance = refreshedDrivers.map((driver) => {
+        const balanceInfo = balanceMap.get(driver._id.toString());
+        if (!balanceInfo) {
           return driver.toObject();
         }
-      })
-    );
 
-    res.status(200).json({ drivers: driversWithBalance });
+        const balanceExceeded = balanceInfo.currentBalance >= maxAllowedBalance;
+        const suspensionReason =
+          balanceExceeded && driver.isActive === false
+            ? 'Exceeded Balance Limit'
+            : null;
+        const wasReactivated =
+          balanceInfo.currentBalance <= 0 && driver.isActive === true;
+
+        return {
+          ...driver.toObject(),
+          balance: balanceInfo.currentBalance,
+          balanceExceeded,
+          suspensionReason,
+          maxAllowedBalance,
+          wasReactivated,
+        };
+      });
+    } else {
+      // Return drivers without balance calculation for faster response
+      driversWithBalance = drivers.map((driver) => driver.toObject());
+    }
+
+    res.status(200).json({
+      drivers: driversWithBalance,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limitNum),
+      },
+    });
   } catch (error: any) {
+    console.error('Get all drivers error:', error);
     res.status(500).json({ message: error.message || 'Failed to get drivers' });
   }
 };

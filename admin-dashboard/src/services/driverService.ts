@@ -21,9 +21,22 @@ export interface UpdateDriverData {
 export interface DriverFilters {
   search?: string;
   status?: 'active' | 'inactive' | 'all';
+  page?: number;
+  limit?: number;
+  includeBalance?: boolean;
 }
 
-export const getDrivers = async (filters?: DriverFilters): Promise<Driver[]> => {
+export interface DriversResponse {
+  drivers: Driver[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export const getDrivers = async (filters?: DriverFilters): Promise<DriversResponse> => {
   const params = new URLSearchParams();
   if (filters?.search) {
     params.append('search', filters.search);
@@ -31,11 +44,20 @@ export const getDrivers = async (filters?: DriverFilters): Promise<Driver[]> => 
   if (filters?.status && filters.status !== 'all') {
     params.append('status', filters.status);
   }
+  if (filters?.page) {
+    params.append('page', filters.page.toString());
+  }
+  if (filters?.limit) {
+    params.append('limit', filters.limit.toString());
+  }
+  if (filters?.includeBalance) {
+    params.append('includeBalance', 'true');
+  }
 
-  const response = await apiClient.get<{ drivers: Driver[] }>(
+  const response = await apiClient.get<DriversResponse>(
     `/drivers${params.toString() ? `?${params.toString()}` : ''}`
   );
-  return response.data.drivers;
+  return response.data;
 };
 
 export const getDriverById = async (driverId: string): Promise<Driver> => {
@@ -122,11 +144,33 @@ export const addDriverPayment = async (
   return response.data;
 };
 
-export const getDriverPayments = async (driverId: string): Promise<Payment[]> => {
-  const response = await apiClient.get<{ payments: Payment[] }>(
-    `/payments/drivers/${driverId}`
+export interface PaymentsResponse {
+  payments: Payment[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export const getDriverPayments = async (
+  driverId: string,
+  page?: number,
+  limit?: number
+): Promise<PaymentsResponse> => {
+  const params = new URLSearchParams();
+  if (page) {
+    params.append('page', page.toString());
+  }
+  if (limit) {
+    params.append('limit', limit.toString());
+  }
+
+  const response = await apiClient.get<PaymentsResponse>(
+    `/payments/drivers/${driverId}${params.toString() ? `?${params.toString()}` : ''}`
   );
-  return response.data.payments;
+  return response.data;
 };
 
 export const getDriverBalance = async (driverId: string): Promise<DriverBalanceInfo> => {

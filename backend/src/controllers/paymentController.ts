@@ -89,6 +89,7 @@ export const getDriverPayments = async (
     }
 
     const { driverId } = req.params;
+    const { page, limit } = req.query;
 
     // Convert driverId to ObjectId
     const driverObjectId = new mongoose.Types.ObjectId(driverId);
@@ -100,11 +101,30 @@ export const getDriverPayments = async (
       return;
     }
 
-    const payments = await Payment.find({ driverId: driverObjectId })
-      .sort({ date: -1, createdAt: -1 });
+    // Pagination
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 50;
+    const skip = (pageNum - 1) * limitNum;
 
-    res.status(200).json({ payments });
+    // Get total count for pagination
+    const totalCount = await Payment.countDocuments({ driverId: driverObjectId });
+
+    const payments = await Payment.find({ driverId: driverObjectId })
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    res.status(200).json({
+      payments,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limitNum),
+      },
+    });
   } catch (error: any) {
+    console.error('Get driver payments error:', error);
     res.status(500).json({ message: error.message || 'Failed to get payments' });
   }
 };

@@ -21,7 +21,11 @@ const DriverBalance = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { drivers, isLoading: driversLoading, refresh } = useDrivers({});
+  // Don't include balance calculation for the list - only load when driver is selected
+  const { drivers, isLoading: driversLoading, refresh } = useDrivers({ 
+    includeBalance: false,
+    limit: 100, // Load more drivers for the list
+  });
 
   const filteredDrivers = drivers.filter((driver) =>
     driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -33,12 +37,12 @@ const DriverBalance = () => {
     setLoading(true);
     setError(null);
     try {
-      const [balance, driverPayments] = await Promise.all([
+      const [balance, paymentsResponse] = await Promise.all([
         getDriverBalance(driverId),
         getDriverPayments(driverId),
       ]);
       setBalanceInfo(balance);
-      setPayments(driverPayments);
+      setPayments(paymentsResponse.payments);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load driver balance');
     } finally {
@@ -62,11 +66,62 @@ const DriverBalance = () => {
     }
   };
 
+  // Skeleton loader for drivers list
+  const DriverListSkeleton = () => (
+    <div className="space-y-2">
+      {Array.from({ length: 8 }).map((_, index) => (
+        <div
+          key={`skeleton-${index}`}
+          className="animate-pulse p-3 rounded-lg bg-slate-50 border-2 border-transparent"
+        >
+          <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
+          <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // Skeleton loader for balance info
+  const BalanceSkeleton = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={`balance-skeleton-${index}`} className="card p-6 animate-pulse">
+            <div className="h-4 bg-slate-200 rounded w-1/2 mb-2"></div>
+            <div className="h-8 bg-slate-200 rounded w-1/3"></div>
+          </div>
+        ))}
+      </div>
+      <div className="card p-6 animate-pulse">
+        <div className="h-6 bg-slate-200 rounded w-1/4 mb-4"></div>
+        <div className="h-12 bg-slate-200 rounded w-1/3 mx-auto mb-2"></div>
+        <div className="h-4 bg-slate-200 rounded w-1/2 mx-auto"></div>
+      </div>
+    </div>
+  );
+
   if (driversLoading) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p className="mt-4 text-slate-600">Loading drivers...</p>
+      <div className="space-y-6 page-transition">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Driver Balance</h1>
+            <p className="mt-2 text-slate-600">View driver financial details and balance information</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <div className="card p-4">
+              <div className="relative mb-4">
+                <div className="h-10 bg-slate-200 rounded animate-pulse"></div>
+              </div>
+              <DriverListSkeleton />
+            </div>
+          </div>
+          <div className="lg:col-span-2">
+            <BalanceSkeleton />
+          </div>
+        </div>
       </div>
     );
   }
@@ -137,10 +192,7 @@ const DriverBalance = () => {
               <p className="text-slate-600">Select a driver to view balance information</p>
             </div>
           ) : loading ? (
-            <div className="card p-12 text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-slate-600">Loading balance information...</p>
-            </div>
+            <BalanceSkeleton />
           ) : error ? (
             <div className="card bg-red-50 border-red-200 p-4">
               <p className="text-red-800">{error}</p>

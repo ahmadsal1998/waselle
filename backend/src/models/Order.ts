@@ -144,4 +144,9 @@ const OrderSchema: Schema = new Schema(
   }
 );
 
+// Indexes for better query performance
+OrderSchema.index({ driverId: 1, status: 1 }); // For balance calculations
+OrderSchema.index({ customerId: 1, createdAt: -1 }); // For customer order history
+OrderSchema.index({ status: 1, createdAt: -1 }); // For order listings
+
 export default mongoose.model<IOrder>('Order', OrderSchema);

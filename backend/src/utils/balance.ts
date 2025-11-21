@@ -16,6 +16,7 @@ export interface DriverBalanceInfo {
 /**
  * Calculate driver balance based on completed deliveries and payments
  * Formula: (Sum of delivery prices * CommissionPercentage) - Sum of payments
+ * Optimized to use aggregation pipelines for better performance
  */
 export const calculateDriverBalance = async (
   driverId: mongoose.Types.ObjectId
@@ -24,30 +25,45 @@ export const calculateDriverBalance = async (
   const settings = await Settings.getSettings();
   const commissionPercentage = settings.commissionPercentage || 2;
 
-  // Get all completed (delivered) orders for this driver
-  const completedOrders = await Order.find({
-    driverId,
-    status: 'delivered',
-  });
+  // Use aggregation pipeline to calculate totals efficiently
+  const [orderStats, paymentStats, driver] = await Promise.all([
+    // Aggregate completed orders in a single query
+    Order.aggregate([
+      {
+        $match: {
+          driverId: driverId,
+          status: 'delivered',
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalDeliveryRevenue: { $sum: { $ifNull: ['$price', 0] } },
+        },
+      },
+    ]),
+    // Aggregate payments in a single query
+    Payment.aggregate([
+      {
+        $match: {
+          driverId: driverId,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalPaymentsMade: { $sum: '$amount' },
+        },
+      },
+    ]),
+    // Get driver status
+    User.findById(driverId).select('isActive'),
+  ]);
 
-  // Calculate total delivery revenue
-  const totalDeliveryRevenue = completedOrders.reduce(
-    (sum, order) => sum + (order.price || 0),
-    0
-  );
-
-  // Calculate total commission owed
+  const totalDeliveryRevenue = orderStats[0]?.totalDeliveryRevenue || 0;
+  const totalPaymentsMade = paymentStats[0]?.totalPaymentsMade || 0;
   const totalCommissionOwed = (totalDeliveryRevenue * commissionPercentage) / 100;
-
-  // Get all payments made by this driver
-  const payments = await Payment.find({ driverId });
-  const totalPaymentsMade = payments.reduce((sum, payment) => sum + payment.amount, 0);
-
-  // Calculate current balance
   const currentBalance = totalCommissionOwed - totalPaymentsMade;
-
-  // Get driver to check suspension status
-  const driver = await User.findById(driverId);
   const isSuspended = driver?.isActive === false;
 
   return {
@@ -58,6 +74,91 @@ export const calculateDriverBalance = async (
     currentBalance,
     isSuspended,
   };
+};
+
+/**
+ * Batch calculate balances for multiple drivers efficiently
+ * Uses aggregation pipelines to minimize database queries
+ */
+export const calculateDriverBalancesBatch = async (
+  driverIds: mongoose.Types.ObjectId[]
+): Promise<Map<string, DriverBalanceInfo>> => {
+  if (driverIds.length === 0) {
+    return new Map();
+  }
+
+  // Get settings once
+  const settings = await Settings.getSettings();
+  const commissionPercentage = settings.commissionPercentage || 2;
+
+  // Batch aggregate orders for all drivers
+  const orderStats = await Order.aggregate([
+    {
+      $match: {
+        driverId: { $in: driverIds },
+        status: 'delivered',
+      },
+    },
+    {
+      $group: {
+        _id: '$driverId',
+        totalDeliveryRevenue: { $sum: { $ifNull: ['$price', 0] } },
+      },
+    },
+  ]);
+
+  // Batch aggregate payments for all drivers
+  const paymentStats = await Payment.aggregate([
+    {
+      $match: {
+        driverId: { $in: driverIds },
+      },
+    },
+    {
+      $group: {
+        _id: '$driverId',
+        totalPaymentsMade: { $sum: '$amount' },
+      },
+    },
+  ]);
+
+  // Get all drivers' statuses in one query
+  const drivers = await User.find({
+    _id: { $in: driverIds },
+  }).select('_id isActive');
+
+  // Create maps for quick lookup
+  const orderMap = new Map(
+    orderStats.map((stat) => [stat._id.toString(), stat.totalDeliveryRevenue])
+  );
+  const paymentMap = new Map(
+    paymentStats.map((stat) => [stat._id.toString(), stat.totalPaymentsMade])
+  );
+  const driverMap = new Map(
+    drivers.map((driver) => [driver._id.toString(), driver.isActive === false])
+  );
+
+  // Build result map
+  const result = new Map<string, DriverBalanceInfo>();
+  for (const driverId of driverIds) {
+    const driverIdStr = driverId.toString();
+    const totalDeliveryRevenue = orderMap.get(driverIdStr) || 0;
+    const totalPaymentsMade = paymentMap.get(driverIdStr) || 0;
+    const totalCommissionOwed = (totalDeliveryRevenue * commissionPercentage) / 100;
+    const currentBalance = totalCommissionOwed - totalPaymentsMade;
+    const isSuspended = driverMap.get(driverIdStr) || false;
+
+    result.set(driverIdStr, {
+      totalDeliveryRevenue,
+      commissionPercentage,
+      totalCommissionOwed,
+      totalPaymentsMade,
+      currentBalance,
+      isSuspended,
+    });
+  }
+
+  return result;
 };
 
 /**
@@ -113,6 +214,64 @@ export const checkAndSuspendDriverIfNeeded = async (
     balance: balanceInfo.currentBalance,
     maxAllowed: maxAllowedBalance,
   };
+};
+
+/**
+ * Batch check and suspend/reactivate drivers based on balances
+ * Much more efficient than checking individually
+ */
+export const checkAndSuspendDriversBatch = async (
+  driverIds: mongoose.Types.ObjectId[],
+  balanceMap: Map<string, DriverBalanceInfo>
+): Promise<{ suspended: number; reactivated: number }> => {
+  if (driverIds.length === 0) {
+    return { suspended: 0, reactivated: 0 };
+  }
+
+  const settings = await Settings.getSettings();
+  const maxAllowedBalance = settings.maxAllowedBalance || 50;
+
+  // Get all drivers in one query
+  const drivers = await User.find({
+    _id: { $in: driverIds },
+  });
+
+  const updatesToSave: Array<{ driver: any; isActive: boolean }> = [];
+  let suspended = 0;
+  let reactivated = 0;
+
+  // Check each driver and collect updates
+  for (const driver of drivers) {
+    const driverIdStr = driver._id.toString();
+    const balanceInfo = balanceMap.get(driverIdStr);
+    
+    if (!balanceInfo) continue;
+
+    const shouldBeSuspended = balanceInfo.currentBalance >= maxAllowedBalance;
+    const shouldBeReactivated = balanceInfo.currentBalance <= 0;
+
+    // Check if suspension is needed
+    if (shouldBeSuspended && driver.isActive !== false) {
+      driver.isActive = false;
+      updatesToSave.push({ driver, isActive: false });
+      suspended++;
+    }
+    // Check if reactivation is needed
+    else if (shouldBeReactivated && driver.isActive === false) {
+      driver.isActive = true;
+      updatesToSave.push({ driver, isActive: true });
+      reactivated++;
+    }
+  }
+
+  // Batch save all updates
+  if (updatesToSave.length > 0) {
+    await Promise.all(
+      updatesToSave.map(({ driver }) => driver.save())
+    );
+  }
+
+  return { suspended, reactivated };
 };
 
 /**
