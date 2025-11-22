@@ -193,7 +193,7 @@ class OrderHistoryScreen extends StatelessWidget {
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              l10n.translateOrderType(order['type'].toString()),
+                                              _translateOrderType(l10n, order['type'].toString()),
                                               style: const TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w700,
@@ -315,6 +315,16 @@ class OrderHistoryScreen extends StatelessWidget {
       return id['_id'] ?? id['\$oid'] ?? id['oid'];
     }
     return id?.toString();
+  }
+
+  String _translateOrderType(AppLocalizations l10n, String rawType) {
+    final normalizedType = rawType.toLowerCase().trim();
+    if (normalizedType == 'send' || normalizedType.contains('send')) {
+      return l10n.orderTypeSend;
+    } else if (normalizedType == 'receive' || normalizedType.contains('receive') || normalizedType.contains('pick')) {
+      return l10n.orderTypeReceive;
+    }
+    return rawType;
   }
 
   String? _formatDate(dynamic value) {

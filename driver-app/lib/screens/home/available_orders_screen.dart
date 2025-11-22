@@ -106,6 +106,16 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
     return str.isEmpty ? fallback : str;
   }
 
+  String _translateOrderType(AppLocalizations l10n, String rawType) {
+    final normalizedType = rawType.toLowerCase().trim();
+    if (normalizedType == 'send' || normalizedType.contains('send')) {
+      return l10n.orderTypeSend;
+    } else if (normalizedType == 'receive' || normalizedType.contains('receive') || normalizedType.contains('pick')) {
+      return l10n.orderTypeReceive;
+    }
+    return rawType;
+  }
+
 
   Future<void> _acceptOrder(String orderId) async {
     final l10n = AppLocalizations.of(context)!;
@@ -289,7 +299,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                   // Get order type
                   final rawOrderType = _getSafeString(order['type'], l10n.nA);
                   final orderType = rawOrderType != l10n.nA 
-                      ? l10n.translateOrderType(rawOrderType)
+                      ? _translateOrderType(l10n, rawOrderType)
                       : l10n.nA;
                   
                   // Get order category

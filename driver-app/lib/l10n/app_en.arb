@@ -116,6 +116,10 @@
   "@noAvailableOrders": {
     "description": "Empty state message for available orders"
   },
+  "noOrdersAvailable": "No orders available",
+  "@noOrdersAvailable": {
+    "description": "Message displayed when there are no active or pending orders"
+  },
   "refresh": "Refresh",
   "@refresh": {
     "description": "Refresh button text"
@@ -471,6 +475,22 @@
   "cancelled": "Cancelled",
   "@cancelled": {
     "description": "Cancelled status"
+  },
+  "statusPending": "Pending",
+  "@statusPending": {
+    "description": "Pending order status"
+  },
+  "statusAccepted": "Accepted",
+  "@statusAccepted": {
+    "description": "Accepted order status"
+  },
+  "statusOnTheWay": "On The Way",
+  "@statusOnTheWay": {
+    "description": "On the way order status"
+  },
+  "statusDelivered": "Delivered",
+  "@statusDelivered": {
+    "description": "Delivered order status"
   },
   "orderContents": "Order Contents",
   "@orderContents": {

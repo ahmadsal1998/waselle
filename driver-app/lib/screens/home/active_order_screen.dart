@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../view_models/order_view_model.dart';
+import '../../utils/address_formatter.dart';
 import 'order_details_screen.dart';
 
 class ActiveOrderScreen extends StatelessWidget {
@@ -109,6 +110,42 @@ class _ExpandableOrderCardState extends State<_ExpandableOrderCard> {
     final formattedDate = _formatDate(order['createdAt']);
     final status = (order['status'] ?? '').toString().toLowerCase();
     final isOnTheWay = status == 'on_the_way';
+    
+    // Check if Arabic locale is active
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    // Get order data
+    final pickup = order['pickupLocation'];
+    final dropoff = order['dropoffLocation'];
+    final rawOrderType = (order['type'] ?? '').toString().toLowerCase();
+    final isSendOrder = rawOrderType == 'send';
+    final isPickupOrder = rawOrderType == 'receive';
+    
+    // Format addresses
+    final pickupAddress = isPickupOrder 
+        ? '-' 
+        : (pickup != null && pickup is Map<String, dynamic> 
+            ? (pickup['address']?.toString().trim() ?? '-')
+            : '-');
+    final dropoffAddress = isSendOrder 
+        ? '-' 
+        : (dropoff != null && dropoff is Map<String, dynamic>
+            ? (dropoff['address']?.toString().trim() ?? AddressFormatter.formatReceiverAddress(order))
+            : AddressFormatter.formatReceiverAddress(order));
+    
+    // Get sender info
+    final senderName = AddressFormatter.getCustomerName(order);
+    // Try to get phone from order directly first, then use AddressFormatter
+    String senderPhone = order['phone']?.toString().trim() ?? '';
+    if (senderPhone.isEmpty) {
+      senderPhone = AddressFormatter.getCustomerPhone(order);
+    }
+    
+    // Get distance
+    final distance = order['distance'];
+    final distanceText = distance != null 
+        ? 'km ${(distance is num ? distance / 1000 : double.tryParse(distance.toString()) ?? 0).toStringAsFixed(2)}'
+        : null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -127,213 +164,115 @@ class _ExpandableOrderCardState extends State<_ExpandableOrderCard> {
         color: Colors.transparent,
         child: Column(
           children: [
-            // Header section - always visible with toggle
-            InkWell(
-              onTap: () {
-                setState(() {
-                  _isExpanded = !_isExpanded;
-                });
-              },
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        gradient: isOnTheWay
-                            ? LinearGradient(
-                                colors: [
-                                  AppTheme.warningColor.withOpacity(0.2),
-                                  AppTheme.warningColor.withOpacity(0.1),
-                                ],
-                              )
-                            : AppTheme.primaryGradient,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        isOnTheWay
-                            ? Icons.local_shipping_rounded
-                            : Icons.pending_actions_rounded,
-                        color: isOnTheWay
-                            ? AppTheme.warningColor
-                            : AppTheme.primaryColor,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            orderId != null && orderId.length > 8
-                                ? '#${orderId.substring(0, 8)}'
-                                : l10n.activeOrder,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.textPrimary,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isOnTheWay
-                                  ? AppTheme.warningColor.withOpacity(0.15)
-                                  : AppTheme.primaryColor.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              (order['status'] ?? l10n.nA).toString().toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: isOnTheWay
-                                    ? AppTheme.warningColor
-                                    : AppTheme.primaryColor,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      _isExpanded
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      color: AppTheme.textSecondary,
-                      size: 28,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Top section: Sender information
+            // Summary section - always visible
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.backgroundLight,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Summary header with expand/collapse button
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.orderDetails,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                            letterSpacing: -0.3,
                           ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
                           child: Icon(
-                            Icons.person_outline_rounded,
-                            size: 18,
-                            color: AppTheme.primaryColor,
+                            _isExpanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            color: AppTheme.textSecondary,
+                            size: 24,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                l10n.name,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.textSecondary,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                (order['senderName'] ?? l10n.nA).toString(),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    if ((order['senderAddress'] ?? '').toString().isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.location_on_rounded,
-                              size: 18,
-                              color: AppTheme.primaryColor,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.address,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.textSecondary,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  order['senderAddress'].toString(),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                       ),
                     ],
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Summary: First Row - Type | From | To (matches expanded view order)
+                  Directionality(
+                    textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundLight,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          // Type - First in both languages
+                          Expanded(
+                            child: _CompactInfoItem(
+                              icon: Icons.more_vert_rounded,
+                              label: l10n.type,
+                              value: order['type'] != null
+                                  ? _translateOrderType(l10n, order['type'].toString())
+                                  : l10n.nA,
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 40,
+                            color: AppTheme.primaryColor.withOpacity(0.2),
+                          ),
+                          // From - Second in both languages
+                          Expanded(
+                            child: _CompactInfoItem(
+                              icon: Icons.location_on_rounded,
+                              label: l10n.pickup,
+                              value: pickupAddress != '-' ? pickupAddress : '-',
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 40,
+                            color: AppTheme.primaryColor.withOpacity(0.2),
+                          ),
+                          // To - Third in both languages
+                          Expanded(
+                            child: _CompactInfoItem(
+                              icon: Icons.flag_rounded,
+                              label: l10n.dropoff,
+                              value: dropoffAddress != '-' ? dropoffAddress : l10n.nA,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            // Expandable section: Order details
+            // Expandable section: Full order details
             ClipRect(
               child: AnimatedSize(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
                 child: _isExpanded
-                    ? Column(
-                        children: [
-                          // Order Type | Order Category | Price in one row
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Container(
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            // First Row: Created | Price | Category (Type | From | To already shown in summary)
+                            Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                               decoration: BoxDecoration(
                                 color: AppTheme.backgroundLight,
@@ -343,23 +282,11 @@ class _ExpandableOrderCardState extends State<_ExpandableOrderCard> {
                                 children: [
                                   Expanded(
                                     child: _CompactInfoItem(
-                                      icon: Icons.category_rounded,
-                                      label: l10n.type,
-                                      value: order['type'] != null
-                                          ? l10n.translateOrderType(order['type'].toString())
+                                      icon: Icons.calendar_today_rounded,
+                                      label: l10n.created,
+                                      value: formattedDate != null
+                                          ? formattedDate
                                           : l10n.nA,
-                                    ),
-                                  ),
-                                  Container(
-                                    width: 1,
-                                    height: 40,
-                                    color: AppTheme.primaryColor.withOpacity(0.2),
-                                  ),
-                                  Expanded(
-                                    child: _CompactInfoItem(
-                                      icon: Icons.shopping_bag_rounded,
-                                      label: l10n.category,
-                                      value: (order['orderCategory'] ?? l10n.nA).toString(),
                                     ),
                                   ),
                                   Container(
@@ -376,41 +303,134 @@ class _ExpandableOrderCardState extends State<_ExpandableOrderCard> {
                                           : l10n.nA,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          // Order date (if available)
-                          if (formattedDate != null) ...[
-                            const SizedBox(height: 16),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_today_rounded,
-                                    size: 16,
-                                    color: AppTheme.textSecondary,
+                                  Container(
+                                    width: 1,
+                                    height: 40,
+                                    color: AppTheme.primaryColor.withOpacity(0.2),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    formattedDate,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppTheme.textSecondary,
+                                  Expanded(
+                                    child: _CompactInfoItem(
+                                      icon: Icons.shopping_bag_rounded,
+                                      label: l10n.category,
+                                      value: (order['orderCategory'] ?? l10n.nA).toString(),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                          // Notes section (if notes exist)
-                          if ((order['deliveryNotes'] ?? '').toString().isNotEmpty) ...[
                             const SizedBox(height: 16),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              child: Container(
+                            // Sender section
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppTheme.backgroundLight,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.person_outline_rounded,
+                                        size: 18,
+                                        color: AppTheme.primaryColor,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        l10n.sender,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppTheme.textPrimary,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  // Name
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.person_outline_rounded,
+                                        size: 18,
+                                        color: AppTheme.primaryColor,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              l10n.name,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppTheme.textSecondary,
+                                                letterSpacing: 0.3,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              senderName != 'N/A' ? senderName : l10n.nA,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppTheme.textPrimary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  // Phone
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.phone_rounded,
+                                        size: 18,
+                                        color: AppTheme.primaryColor,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              l10n.phone,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppTheme.textSecondary,
+                                                letterSpacing: 0.3,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              senderPhone != 'N/A' ? senderPhone : l10n.nA,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppTheme.textPrimary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Notes section (if notes exist)
+                            if ((order['deliveryNotes'] ?? '').toString().isNotEmpty) ...[
+                              const SizedBox(height: 16),
+                              Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   color: AppTheme.backgroundLight,
@@ -419,44 +439,88 @@ class _ExpandableOrderCardState extends State<_ExpandableOrderCard> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      l10n.notes,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppTheme.textPrimary,
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
                                     Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Icon(
-                                          Icons.sticky_note_2_rounded,
+                                          Icons.note_rounded,
                                           size: 18,
                                           color: AppTheme.primaryColor,
                                         ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            order['deliveryNotes'].toString(),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          l10n.notes,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.textPrimary,
+                                            letterSpacing: -0.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      order['deliveryNotes'].toString(),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            // Distance section
+                            if (distanceText != null) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.backgroundLight,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.straighten_rounded,
+                                      size: 18,
+                                      color: AppTheme.primaryColor,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            l10n.distance,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppTheme.textSecondary,
+                                              letterSpacing: 0.3,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            distanceText,
                                             style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
                                               color: AppTheme.textPrimary,
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ),
+                            ],
+                            const SizedBox(height: 20),
                           ],
-                          const SizedBox(height: 16),
-                        ],
+                        ),
                       )
                     : const SizedBox.shrink(),
               ),
@@ -525,6 +589,16 @@ class _ExpandableOrderCardState extends State<_ExpandableOrderCard> {
     return id?.toString();
   }
 
+  String _translateOrderType(AppLocalizations l10n, String rawType) {
+    final normalizedType = rawType.toLowerCase().trim();
+    if (normalizedType == 'send' || normalizedType.contains('send')) {
+      return l10n.orderTypeSend;
+    } else if (normalizedType == 'receive' || normalizedType.contains('receive') || normalizedType.contains('pick')) {
+      return l10n.orderTypeReceive;
+    }
+    return rawType;
+  }
+
   String? _formatDate(dynamic value) {
     DateTime? dateTime;
 
@@ -549,8 +623,37 @@ class _ExpandableOrderCardState extends State<_ExpandableOrderCard> {
       return null;
     }
 
+    // Format: YYYY-MM-DD HH:MM (matching screenshot format)
     return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
         '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatSenderAddress(Map<String, dynamic> order) {
+    // Try to get new format components
+    final city = order['senderCity']?.toString().trim();
+    final village = order['senderVillage']?.toString().trim();
+    final streetDetails = order['senderStreetDetails']?.toString().trim();
+
+    // Build address from separate components if available
+    if (city != null && city.isNotEmpty ||
+        village != null && village.isNotEmpty ||
+        streetDetails != null && streetDetails.isNotEmpty) {
+      final addressParts = <String>[];
+      if (city != null && city.isNotEmpty) addressParts.add(city);
+      if (village != null && village.isNotEmpty) addressParts.add(village);
+      if (streetDetails != null && streetDetails.isNotEmpty) addressParts.add(streetDetails);
+      if (addressParts.isNotEmpty) {
+        return addressParts.join('-');
+      }
+    }
+
+    // Fall back to old senderAddress format if available
+    final oldAddress = order['senderAddress']?.toString().trim();
+    if (oldAddress != null && oldAddress.isNotEmpty) {
+      return oldAddress;
+    }
+
+    return 'N/A';
   }
 }
 
@@ -771,3 +874,5 @@ class _ModernInfoChip extends StatelessWidget {
     );
   }
 }
+
+

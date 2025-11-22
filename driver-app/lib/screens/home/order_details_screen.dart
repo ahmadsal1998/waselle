@@ -90,6 +90,39 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     return id?.toString();
   }
 
+  String _translateOrderType(AppLocalizations l10n, String rawType) {
+    final normalizedType = rawType.toLowerCase().trim();
+    if (normalizedType == 'send' || normalizedType.contains('send')) {
+      return l10n.orderTypeSend;
+    } else if (normalizedType == 'receive' || normalizedType.contains('receive') || normalizedType.contains('pick')) {
+      return l10n.orderTypeReceive;
+    }
+    return rawType;
+  }
+
+  String _translateOrderStatus(AppLocalizations l10n, String rawStatus) {
+    final normalizedStatus = rawStatus.toLowerCase().trim();
+    switch (normalizedStatus) {
+      case 'new':
+        return l10n.statusNew;
+      case 'pending':
+        return l10n.statusPending;
+      case 'accepted':
+        return l10n.statusAccepted;
+      case 'on_the_way':
+      case 'on the way':
+        return l10n.statusOnTheWay;
+      case 'delivered':
+        return l10n.statusDelivered;
+      case 'completed':
+        return l10n.completed;
+      case 'cancelled':
+        return l10n.cancelled;
+      default:
+        return rawStatus;
+    }
+  }
+
   Future<void> _loadCurrentOrder() async {
     if (_activeOrders.isEmpty || _currentOrderIndex >= _activeOrders.length) {
       setState(() => _isLoading = false);
@@ -308,7 +341,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               Icon(Icons.inbox_outlined, size: 64, color: theme.colorScheme.onSurface.withOpacity(0.5)),
               const SizedBox(height: 16),
               Text(
-                l10n.noActiveOrder,
+                l10n.noOrdersAvailable,
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
@@ -691,16 +724,37 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     // Get customer name and phone from populated customer data or order fields
     final customerName = AddressFormatter.getCustomerName(_order!);
     final customerPhone = AddressFormatter.getCustomerPhone(_order!);
-    final address = AddressFormatter.formatAddress(_order!);
+    
+    // Get order data for the new layout
+    final orderCategory = (_order!['orderCategory'] ?? l10n.nA).toString();
+    final rawOrderType = _order!['type']?.toString().toLowerCase().trim();
+    final orderType = rawOrderType != null
+        ? _translateOrderType(l10n, rawOrderType)
+        : l10n.nA;
+    final formattedDate = _formatDate(_order!['createdAt']);
+    final pickup = _order!['pickupLocation'];
+    final dropoff = _order!['dropoffLocation'];
+    
+    // Display locations based on order type:
+    // - Pick-up (receive): User Location (pick-up) = "—", Delivery Location = address
+    // - Send: User Location (pick-up) = address, Delivery Location = "—"
+    final isSendOrder = rawOrderType == 'send';
+    final isPickupOrder = rawOrderType == 'receive';
+    final pickupAddress = isPickupOrder 
+        ? '—' 
+        : (pickup != null ? _formatPickupAddress(pickup) : l10n.nA);
+    final deliveryAddress = isSendOrder 
+        ? '—' 
+        : AddressFormatter.formatReceiverAddress(_order!);
 
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Status and Price
+          // Status
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -711,7 +765,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  orderStatus.toUpperCase(),
+                  _translateOrderStatus(l10n, orderStatus),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: orderStatus == 'on_the_way'
                         ? theme.colorScheme.tertiary
@@ -720,17 +774,119 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   ),
                 ),
               ),
-              Text(
-                '${l10n.nis(orderPrice)}',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
             ],
           ),
+          
+          // Category, Price, and Date Row
           const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildCompactInfoItem(
+                    theme: theme,
+                    icon: Icons.shopping_bag_rounded,
+                    label: l10n.category,
+                    value: orderCategory,
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  color: theme.colorScheme.outline.withOpacity(0.2),
+                ),
+                Expanded(
+                  child: _buildCompactInfoItem(
+                    theme: theme,
+                    icon: Icons.attach_money_rounded,
+                    label: l10n.price,
+                    value: l10n.nis(orderPrice),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  color: theme.colorScheme.outline.withOpacity(0.2),
+                ),
+                Expanded(
+                  child: _buildCompactInfoItem(
+                    theme: theme,
+                    icon: Icons.calendar_today,
+                    label: l10n.created,
+                    value: formattedDate ?? l10n.nA,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Order Type, Pick-up Location, and Delivery Location Row
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildCompactInfoItem(
+                    theme: theme,
+                    icon: Icons.category_rounded,
+                    label: l10n.type,
+                    value: orderType,
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  color: theme.colorScheme.outline.withOpacity(0.2),
+                ),
+                Expanded(
+                  child: _buildCompactInfoItem(
+                    theme: theme,
+                    icon: Icons.location_on,
+                    label: l10n.pickup,
+                    value: pickupAddress,
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  color: theme.colorScheme.outline.withOpacity(0.2),
+                ),
+                Expanded(
+                  child: _buildCompactInfoItem(
+                    theme: theme,
+                    icon: Icons.flag,
+                    label: l10n.dropoff,
+                    value: deliveryAddress,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
           // Customer name and phone (compact)
+          const SizedBox(height: 12),
           Row(
             children: [
               Icon(Icons.person_outline, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.6)),
@@ -754,23 +910,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          // Address (compact)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.location_on_outlined, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.6)),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  address,
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
+          
           // Action button
           const SizedBox(height: 12),
           if (orderStatus == 'accepted')
@@ -804,13 +944,33 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   Widget _buildExpandedDetails(ThemeData theme, AppLocalizations l10n, Map<String, dynamic> pickup, Map<String, dynamic> dropoff, String orderStatus, String orderPrice) {
+    // Get order data
+    final orderCategory = (_order!['orderCategory'] ?? l10n.nA).toString();
+    final rawOrderType = _order!['type']?.toString().toLowerCase().trim();
+    final orderType = rawOrderType != null
+        ? _translateOrderType(l10n, rawOrderType)
+        : l10n.nA;
+    final formattedDate = _formatDate(_order!['createdAt']);
+    
+    // Display locations based on order type:
+    // - Pick-up (receive): User Location (pick-up) = "—", Delivery Location = address
+    // - Send: User Location (pick-up) = address, Delivery Location = "—"
+    final isSendOrder = rawOrderType == 'send';
+    final isPickupOrder = rawOrderType == 'receive';
+    final pickupAddress = isPickupOrder 
+        ? '—' 
+        : _formatPickupAddress(pickup);
+    final deliveryAddress = isSendOrder 
+        ? '—' 
+        : AddressFormatter.formatReceiverAddress(_order!);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-            // Status and Price Row
+            // Status Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -834,7 +994,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          orderStatus.toUpperCase(),
+                          _translateOrderStatus(l10n, orderStatus),
                           style: theme.textTheme.labelLarge?.copyWith(
                             color: orderStatus == 'on_the_way'
                                 ? theme.colorScheme.tertiary
@@ -846,26 +1006,115 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      l10n.price,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${l10n.nis(orderPrice)}',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
               ],
+            ),
+            
+            // Category, Price, and Date Row
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildCompactInfoItem(
+                      theme: theme,
+                      icon: Icons.shopping_bag_rounded,
+                      label: l10n.category,
+                      value: orderCategory,
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 50,
+                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    color: theme.colorScheme.outline.withOpacity(0.2),
+                  ),
+                  Expanded(
+                    child: _buildCompactInfoItem(
+                      theme: theme,
+                      icon: Icons.attach_money_rounded,
+                      label: l10n.price,
+                      value: l10n.nis(orderPrice),
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 50,
+                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    color: theme.colorScheme.outline.withOpacity(0.2),
+                  ),
+                  Expanded(
+                    child: _buildCompactInfoItem(
+                      theme: theme,
+                      icon: Icons.calendar_today,
+                      label: l10n.created,
+                      value: formattedDate ?? l10n.nA,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Order Type, Pick-up Location, and Delivery Location Row
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildCompactInfoItem(
+                      theme: theme,
+                      icon: Icons.category_rounded,
+                      label: l10n.type,
+                      value: orderType,
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 50,
+                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    color: theme.colorScheme.outline.withOpacity(0.2),
+                  ),
+                  Expanded(
+                    child: _buildCompactInfoItem(
+                      theme: theme,
+                      icon: Icons.location_on,
+                      label: l10n.pickup,
+                      value: pickupAddress,
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 50,
+                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    color: theme.colorScheme.outline.withOpacity(0.2),
+                  ),
+                  Expanded(
+                    child: _buildCompactInfoItem(
+                      theme: theme,
+                      icon: Icons.flag,
+                      label: l10n.dropoff,
+                      value: deliveryAddress,
+                    ),
+                  ),
+                ],
+              ),
             ),
             
             // Customer Information
@@ -888,65 +1137,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   value: AddressFormatter.getCustomerPhone(_order!),
                 ),
               ],
-            ),
-            
-            // Address Information (new format: City-Village-StreetDetails)
-            const SizedBox(height: 12),
-            _buildInfoSection(
-              theme: theme,
-              icon: Icons.location_on,
-              title: l10n.address,
-              children: [
-                _buildInfoRow(
-                  theme: theme,
-                  icon: Icons.location_on_outlined,
-                  label: l10n.address,
-                  value: AddressFormatter.formatAddress(_order!),
-                ),
-              ],
-            ),
-            
-            // Pickup Location
-            const SizedBox(height: 12),
-            _buildInfoSection(
-              theme: theme,
-              icon: Icons.location_on,
-              title: 'Pickup Location',
-              children: [
-                _buildInfoRow(
-                  theme: theme,
-                  icon: Icons.location_on_outlined,
-                  label: l10n.address,
-                  value: pickup['address']?.toString() ?? 
-                         _formatCoordinates(pickup['lat'], pickup['lng']),
-                ),
-              ],
-            ),
-            
-            // Delivery Location
-            const SizedBox(height: 12),
-            _buildInfoSection(
-              theme: theme,
-              icon: Icons.flag,
-              title: 'Delivery Location',
-              children: [
-                _buildInfoRow(
-                  theme: theme,
-                  icon: Icons.location_on_outlined,
-                  label: l10n.address,
-                  value: dropoff['address']?.toString() ?? 
-                         _formatCoordinates(dropoff['lat'], dropoff['lng']),
-                ),
-              ],
-            ),
-            
-            // Vehicle Type
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              theme: theme,
-              icon: Icons.directions_car,
-              label: l10n.vehicle,
-              value: _order!['vehicleType']?.toString().toUpperCase() ?? l10n.nA,
             ),
             
             // Delivery Notes
@@ -1039,6 +1229,44 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     return 'N/A';
   }
 
+  String? _formatDate(dynamic value) {
+    DateTime? dateTime;
+
+    if (value is String) {
+      dateTime = DateTime.tryParse(value);
+    } else if (value is DateTime) {
+      dateTime = value;
+    } else if (value is Map && value.containsKey('\$date')) {
+      final rawDate = value['\$date'];
+      if (rawDate is Map && rawDate.containsKey('\$numberLong')) {
+        final millis = int.tryParse(rawDate['\$numberLong'].toString());
+        if (millis != null) {
+          dateTime =
+              DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true).toLocal();
+        }
+      } else if (rawDate is String) {
+        dateTime = DateTime.tryParse(rawDate);
+      }
+    }
+
+    if (dateTime == null) {
+      return null;
+    }
+
+    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} '
+        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatPickupAddress(Map<String, dynamic> pickup) {
+    if (pickup is Map<String, dynamic>) {
+      final address = pickup['address']?.toString().trim();
+      if (address != null && address.isNotEmpty) {
+        return address;
+      }
+    }
+    return 'N/A';
+  }
+
   Widget _buildInfoRow({
     required ThemeData theme,
     required IconData icon,
@@ -1070,6 +1298,114 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactInfoItem({
+    required ThemeData theme,
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: theme.colorScheme.primary),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  fontSize: 11,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  /// Build a redesigned address section with clear label and content
+  Widget _buildAddressSection({
+    required ThemeData theme,
+    required AppLocalizations l10n,
+    required String label,
+    required String address,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: iconColor.withOpacity(0.2),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Label with icon
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: iconColor,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Address content
+          Padding(
+            padding: const EdgeInsets.only(left: 40),
+            child: Text(
+              address,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                color: theme.colorScheme.onSurface,
+                height: 1.4,
+              ),
             ),
           ),
         ],

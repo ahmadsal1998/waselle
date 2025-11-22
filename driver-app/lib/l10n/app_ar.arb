@@ -29,6 +29,7 @@
   "history": "السجل",
   "profile": "الملف الشخصي",
   "noAvailableOrders": "لا توجد طلبات متاحة",
+  "noOrdersAvailable": "لا توجد طلبات متاحة",
   "refresh": "تحديث",
   "order": "طلب",
   "orderNumber": "طلب رقم {id}",
@@ -187,6 +188,10 @@
   "inProgress": "قيد التنفيذ",
   "completed": "مكتمل",
   "cancelled": "ملغي",
+  "statusPending": "قيد الانتظار",
+  "statusAccepted": "مقبول",
+  "statusOnTheWay": "في الطريق",
+  "statusDelivered": "تم التوصيل",
   "orderContents": "محتوى الطلب",
   "close": "إغلاق"
 }

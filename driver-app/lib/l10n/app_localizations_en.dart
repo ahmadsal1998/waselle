@@ -96,6 +96,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noAvailableOrders => 'No available orders';
 
   @override
+  String get noOrdersAvailable => 'No orders available';
+
+  @override
   String get refresh => 'Refresh';
 
   @override
@@ -318,6 +321,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dropoff => 'Drop-off';
 
   @override
+  String get from => 'From';
+
+  @override
+  String get to => 'To';
+
+  @override
   String get startNavigation => 'Start Navigation';
 
   @override
@@ -340,6 +349,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancelled => 'Cancelled';
+
+  @override
+  String get statusPending => 'Pending';
+
+  @override
+  String get statusAccepted => 'Accepted';
+
+  @override
+  String get statusOnTheWay => 'On The Way';
+
+  @override
+  String get statusDelivered => 'Delivered';
 
   @override
   String get orderContents => 'Order Contents';

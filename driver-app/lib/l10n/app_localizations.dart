@@ -269,6 +269,12 @@ abstract class AppLocalizations {
   /// **'No available orders'**
   String get noAvailableOrders;
 
+  /// Message displayed when there are no active or pending orders
+  ///
+  /// In en, this message translates to:
+  /// **'No orders available'**
+  String get noOrdersAvailable;
+
   /// Refresh button text
   ///
   /// In en, this message translates to:
@@ -665,6 +671,18 @@ abstract class AppLocalizations {
   /// **'Drop-off'**
   String get dropoff;
 
+  /// From location label
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get from;
+
+  /// To location label
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get to;
+
   /// Start navigation button text
   ///
   /// In en, this message translates to:
@@ -713,6 +731,30 @@ abstract class AppLocalizations {
   /// **'Cancelled'**
   String get cancelled;
 
+  /// Pending order status
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get statusPending;
+
+  /// Accepted order status
+  ///
+  /// In en, this message translates to:
+  /// **'Accepted'**
+  String get statusAccepted;
+
+  /// On the way order status
+  ///
+  /// In en, this message translates to:
+  /// **'On The Way'**
+  String get statusOnTheWay;
+
+  /// Delivered order status
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get statusDelivered;
+
   /// Order contents button label
   ///
   /// In en, this message translates to:
@@ -724,21 +766,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
-
-  /// Translate order type based on locale
-  ///
-  /// Returns the translated order type string:
-  /// - In English: returns "send" or "receive" as-is
-  /// - In Arabic: returns "إرسال الطلب" or "إحضار الطلب"
-  String translateOrderType(String orderType) {
-    final normalizedType = orderType.toLowerCase().trim();
-    if (normalizedType == 'send') {
-      return localeName == 'ar' ? orderTypeSend : 'send';
-    } else if (normalizedType == 'receive') {
-      return localeName == 'ar' ? orderTypeReceive : 'receive';
-    }
-    return orderType; // Return as-is if not recognized
-  }
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

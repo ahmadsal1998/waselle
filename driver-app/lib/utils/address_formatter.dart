@@ -76,5 +76,43 @@ class AddressFormatter {
 
     return 'N/A';
   }
+
+  /// Format receiver/delivery address from separate components or dropoff location
+  static String formatReceiverAddress(Map<String, dynamic> order) {
+    // Try to get receiver address components
+    final receiverCity = order['receiverCity']?.toString().trim();
+    final receiverVillage = order['receiverVillage']?.toString().trim();
+    final receiverStreetDetails = order['receiverStreetDetails']?.toString().trim();
+
+    // Build address from separate components if available
+    if (receiverCity != null && receiverCity.isNotEmpty ||
+        receiverVillage != null && receiverVillage.isNotEmpty ||
+        receiverStreetDetails != null && receiverStreetDetails.isNotEmpty) {
+      final addressParts = <String>[];
+      if (receiverCity != null && receiverCity.isNotEmpty) addressParts.add(receiverCity);
+      if (receiverVillage != null && receiverVillage.isNotEmpty) addressParts.add(receiverVillage);
+      if (receiverStreetDetails != null && receiverStreetDetails.isNotEmpty) addressParts.add(receiverStreetDetails);
+      if (addressParts.isNotEmpty) {
+        return addressParts.join('-');
+      }
+    }
+
+    // Try to get from dropoff location
+    final dropoff = order['dropoffLocation'];
+    if (dropoff is Map<String, dynamic>) {
+      final address = dropoff['address']?.toString().trim();
+      if (address != null && address.isNotEmpty) {
+        return address;
+      }
+    }
+
+    // Fall back to receiverAddress format if available
+    final receiverAddress = order['receiverAddress']?.toString().trim();
+    if (receiverAddress != null && receiverAddress.isNotEmpty) {
+      return receiverAddress;
+    }
+
+    return 'N/A';
+  }
 }
 

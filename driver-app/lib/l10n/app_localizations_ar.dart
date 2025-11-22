@@ -96,6 +96,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noAvailableOrders => 'لا توجد طلبات متاحة';
 
   @override
+  String get noOrdersAvailable => 'لا توجد طلبات متاحة';
+
+  @override
   String get refresh => 'تحديث';
 
   @override
@@ -312,10 +315,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get orderTypeReceive => 'إحضار الطلب';
 
   @override
-  String get pickup => ' من';
+  String get pickup => 'من ';
 
   @override
   String get dropoff => ' الى';
+
+  @override
+  String get from => 'من';
+
+  @override
+  String get to => 'إلى';
 
   @override
   String get startNavigation => 'بدء التنقل';
@@ -340,6 +349,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get cancelled => 'ملغي';
+
+  @override
+  String get statusPending => 'قيد الانتظار';
+
+  @override
+  String get statusAccepted => 'مقبول';
+
+  @override
+  String get statusOnTheWay => 'في الطريق';
+
+  @override
+  String get statusDelivered => 'تم التوصيل';
 
   @override
   String get orderContents => 'محتوى الطلب';
