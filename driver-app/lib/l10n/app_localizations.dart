@@ -640,6 +640,105 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Gallery'**
   String get gallery;
+
+  /// Order type send translation
+  ///
+  /// In en, this message translates to:
+  /// **'send'**
+  String get orderTypeSend;
+
+  /// Order type receive translation
+  ///
+  /// In en, this message translates to:
+  /// **'receive'**
+  String get orderTypeReceive;
+
+  /// Pickup location label
+  ///
+  /// In en, this message translates to:
+  /// **'Pickup'**
+  String get pickup;
+
+  /// Drop-off location label
+  ///
+  /// In en, this message translates to:
+  /// **'Drop-off'**
+  String get dropoff;
+
+  /// Start navigation button text
+  ///
+  /// In en, this message translates to:
+  /// **'Start Navigation'**
+  String get startNavigation;
+
+  /// Call customer button text
+  ///
+  /// In en, this message translates to:
+  /// **'Call Customer'**
+  String get callCustomer;
+
+  /// View details button text
+  ///
+  /// In en, this message translates to:
+  /// **'View Details'**
+  String get viewDetails;
+
+  /// Driver earnings label
+  ///
+  /// In en, this message translates to:
+  /// **'Driver Earnings'**
+  String get driverEarnings;
+
+  /// New order status
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get statusNew;
+
+  /// In progress status
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get inProgress;
+
+  /// Completed status
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get completed;
+
+  /// Cancelled status
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get cancelled;
+
+  /// Order contents button label
+  ///
+  /// In en, this message translates to:
+  /// **'Order Contents'**
+  String get orderContents;
+
+  /// Close button text
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// Translate order type based on locale
+  ///
+  /// Returns the translated order type string:
+  /// - In English: returns "send" or "receive" as-is
+  /// - In Arabic: returns "إرسال الطلب" or "إحضار الطلب"
+  String translateOrderType(String orderType) {
+    final normalizedType = orderType.toLowerCase().trim();
+    if (normalizedType == 'send') {
+      return localeName == 'ar' ? orderTypeSend : 'send';
+    } else if (normalizedType == 'receive') {
+      return localeName == 'ar' ? orderTypeReceive : 'receive';
+    }
+    return orderType; // Return as-is if not recognized
+  }
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

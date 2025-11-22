@@ -193,13 +193,13 @@ class OrderHistoryScreen extends StatelessWidget {
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              order['type'].toString(),
+                                              l10n.translateOrderType(order['type'].toString()),
                                               style: const TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w700,
                                                 color: AppTheme.textPrimary,
                                               ),
-                                              maxLines: 1,
+                                              maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ],

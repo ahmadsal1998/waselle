@@ -304,4 +304,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gallery => 'Gallery';
+
+  @override
+  String get orderTypeSend => 'send';
+
+  @override
+  String get orderTypeReceive => 'receive';
+
+  @override
+  String get pickup => 'Pickup';
+
+  @override
+  String get dropoff => 'Drop-off';
+
+  @override
+  String get startNavigation => 'Start Navigation';
+
+  @override
+  String get callCustomer => 'Call Customer';
+
+  @override
+  String get viewDetails => 'View Details';
+
+  @override
+  String get driverEarnings => 'Driver Earnings';
+
+  @override
+  String get statusNew => 'New';
+
+  @override
+  String get inProgress => 'In Progress';
+
+  @override
+  String get completed => 'Completed';
+
+  @override
+  String get cancelled => 'Cancelled';
+
+  @override
+  String get orderContents => 'Order Contents';
+
+  @override
+  String get close => 'Close';
 }

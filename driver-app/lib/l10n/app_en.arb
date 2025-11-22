@@ -423,6 +423,62 @@
   "gallery": "Gallery",
   "@gallery": {
     "description": "Gallery option for image source"
+  },
+  "orderTypeSend": "send",
+  "@orderTypeSend": {
+    "description": "Order type send translation"
+  },
+  "orderTypeReceive": "receive",
+  "@orderTypeReceive": {
+    "description": "Order type receive translation"
+  },
+  "pickup": "Pickup",
+  "@pickup": {
+    "description": "Pickup location label"
+  },
+  "dropoff": "Drop-off",
+  "@dropoff": {
+    "description": "Drop-off location label"
+  },
+  "startNavigation": "Start Navigation",
+  "@startNavigation": {
+    "description": "Start navigation button text"
+  },
+  "callCustomer": "Call Customer",
+  "@callCustomer": {
+    "description": "Call customer button text"
+  },
+  "viewDetails": "View Details",
+  "@viewDetails": {
+    "description": "View details button text"
+  },
+  "driverEarnings": "Driver Earnings",
+  "@driverEarnings": {
+    "description": "Driver earnings label"
+  },
+  "statusNew": "New",
+  "@statusNew": {
+    "description": "New order status"
+  },
+  "inProgress": "In Progress",
+  "@inProgress": {
+    "description": "In progress status"
+  },
+  "completed": "Completed",
+  "@completed": {
+    "description": "Completed status"
+  },
+  "cancelled": "Cancelled",
+  "@cancelled": {
+    "description": "Cancelled status"
+  },
+  "orderContents": "Order Contents",
+  "@orderContents": {
+    "description": "Order contents button label"
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Close button text"
   }
 }
 

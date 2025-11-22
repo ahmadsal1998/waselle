@@ -345,7 +345,9 @@ class _ExpandableOrderCardState extends State<_ExpandableOrderCard> {
                                     child: _CompactInfoItem(
                                       icon: Icons.category_rounded,
                                       label: l10n.type,
-                                      value: (order['type'] ?? l10n.nA).toString(),
+                                      value: order['type'] != null
+                                          ? l10n.translateOrderType(order['type'].toString())
+                                          : l10n.nA,
                                     ),
                                   ),
                                   Container(

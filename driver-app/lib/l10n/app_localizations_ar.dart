@@ -304,4 +304,46 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get gallery => 'المعرض';
+
+  @override
+  String get orderTypeSend => 'إرسال الطلب';
+
+  @override
+  String get orderTypeReceive => 'إحضار الطلب';
+
+  @override
+  String get pickup => ' من';
+
+  @override
+  String get dropoff => ' الى';
+
+  @override
+  String get startNavigation => 'بدء التنقل';
+
+  @override
+  String get callCustomer => 'اتصال بالعميل';
+
+  @override
+  String get viewDetails => 'عرض التفاصيل';
+
+  @override
+  String get driverEarnings => 'أرباح السائق';
+
+  @override
+  String get statusNew => 'جديد';
+
+  @override
+  String get inProgress => 'قيد التنفيذ';
+
+  @override
+  String get completed => 'مكتمل';
+
+  @override
+  String get cancelled => 'ملغي';
+
+  @override
+  String get orderContents => 'محتوى الطلب';
+
+  @override
+  String get close => 'إغلاق';
 }

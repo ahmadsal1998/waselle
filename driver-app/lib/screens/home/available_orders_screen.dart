@@ -5,9 +5,7 @@ import '../../theme/app_theme.dart';
 import '../../view_models/auth_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../widgets/empty_state.dart';
-import '../../utils/address_formatter.dart';
 import 'order_details_screen.dart';
-import 'order_map_details_screen.dart';
 
 class AvailableOrdersScreen extends StatefulWidget {
   const AvailableOrdersScreen({super.key});
@@ -52,7 +50,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
       await orderViewModel.fetchAvailableOrders();
       
       final ordersCount = orderViewModel.availableOrders.length;
-      debugPrint('AvailableOrdersScreen: Received ${ordersCount} orders');
+      debugPrint('AvailableOrdersScreen: Received $ordersCount orders');
       
       setState(() {
         _isLoading = false;
@@ -102,88 +100,12 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
     return asString.isNotEmpty ? asString : null;
   }
 
-  Color _getStatusColor(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return Colors.orange;
-      case 'accepted':
-        return Colors.blue;
-      case 'on_the_way':
-        return Colors.purple;
-      case 'delivered':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  /// Get color for order type (internal = blue, external = green)
-  Color _getOrderTypeColor(String? orderType) {
-    final type = orderType?.toLowerCase() ?? '';
-    if (type.contains('internal')) {
-      return Colors.blue;
-    } else if (type.contains('external')) {
-      return Colors.green;
-    }
-    return Colors.grey;
-  }
-
-  /// Get color for delivery type (internal = blue, external = green)
-  Color _getDeliveryTypeColor(String? deliveryType) {
-    final type = deliveryType?.toLowerCase() ?? '';
-    if (type.contains('internal')) {
-      return Colors.blue;
-    } else if (type.contains('external')) {
-      return Colors.green;
-    }
-    return Colors.grey;
-  }
-
-  /// Get icon for order type
-  IconData _getOrderTypeIcon(String? orderType) {
-    final type = orderType?.toLowerCase() ?? '';
-    if (type.contains('internal')) {
-      return Icons.business;
-    } else if (type.contains('external')) {
-      return Icons.public;
-    }
-    return Icons.category;
-  }
-
-  /// Get icon for delivery type
-  IconData _getDeliveryTypeIcon(String? deliveryType) {
-    final type = deliveryType?.toLowerCase() ?? '';
-    if (type.contains('internal')) {
-      return Icons.home;
-    } else if (type.contains('external')) {
-      return Icons.location_city;
-    }
-    return Icons.directions;
-  }
-
-  String _formatDate(dynamic dateValue) {
-    if (dateValue == null) return '';
-    try {
-      String dateString;
-      if (dateValue is String) {
-        dateString = dateValue;
-      } else {
-        dateString = dateValue.toString();
-      }
-      final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return dateValue.toString();
-    }
-  }
-
   String _getSafeString(dynamic value, String fallback) {
     if (value == null) return fallback;
     final str = value.toString().trim();
     return str.isEmpty ? fallback : str;
   }
+
 
   Future<void> _acceptOrder(String orderId) async {
     final l10n = AppLocalizations.of(context)!;
@@ -208,6 +130,16 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
         SnackBar(content: Text(l10n.failedToAcceptOrder)),
       );
     }
+  }
+
+  void _showOrderNotes(BuildContext context, AppLocalizations l10n, String notes) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (BuildContext context) {
+        return _OrderNotesDialog(notes: notes, l10n: l10n);
+      },
+    );
   }
 
   @override
@@ -341,13 +273,12 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
               return ListView.builder(
                 padding: EdgeInsets.symmetric(
                   horizontal: horizontalPadding,
-                  vertical: 10,
+                  vertical: 16,
                 ),
                 itemCount: orders.length,
                 itemBuilder: (context, index) {
                   final order = orders[index];
                   final normalizedId = _normalizeOrderId(order['_id']);
-                  final distance = order['distanceFromDriver'] ?? order['distance'] ?? 0.0;
 
                   final displayId = normalizedId == null
                       ? null
@@ -355,367 +286,52 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                           ? normalizedId
                           : normalizedId.substring(0, 8));
 
-                  // Get order data - only essential information
-                  final orderType = _getSafeString(order['type'], l10n.nA);
-                  final orderCategory = _getSafeString(order['orderCategory'], l10n.nA);
-                  final deliveryType = _getSafeString(order['deliveryType'], l10n.nA);
+                  // Get order type
+                  final rawOrderType = _getSafeString(order['type'], l10n.nA);
+                  final orderType = rawOrderType != l10n.nA 
+                      ? l10n.translateOrderType(rawOrderType)
+                      : l10n.nA;
                   
-                  // Format pickup address: City - Village/Area - Street
+                  // Get order category
+                  final orderCategory = _getSafeString(order['orderCategory'], l10n.nA);
+                  
+                  // Format user address: City - Village/Area - Street
                   final senderCity = _getSafeString(order['senderCity'], '');
                   final senderVillage = _getSafeString(order['senderVillage'], '');
                   final senderStreetDetails = _getSafeString(order['senderStreetDetails'], '');
                   
-                  String pickupAddress = 'N/A';
+                  String userAddress = '-';
                   if (senderCity.isNotEmpty || senderVillage.isNotEmpty || senderStreetDetails.isNotEmpty) {
                     final addressParts = <String>[];
                     if (senderCity.isNotEmpty) addressParts.add(senderCity);
                     if (senderVillage.isNotEmpty) addressParts.add(senderVillage);
                     if (senderStreetDetails.isNotEmpty) addressParts.add(senderStreetDetails);
-                    pickupAddress = addressParts.join(' - ');
+                    userAddress = addressParts.join(' - ');
                   }
                   
-                  // Format distance
-                  final distanceText = distance > 0
-                      ? l10n.kilometers(distance.toStringAsFixed(2))
-                      : l10n.nA;
+                  // Determine pickup and delivery based on order type
+                  final isSend = rawOrderType.toLowerCase() == 'send';
+                  final pickupAddress = isSend ? userAddress : '-';
+                  final deliveryAddress = isSend ? '-' : userAddress;
+                  
+                  // Get price
+                  final price = order['price']?.toString() ?? '0';
+                  
+                  // Get notes
+                  final notes = order['deliveryNotes']?.toString().trim() ?? '';
 
-                  // Get colors and icons for type and delivery type
-                  final orderTypeColor = _getOrderTypeColor(orderType);
-                  final deliveryTypeColor = _getDeliveryTypeColor(deliveryType);
-                  final orderTypeIcon = _getOrderTypeIcon(orderType);
-                  final deliveryTypeIcon = _getDeliveryTypeIcon(deliveryType);
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                          spreadRadius: 0,
-                        ),
-                        BoxShadow(
-                          color: orderTypeColor.withOpacity(0.05),
-                          blurRadius: 20,
-                          offset: const Offset(0, 4),
-                          spreadRadius: 0,
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          // Optional: Expand card on tap for additional details
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: orderTypeColor.withOpacity(0.1),
-                              width: 1,
-                            ),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Top Row: Order ID | Order Type | Order Category
-                                Row(
-                                  children: [
-                                    // Order ID - Modern badge
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.grey[50]!,
-                                            Colors.grey[100]!,
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(
-                                          color: Colors.grey[200]!,
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.receipt_long_rounded,
-                                            size: 16,
-                                            color: Colors.grey[800],
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            displayId != null 
-                                                ? '#$displayId'
-                                                : l10n.order,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w700,
-                                              color: Colors.grey[900],
-                                              letterSpacing: 0.3,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    // Order Type - Modern pill badge
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            orderTypeColor.withOpacity(0.15),
-                                            orderTypeColor.withOpacity(0.08),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            orderTypeIcon,
-                                            size: 15,
-                                            color: orderTypeColor,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            orderType.toUpperCase(),
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
-                                              color: orderTypeColor,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    // Category - Modern pill badge
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.purple.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.shopping_bag_rounded,
-                                            size: 15,
-                                            color: Colors.purple[700],
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Flexible(
-                                            child: Text(
-                                              orderCategory,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.purple[700],
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 14),
-                                
-                                // Second Row: Pickup Address (left) | Distance (right)
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.grey[200]!,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      // Pickup Address
-                                      Expanded(
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(6),
-                                              decoration: BoxDecoration(
-                                                color: Colors.red[50],
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Icon(
-                                                Icons.location_on_rounded,
-                                                size: 18,
-                                                color: Colors.red[600],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    'Pickup',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      color: Colors.grey[600],
-                                                      fontWeight: FontWeight.w600,
-                                                      letterSpacing: 0.5,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 2),
-                                                  Text(
-                                                    pickupAddress,
-                                                    style: TextStyle(
-                                                      fontSize: 14,
-                                                      color: Colors.grey[900],
-                                                      fontWeight: FontWeight.w500,
-                                                      height: 1.3,
-                                                    ),
-                                                    maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      // Distance - Modern badge
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.blue[50]!,
-                                              Colors.blue[100]!,
-                                            ],
-                                          ),
-                                          borderRadius: BorderRadius.circular(10),
-                                          border: Border.all(
-                                            color: Colors.blue[200]!,
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.straighten_rounded,
-                                              size: 16,
-                                              color: Colors.blue[700],
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              distanceText,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.blue[700],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                
-                                // Accept Order Button - Full-width at bottom
-                                Container(
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.green[600]!,
-                                        Colors.green[700]!,
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.green.withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
-                                        spreadRadius: 0,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: normalizedId == null
-                                          ? null
-                                          : () => _acceptOrder(normalizedId),
-                                      borderRadius: BorderRadius.circular(14),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 24,
-                                          vertical: 16,
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            const Icon(
-                                              Icons.check_circle_rounded,
-                                              size: 22,
-                                              color: Colors.white,
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Text(
-                                              l10n.accept,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.white,
-                                                letterSpacing: 0.5,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  return _buildCleanOrderCard(
+                    context: context,
+                    l10n: l10n,
+                    order: order,
+                    displayId: displayId,
+                    orderType: orderType,
+                    orderCategory: orderCategory,
+                    pickupAddress: pickupAddress,
+                    deliveryAddress: deliveryAddress,
+                    price: price,
+                    notes: notes,
+                    normalizedId: normalizedId,
                   );
                 },
               );
@@ -726,4 +342,568 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
     );
   }
 
+  Widget _buildCleanOrderCard({
+    required BuildContext context,
+    required AppLocalizations l10n,
+    required Map<String, dynamic> order,
+    String? displayId,
+    required String orderType,
+    required String orderCategory,
+    required String pickupAddress,
+    required String deliveryAddress,
+    required String price,
+    required String notes,
+    String? normalizedId,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey[200]!,
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Row: Order Number | Category | Price
+              Row(
+                children: [
+                  // Order Number
+                  if (displayId != null)
+                    Expanded(
+                      child: Text(
+                        '#$displayId',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                  
+                  // Category
+                  if (orderCategory != l10n.nA)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.purple.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.shopping_bag_rounded,
+                              size: 12,
+                              color: Colors.purple[700],
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                orderCategory,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.purple[700],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  
+                  // Price
+                  Expanded(
+                    child: Text(
+                      l10n.nis(price),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.primaryColor,
+                        letterSpacing: -0.3,
+                      ),
+                      textAlign: TextAlign.end,
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Single Row: Order Type | Pickup | Delivery
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.grey[300]!,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Order Type
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.type,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            orderType,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Divider
+                    Container(
+                      width: 1,
+                      height: 40,
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      color: Colors.grey[300],
+                    ),
+                    
+                    // Pickup Point
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on_rounded,
+                                size: 14,
+                                color: Colors.red[600],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                l10n.pickup,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            pickupAddress,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.textPrimary,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Divider
+                    Container(
+                      width: 1,
+                      height: 40,
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      color: Colors.grey[300],
+                    ),
+                    
+                    // Delivery Point
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.flag_rounded,
+                                size: 14,
+                                color: Colors.green[600],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                l10n.dropoff,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            deliveryAddress,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.textPrimary,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Action Buttons Row
+              Row(
+                children: [
+                  // Order Contents Button (for notes)
+                  if (notes.isNotEmpty) ...[
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showOrderNotes(context, l10n, notes),
+                        icon: const Icon(
+                          Icons.note_rounded,
+                          size: 16,
+                        ),
+                        label: Text(
+                          l10n.orderContents,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.textPrimary,
+                          side: BorderSide(
+                            color: Colors.grey[300]!,
+                            width: 1,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  // Accept Button
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: normalizedId != null
+                          ? () => _acceptOrder(normalizedId)
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        l10n.accept,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderNotesDialog extends StatefulWidget {
+  final String notes;
+  final AppLocalizations l10n;
+
+  const _OrderNotesDialog({
+    required this.notes,
+    required this.l10n,
+  });
+
+  @override
+  State<_OrderNotesDialog> createState() => _OrderNotesDialogState();
+}
+
+class _OrderNotesDialogState extends State<_OrderNotesDialog> {
+  final ScrollController _scrollController = ScrollController();
+  bool _showTopFade = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final currentScroll = _scrollController.position.pixels;
+    
+    setState(() {
+      _showTopFade = currentScroll > 10;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: 500,
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Modern Header with Gradient
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryColor.withOpacity(0.1),
+                    AppTheme.primaryColor.withOpacity(0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.note_rounded,
+                      color: AppTheme.primaryColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      widget.l10n.orderContents,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: Colors.grey[700],
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Scrollable Content Area with Fade Indicators
+            Flexible(
+              child: Stack(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    child: Scrollbar(
+                      controller: _scrollController,
+                      thumbVisibility: true,
+                      thickness: 4,
+                      radius: const Radius.circular(2),
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8F9FA),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.grey[200]!,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            widget.notes,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                              color: AppTheme.textPrimary,
+                              height: 1.7,
+                              letterSpacing: 0.2,
+                            ),
+                            textAlign: TextAlign.start,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // Top Fade Indicator
+                  if (_showTopFade)
+                    Positioned(
+                      top: 24,
+                      left: 24,
+                      right: 24,
+                      height: 20,
+                      child: IgnorePointer(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.white,
+                                Colors.white.withOpacity(0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            
+            // Modern Close Button
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.check_rounded,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        widget.l10n.close,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
