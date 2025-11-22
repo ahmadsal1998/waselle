@@ -321,12 +321,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dropoff => 'Drop-off';
 
   @override
-  String get from => 'From';
-
-  @override
-  String get to => 'To';
-
-  @override
   String get startNavigation => 'Start Navigation';
 
   @override
@@ -367,4 +361,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get close => 'Close';
+
+  @override
+  String get orderHistory => 'Order History';
+
+  @override
+  String get totalOrders => 'Total Orders';
+
+  @override
+  String get totalDeliveryFees => 'Total Delivery Fees';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get selectDate => 'Select Date';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get receiver => 'Receiver';
+
+  @override
+  String get deliveryFee => 'Delivery Fee';
+
+  @override
+  String get dateTime => 'Date & Time';
+
+  @override
+  String get remainingBalance => 'Remaining Balance';
+
+  @override
+  String get balanceWarningMessage => 'This balance will be deducted before account suspension';
+
+  @override
+  String get filter => 'Filter';
 }

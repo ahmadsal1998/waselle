@@ -193,6 +193,18 @@
   "statusOnTheWay": "في الطريق",
   "statusDelivered": "تم التوصيل",
   "orderContents": "محتوى الطلب",
-  "close": "إغلاق"
+  "close": "إغلاق",
+  "orderHistory": "سجل الطلبات",
+  "totalOrders": "إجمالي الطلبات",
+  "totalDeliveryFees": "إجمالي رسوم التوصيل",
+  "today": "اليوم",
+  "selectDate": "اختر التاريخ",
+  "clear": "مسح",
+  "receiver": "المستلم",
+  "deliveryFee": "رسوم التوصيل",
+  "dateTime": "التاريخ والوقت",
+  "remainingBalance": "المبلغ المستحق",
+  "balanceWarningMessage": "سيتم خصم هذا الرصيد قبل تعليق الحساب",
+  "filter": "تصفية"
 }
 

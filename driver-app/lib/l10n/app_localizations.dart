@@ -671,18 +671,6 @@ abstract class AppLocalizations {
   /// **'Drop-off'**
   String get dropoff;
 
-  /// From location label
-  ///
-  /// In en, this message translates to:
-  /// **'From'**
-  String get from;
-
-  /// To location label
-  ///
-  /// In en, this message translates to:
-  /// **'To'**
-  String get to;
-
   /// Start navigation button text
   ///
   /// In en, this message translates to:
@@ -766,6 +754,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
+
+  /// Order history screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Order History'**
+  String get orderHistory;
+
+  /// Total orders label
+  ///
+  /// In en, this message translates to:
+  /// **'Total Orders'**
+  String get totalOrders;
+
+  /// Total delivery fees label
+  ///
+  /// In en, this message translates to:
+  /// **'Total Delivery Fees'**
+  String get totalDeliveryFees;
+
+  /// Today filter label
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// Select date filter label
+  ///
+  /// In en, this message translates to:
+  /// **'Select Date'**
+  String get selectDate;
+
+  /// Clear filters button
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// Receiver section title
+  ///
+  /// In en, this message translates to:
+  /// **'Receiver'**
+  String get receiver;
+
+  /// Delivery fee label
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery Fee'**
+  String get deliveryFee;
+
+  /// Date and time label
+  ///
+  /// In en, this message translates to:
+  /// **'Date & Time'**
+  String get dateTime;
+
+  /// Remaining balance label
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining Balance'**
+  String get remainingBalance;
+
+  /// Balance warning message
+  ///
+  /// In en, this message translates to:
+  /// **'This balance will be deducted before account suspension'**
+  String get balanceWarningMessage;
+
+  /// Filter button label
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get filter;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

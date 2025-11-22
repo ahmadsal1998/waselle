@@ -39,6 +39,11 @@ class UserRepository {
     return _asMap(response);
   }
 
+  Future<Map<String, dynamic>> getMyBalance() async {
+    final response = await ApiClient.get('/users/balance');
+    return _asMap(response);
+  }
+
   Map<String, dynamic> _asMap(dynamic response) {
     if (response is Map<String, dynamic>) {
       return response;

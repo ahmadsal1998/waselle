@@ -499,6 +499,54 @@
   "close": "Close",
   "@close": {
     "description": "Close button text"
+  },
+  "orderHistory": "Order History",
+  "@orderHistory": {
+    "description": "Order history screen title"
+  },
+  "totalOrders": "Total Orders",
+  "@totalOrders": {
+    "description": "Total orders label"
+  },
+  "totalDeliveryFees": "Total Delivery Fees",
+  "@totalDeliveryFees": {
+    "description": "Total delivery fees label"
+  },
+  "today": "Today",
+  "@today": {
+    "description": "Today filter label"
+  },
+  "selectDate": "Select Date",
+  "@selectDate": {
+    "description": "Select date filter label"
+  },
+  "clear": "Clear",
+  "@clear": {
+    "description": "Clear filters button"
+  },
+  "receiver": "Receiver",
+  "@receiver": {
+    "description": "Receiver section title"
+  },
+  "deliveryFee": "Delivery Fee",
+  "@deliveryFee": {
+    "description": "Delivery fee label"
+  },
+  "dateTime": "Date & Time",
+  "@dateTime": {
+    "description": "Date and time label"
+  },
+  "remainingBalance": "Remaining Balance",
+  "@remainingBalance": {
+    "description": "Remaining balance label"
+  },
+  "balanceWarningMessage": "This balance will be deducted before account suspension",
+  "@balanceWarningMessage": {
+    "description": "Balance warning message"
+  },
+  "filter": "Filter",
+  "@filter": {
+    "description": "Filter button label"
   }
 }
 

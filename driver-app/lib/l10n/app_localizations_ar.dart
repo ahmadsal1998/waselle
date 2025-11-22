@@ -321,12 +321,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dropoff => ' الى';
 
   @override
-  String get from => 'من';
-
-  @override
-  String get to => 'إلى';
-
-  @override
   String get startNavigation => 'بدء التنقل';
 
   @override
@@ -367,4 +361,40 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get close => 'إغلاق';
+
+  @override
+  String get orderHistory => 'سجل الطلبات';
+
+  @override
+  String get totalOrders => 'إجمالي الطلبات';
+
+  @override
+  String get totalDeliveryFees => 'إجمالي رسوم التوصيل';
+
+  @override
+  String get today => 'اليوم';
+
+  @override
+  String get selectDate => 'اختر التاريخ';
+
+  @override
+  String get clear => 'مسح';
+
+  @override
+  String get receiver => 'المستلم';
+
+  @override
+  String get deliveryFee => 'رسوم التوصيل';
+
+  @override
+  String get dateTime => 'التاريخ والوقت';
+
+  @override
+  String get remainingBalance => 'المبلغ المستحق';
+
+  @override
+  String get balanceWarningMessage => 'سيتم خصم هذا الرصيد قبل تعليق الحساب';
+
+  @override
+  String get filter => 'تصفية';
 }
