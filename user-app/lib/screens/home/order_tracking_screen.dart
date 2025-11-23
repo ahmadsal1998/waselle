@@ -8,6 +8,8 @@ import '../../view_models/location_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../view_models/order_tracking_view_model.dart';
+import '../../view_models/auth_view_model.dart';
+import '../../services/zego_call_service.dart';
 import 'order_map_view_screen.dart';
 
 class OrderTrackingScreen extends StatelessWidget {
@@ -483,24 +485,66 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
           if (widget.order['driverId'] != null)
             Container(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: _InfoSection(
-                title: 'Driver Information',
-                rows: [
-                  _InfoRow(
-                    icon: Icons.person_outline_rounded,
-                    label: 'Name',
-                    value: widget.order['driverId']['name'],
+              child: Column(
+                children: [
+                  _InfoSection(
+                    title: 'Driver Information',
+                    rows: [
+                      _InfoRow(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Name',
+                        value: widget.order['driverId']['name'],
+                      ),
+                      _InfoRow(
+                        icon: Icons.phone_android_rounded,
+                        label: 'Phone',
+                        value: _formatPhone(widget.order['driverId']['phoneNumber']),
+                      ),
+                      _InfoRow(
+                        icon: Icons.directions_car_filled_rounded,
+                        label: 'Vehicle',
+                        value: widget.order['driverId']['vehicleType'] ??
+                            widget.order['vehicleType'],
+                      ),
+                    ],
                   ),
-                  _InfoRow(
-                    icon: Icons.phone_android_rounded,
-                    label: 'Phone',
-                    value: _formatPhone(widget.order['driverId']['phoneNumber']),
-                  ),
-                  _InfoRow(
-                    icon: Icons.directions_car_filled_rounded,
-                    label: 'Vehicle',
-                    value: widget.order['driverId']['vehicleType'] ??
-                        widget.order['vehicleType'],
+                  const SizedBox(height: 16),
+                  // Call Button
+                  Consumer<AuthViewModel>(
+                    builder: (context, authViewModel, _) {
+                      final orderId = widget.order['_id']?.toString();
+                      final user = authViewModel.user;
+                      if (orderId == null || user == null) {
+                        return const SizedBox.shrink();
+                      }
+                      
+                      final userId = user['_id']?.toString() ?? '';
+                      final userName = user['name']?.toString() ?? 'User';
+                      
+                      final driverId = widget.order['driverId']?['_id']?.toString();
+                      
+                      return SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            ZegoCallService.startCall(
+                              context: context,
+                              orderId: orderId,
+                              userId: userId,
+                              userName: userName,
+                              driverId: driverId,
+                              customerId: userId,
+                            );
+                          },
+                          icon: const Icon(Icons.phone_rounded),
+                          label: const Text('Call Driver'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: colorScheme.primary,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

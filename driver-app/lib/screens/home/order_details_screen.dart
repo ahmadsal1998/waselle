@@ -7,7 +7,9 @@ import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../view_models/location_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
+import '../../view_models/auth_view_model.dart';
 import '../../services/route_service.dart';
+import '../../services/zego_call_service.dart';
 import '../../utils/address_formatter.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
@@ -911,6 +913,46 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             ],
           ),
           
+          // Call Button
+          const SizedBox(height: 12),
+          Consumer<AuthViewModel>(
+            builder: (context, authViewModel, _) {
+              final orderId = _getOrderId(_order!);
+              final user = authViewModel.user;
+              if (orderId == null || user == null) {
+                return const SizedBox.shrink();
+              }
+              
+              final userId = user['_id']?.toString() ?? '';
+              final userName = user['name']?.toString() ?? 'Driver';
+              final customerId = _order!['customerId']?['_id']?.toString() ?? 
+                                 _order!['customerId']?.toString();
+              
+              return SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    ZegoCallService.startCall(
+                      context: context,
+                      orderId: orderId,
+                      userId: userId,
+                      userName: userName,
+                      driverId: userId,
+                      customerId: customerId,
+                    );
+                  },
+                  icon: const Icon(Icons.phone, size: 18),
+                  label: const Text('Call Customer'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: theme.colorScheme.primaryContainer,
+                    foregroundColor: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              );
+            },
+          ),
+          
           // Action button
           const SizedBox(height: 12),
           if (orderStatus == 'accepted')
@@ -1183,6 +1225,46 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 },
               ),
             ],
+            
+            // Call Button
+            const SizedBox(height: 16),
+            Consumer<AuthViewModel>(
+              builder: (context, authViewModel, _) {
+                final orderId = _getOrderId(_order!);
+                final user = authViewModel.user;
+                if (orderId == null || user == null) {
+                  return const SizedBox.shrink();
+                }
+                
+                final userId = user['_id']?.toString() ?? '';
+                final userName = user['name']?.toString() ?? 'Driver';
+                final customerId = _order!['customerId']?['_id']?.toString() ?? 
+                                   _order!['customerId']?.toString();
+                
+                return SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      ZegoCallService.startCall(
+                        context: context,
+                        orderId: orderId,
+                        userId: userId,
+                        userName: userName,
+                        driverId: userId,
+                        customerId: customerId,
+                      );
+                    },
+                    icon: const Icon(Icons.phone),
+                    label: const Text('Call Customer'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      foregroundColor: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                );
+              },
+            ),
             
             // Action Buttons
             const SizedBox(height: 16),

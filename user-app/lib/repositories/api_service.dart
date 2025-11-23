@@ -744,4 +744,38 @@ class ApiService {
     }
   }
 
+  // Zego Token Generation
+  static Future<Map<String, dynamic>> getZegoToken({
+    required String userId,
+    required String userName,
+    required String roomId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/zego/token'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'userId': userId,
+          'userName': userName,
+          'roomId': roomId,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return _parseResponse(response);
+      } else {
+        try {
+          final responseData = _parseResponse(response);
+          throw Exception(responseData['message'] ?? 'Failed to generate Zego token');
+        } catch (e) {
+          if (e is Exception) rethrow;
+          throw Exception('Failed to generate Zego token with status ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to generate Zego token: $e');
+    }
+  }
+
 }
