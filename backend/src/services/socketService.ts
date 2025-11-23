@@ -93,6 +93,78 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
       }
     });
 
+    // Handle call initiation - notify receiver
+    socket.on('call-initiate', async (data: { 
+      orderId: string; 
+      roomId: string; 
+      callerId: string; 
+      callerName: string;
+      receiverId: string;
+    }) => {
+      try {
+        console.log(`📞 Call initiated: ${data.callerId} calling ${data.receiverId} for order ${data.orderId}`);
+        
+        // Notify the receiver about the incoming call
+        emitToUserRoom(data.receiverId, 'incoming-call', {
+          orderId: data.orderId,
+          roomId: data.roomId,
+          callerId: data.callerId,
+          callerName: data.callerName,
+        });
+
+        // Also notify the caller that the call notification was sent
+        emitToUserRoom(data.callerId, 'call-notification-sent', {
+          orderId: data.orderId,
+          roomId: data.roomId,
+          receiverId: data.receiverId,
+        });
+      } catch (error) {
+        console.error('Error handling call initiation:', error);
+      }
+    });
+
+    // Handle call acceptance - notify caller
+    socket.on('call-accepted', async (data: {
+      orderId: string;
+      roomId: string;
+      callerId: string;
+      receiverId: string;
+    }) => {
+      try {
+        console.log(`✅ Call accepted: ${data.receiverId} accepted call from ${data.callerId} for order ${data.orderId}`);
+        
+        // Notify the caller that the call was accepted
+        emitToUserRoom(data.callerId, 'call-accepted', {
+          orderId: data.orderId,
+          roomId: data.roomId,
+          receiverId: data.receiverId,
+        });
+      } catch (error) {
+        console.error('Error handling call acceptance:', error);
+      }
+    });
+
+    // Handle call rejection - notify caller
+    socket.on('call-rejected', async (data: {
+      orderId: string;
+      roomId: string;
+      callerId: string;
+      receiverId: string;
+    }) => {
+      try {
+        console.log(`❌ Call rejected: ${data.receiverId} rejected call from ${data.callerId} for order ${data.orderId}`);
+        
+        // Notify the caller that the call was rejected
+        emitToUserRoom(data.callerId, 'call-rejected', {
+          orderId: data.orderId,
+          roomId: data.roomId,
+          receiverId: data.receiverId,
+        });
+      } catch (error) {
+        console.error('Error handling call rejection:', error);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`❌ User disconnected: ${socket.data.user?.userId}`);
     });

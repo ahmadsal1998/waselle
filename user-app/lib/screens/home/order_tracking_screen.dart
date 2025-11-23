@@ -518,7 +518,8 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
                         return const SizedBox.shrink();
                       }
                       
-                      final userId = user['_id']?.toString() ?? '';
+                      // Backend returns 'id' field, not '_id' - handle both for compatibility
+                      final userId = (user['id'] ?? user['_id'] ?? '').toString();
                       final userName = user['name']?.toString() ?? 'User';
                       
                       final driverId = widget.order['driverId']?['_id']?.toString();

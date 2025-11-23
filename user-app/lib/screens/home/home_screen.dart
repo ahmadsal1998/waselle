@@ -10,7 +10,10 @@ import '../../view_models/home_view_model.dart';
 import '../../view_models/location_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
+import 'package:provider/provider.dart';
 import '../../view_models/auth_view_model.dart';
+import '../../services/socket_service.dart';
+import '../../services/zego_call_service.dart';
 import 'order_history_screen.dart';
 import 'order_tracking_screen.dart';
 import 'profile_screen.dart';
@@ -46,8 +49,59 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _HomeScreenView extends StatelessWidget {
+class _HomeScreenView extends StatefulWidget {
   const _HomeScreenView();
+
+  @override
+  State<_HomeScreenView> createState() => _HomeScreenViewState();
+}
+
+class _HomeScreenViewState extends State<_HomeScreenView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeCallListener();
+    });
+  }
+
+  Future<void> _initializeCallListener() async {
+    // Ensure SocketService is initialized
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    if (authViewModel.isAuthenticated) {
+      await SocketService.initialize();
+      // Wait a bit for socket to connect
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+    _setupCallListener();
+  }
+
+  void _setupCallListener() {
+    SocketService.on('incoming-call', (data) {
+      if (!mounted) return;
+      
+      final orderId = data['orderId']?.toString();
+      final roomId = data['roomId']?.toString();
+      final callerId = data['callerId']?.toString();
+      final callerName = data['callerName']?.toString() ?? 'Unknown';
+      
+      if (orderId == null || roomId == null || callerId == null) {
+        debugPrint('Error: Invalid incoming call data');
+        return;
+      }
+      
+      debugPrint('📞 Received incoming call notification: $callerName');
+      
+      // Handle incoming call
+      ZegoCallService.handleIncomingCall(
+        context: context,
+        orderId: orderId,
+        roomId: roomId,
+        callerId: callerId,
+        callerName: callerName,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

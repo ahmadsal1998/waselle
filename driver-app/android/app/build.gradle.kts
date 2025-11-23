@@ -43,14 +43,8 @@ android {
         versionName = flutter.versionName
     }
 
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("arm64-v8a", "armeabi-v7a")
-            isUniversalApk = false
-        }
-    }
+    // Note: Using Flutter's --split-per-abi flag instead of gradle splits
+    // to avoid conflicts with plugin dependencies that set ndk abiFilters
 
     signingConfigs {
         create("release") {

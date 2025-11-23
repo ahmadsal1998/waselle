@@ -923,7 +923,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 return const SizedBox.shrink();
               }
               
-              final userId = user['_id']?.toString() ?? '';
+              // Backend returns 'id' field, not '_id' - handle both for compatibility
+              final userId = (user['id'] ?? user['_id'] ?? '').toString();
               final userName = user['name']?.toString() ?? 'Driver';
               final customerId = _order!['customerId']?['_id']?.toString() ?? 
                                  _order!['customerId']?.toString();
@@ -1236,7 +1237,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   return const SizedBox.shrink();
                 }
                 
-                final userId = user['_id']?.toString() ?? '';
+                // Backend returns 'id' field, not '_id' - handle both for compatibility
+                final userId = (user['id'] ?? user['_id'] ?? '').toString();
                 final userName = user['name']?.toString() ?? 'Driver';
                 final customerId = _order!['customerId']?['_id']?.toString() ?? 
                                    _order!['customerId']?.toString();
