@@ -533,8 +533,8 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
                               orderId: orderId,
                               userId: userId,
                               userName: userName,
-                              driverId: driverId,
-                              customerId: userId,
+                              driverId: driverId, // Driver is the receiver
+                              customerId: null, // User is the caller, so customerId should be null
                             );
                           },
                           icon: const Icon(Icons.phone_rounded),

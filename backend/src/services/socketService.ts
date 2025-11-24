@@ -6,8 +6,16 @@ import User from '../models/User';
 import Settings from '../models/Settings';
 import City from '../models/City';
 import { calculateDistance, findCityForLocation } from '../utils/distance';
+import { sendIncomingCallNotification } from './fcmService';
 
 let io: SocketServer;
+
+// Track pending calls: Map<callerId, { orderId, roomId, receiverId }[]>
+const pendingCalls = new Map<string, Array<{
+  orderId: string;
+  roomId: string;
+  receiverId: string;
+}>>();
 
 const emitToUserRoom = (
   userId: string | null | undefined,
@@ -104,13 +112,39 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
       try {
         console.log(`📞 Call initiated: ${data.callerId} calling ${data.receiverId} for order ${data.orderId}`);
         
-        // Notify the receiver about the incoming call
+        // Track pending call
+        const callerId = data.callerId;
+        if (!pendingCalls.has(callerId)) {
+          pendingCalls.set(callerId, []);
+        }
+        pendingCalls.get(callerId)!.push({
+          orderId: data.orderId,
+          roomId: data.roomId,
+          receiverId: data.receiverId,
+        });
+        
+        // Notify the receiver about the incoming call via Socket.IO
         emitToUserRoom(data.receiverId, 'incoming-call', {
           orderId: data.orderId,
           roomId: data.roomId,
           callerId: data.callerId,
           callerName: data.callerName,
         });
+
+        // Also send FCM push notification (works even when app is terminated)
+        try {
+          await sendIncomingCallNotification(data.receiverId, {
+            orderId: data.orderId,
+            roomId: data.roomId,
+            callerId: data.callerId,
+            callerName: data.callerName,
+            type: 'incoming_call',
+          });
+          console.log(`📱 FCM notification sent to user ${data.receiverId} for incoming call`);
+        } catch (error) {
+          console.error('Error sending FCM notification:', error);
+          // Don't fail the call initiation if FCM fails
+        }
 
         // Also notify the caller that the call notification was sent
         emitToUserRoom(data.callerId, 'call-notification-sent', {
@@ -133,6 +167,20 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
       try {
         console.log(`✅ Call accepted: ${data.receiverId} accepted call from ${data.callerId} for order ${data.orderId}`);
         
+        // Remove pending call from tracking
+        const callerPendingCalls = pendingCalls.get(data.callerId);
+        if (callerPendingCalls) {
+          const index = callerPendingCalls.findIndex(
+            call => call.orderId === data.orderId && call.roomId === data.roomId
+          );
+          if (index !== -1) {
+            callerPendingCalls.splice(index, 1);
+            if (callerPendingCalls.length === 0) {
+              pendingCalls.delete(data.callerId);
+            }
+          }
+        }
+        
         // Notify the caller that the call was accepted
         emitToUserRoom(data.callerId, 'call-accepted', {
           orderId: data.orderId,
@@ -154,6 +202,20 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
       try {
         console.log(`❌ Call rejected: ${data.receiverId} rejected call from ${data.callerId} for order ${data.orderId}`);
         
+        // Remove pending call from tracking
+        const callerPendingCalls = pendingCalls.get(data.callerId);
+        if (callerPendingCalls) {
+          const index = callerPendingCalls.findIndex(
+            call => call.orderId === data.orderId && call.roomId === data.roomId
+          );
+          if (index !== -1) {
+            callerPendingCalls.splice(index, 1);
+            if (callerPendingCalls.length === 0) {
+              pendingCalls.delete(data.callerId);
+            }
+          }
+        }
+        
         // Notify the caller that the call was rejected
         emitToUserRoom(data.callerId, 'call-rejected', {
           orderId: data.orderId,
@@ -165,8 +227,64 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
       }
     });
 
+    // Handle call cancellation - when caller cancels before receiver accepts
+    socket.on('call-cancelled', async (data: {
+      orderId: string;
+      roomId: string;
+      callerId: string;
+      receiverId: string;
+    }) => {
+      try {
+        console.log(`🚫 Call cancelled: ${data.callerId} cancelled call to ${data.receiverId} for order ${data.orderId}`);
+        
+        // Remove pending call from tracking
+        const callerPendingCalls = pendingCalls.get(data.callerId);
+        if (callerPendingCalls) {
+          const index = callerPendingCalls.findIndex(
+            call => call.orderId === data.orderId && call.roomId === data.roomId
+          );
+          if (index !== -1) {
+            callerPendingCalls.splice(index, 1);
+            if (callerPendingCalls.length === 0) {
+              pendingCalls.delete(data.callerId);
+            }
+          }
+        }
+        
+        // Notify the receiver that the call was cancelled
+        emitToUserRoom(data.receiverId, 'call-cancelled', {
+          orderId: data.orderId,
+          roomId: data.roomId,
+          callerId: data.callerId,
+        });
+      } catch (error) {
+        console.error('Error handling call cancellation:', error);
+      }
+    });
+
     socket.on('disconnect', () => {
-      console.log(`❌ User disconnected: ${socket.data.user?.userId}`);
+      const userId = socket.data.user?.userId;
+      console.log(`❌ User disconnected: ${userId}`);
+      
+      // If user has pending calls, notify receivers that caller disconnected
+      if (userId) {
+        const callerPendingCalls = pendingCalls.get(userId);
+        if (callerPendingCalls && callerPendingCalls.length > 0) {
+          console.log(`⚠️ User ${userId} disconnected with ${callerPendingCalls.length} pending call(s), notifying receivers...`);
+          
+          callerPendingCalls.forEach((call) => {
+            // Notify receiver that caller disconnected
+            emitToUserRoom(call.receiverId, 'call-cancelled', {
+              orderId: call.orderId,
+              roomId: call.roomId,
+              callerId: userId,
+            });
+          });
+          
+          // Clear pending calls for this user
+          pendingCalls.delete(userId);
+        }
+      }
     });
   });
 

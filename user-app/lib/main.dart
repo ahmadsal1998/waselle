@@ -15,6 +15,16 @@ import 'view_models/driver_view_model.dart';
 import 'view_models/region_view_model.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'services/app_lifecycle_service.dart';
+import 'services/fcm_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+// Background message handler - must be top-level function
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  firebaseMessagingBackgroundHandler(message);
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +32,17 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // Set up background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
+  // Initialize FCM service for push notifications
+  await FCMService().initialize();
+  
+  // Initialize app lifecycle service for handling calls across all app states
+  final navigatorKey = GlobalNavigatorKey.navigatorKey;
+  await AppLifecycleService().initialize(navigatorKey: navigatorKey);
+  
   runApp(const MyApp());
 }
 
@@ -57,6 +78,7 @@ class MyApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             theme: AppTheme.lightTheme,
+            navigatorKey: GlobalNavigatorKey.navigatorKey,
             home: const AuthWrapper(),
             // Handle unknown routes (like Firebase Auth callbacks) gracefully
             onUnknownRoute: (settings) {
@@ -84,6 +106,11 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
+}
+
+// Global navigator key for navigation from anywhere in the app
+class GlobalNavigatorKey {
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 }
 
 class AuthWrapper extends StatelessWidget {

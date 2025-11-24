@@ -938,8 +938,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       orderId: orderId,
                       userId: userId,
                       userName: userName,
-                      driverId: userId,
-                      customerId: customerId,
+                      driverId: null, // Driver is the caller, so driverId should be null
+                      customerId: customerId, // Customer is the receiver
                     );
                   },
                   icon: const Icon(Icons.phone, size: 18),
@@ -1252,8 +1252,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                         orderId: orderId,
                         userId: userId,
                         userName: userName,
-                        driverId: userId,
-                        customerId: customerId,
+                        driverId: null, // Driver is the caller, so driverId should be null
+                        customerId: customerId, // Customer is the receiver
                       );
                     },
                     icon: const Icon(Icons.phone),

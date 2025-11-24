@@ -121,6 +121,26 @@ class _HomeScreenState extends State<HomeScreen> {
         callerName: callerName,
       );
     });
+    
+    SocketService.on('call-cancelled', (data) {
+      if (!mounted) return;
+      
+      final roomId = data['roomId']?.toString();
+      final callerId = data['callerId']?.toString();
+      
+      if (roomId == null || callerId == null) {
+        debugPrint('Error: Invalid call cancellation data');
+        return;
+      }
+      
+      debugPrint('🚫 Call cancelled: Caller $callerId disconnected');
+      
+      // Cancel the incoming call dialog
+      ZegoCallService.cancelIncomingCall(
+        roomId: roomId,
+        callerId: callerId,
+      );
+    });
   }
 
 

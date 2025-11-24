@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
 import 'view_models/auth_view_model.dart';
@@ -13,10 +15,39 @@ import 'view_models/region_view_model.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/suspended_account_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'services/app_lifecycle_service.dart';
+import 'services/fcm_service.dart';
+
+// Background message handler - must be top-level function
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  firebaseMessagingBackgroundHandler(message);
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SharedPreferences.getInstance();
+  
+  // Initialize Firebase (driver app needs Firebase configured)
+  // Note: You'll need to add firebase_options.dart for driver app
+  // Run: flutterfire configure --project=your-project-id
+  try {
+    await Firebase.initializeApp();
+    
+    // Set up background message handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    
+    // Initialize FCM service for push notifications
+    await FCMService().initialize();
+  } catch (e) {
+    debugPrint('⚠️ Firebase initialization failed: $e');
+    debugPrint('   FCM features will not work until Firebase is configured');
+  }
+  
+  // Initialize app lifecycle service for handling calls across all app states
+  await AppLifecycleService().initialize();
+  
   runApp(const MyApp());
 }
 

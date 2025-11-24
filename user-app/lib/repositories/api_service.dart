@@ -8,8 +8,8 @@ class ApiService {
   // For Android emulator: 'http://10.0.2.2:5001/api'
   // For iOS simulator: 'http://localhost:5001/api'
   // For production: 'https://your-backend-url.com/api'
-  //static const String baseUrl = 'http://localhost:5001/api';
-  static const String baseUrl = 'https://waselle.onrender.com/api';
+  static const String baseUrl = 'http://localhost:5001/api';
+ // static const String baseUrl = 'https://waselle.onrender.com/api';
 
   // Get the base URL for socket connections (without /api)
   // For Render.com, socket URL should be the same as base URL without /api
@@ -775,6 +775,28 @@ class ApiService {
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('Failed to generate Zego token: $e');
+    }
+  }
+
+  /// Update FCM token for push notifications
+  static Future<void> updateFCMToken(String fcmToken) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/fcm-token'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'fcmToken': fcmToken,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return;
+      } else {
+        throw Exception('Failed to update FCM token with status ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to update FCM token: $e');
     }
   }
 
