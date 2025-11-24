@@ -8,6 +8,8 @@ class SocketService {
   static final Map<String, List<void Function(dynamic)>> _queuedListeners = {};
 
   static io.Socket? get socket => _socket;
+  
+  static bool get isConnected => _socket != null && _socket!.connected;
 
   static Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();

@@ -324,7 +324,7 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
       if (userId) {
         const callerPendingCalls = pendingCalls.get(userId);
         if (callerPendingCalls && callerPendingCalls.length > 0) {
-          console.log(`⚠️ User ${userId} disconnected with ${callerPendingCalls.length} pending call(s), notifying receivers...`);
+          console.log(`⚠️ User ${userId} disconnected with ${callerPendingCalls.length} pending call(s), checking status...`);
           
           callerPendingCalls.forEach((call) => {
             // Check if call was actually accepted before notifying cancellation
@@ -336,8 +336,20 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
                 roomId: call.roomId,
                 callerId: userId,
               });
+              console.log(`🚫 Call ${call.roomId} cancelled: caller disconnected before acceptance`);
             } else {
-              console.log(`ℹ️ Call ${call.roomId} was already accepted, skipping cancellation notification`);
+              // CRITICAL FIX: Add grace period for recently accepted calls
+              // Don't cancel calls that were accepted within the last 15 seconds
+              // This prevents race conditions where user disconnects right after accepting
+              const gracePeriodMs = 15 * 1000; // 15 seconds grace period
+              const timeSinceAccepted = Date.now() - acceptedCall.acceptedAt;
+              
+              if (timeSinceAccepted < gracePeriodMs) {
+                console.log(`⏳ Call ${call.roomId} was accepted ${timeSinceAccepted}ms ago (within ${gracePeriodMs}ms grace period), NOT cancelling`);
+                // Don't send cancellation - call was just accepted and user might be joining Zego room
+              } else {
+                console.log(`ℹ️ Call ${call.roomId} was accepted ${timeSinceAccepted}ms ago (outside grace period), skipping cancellation notification`);
+              }
             }
           });
           

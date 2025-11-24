@@ -296,17 +296,33 @@ class ZegoCallService {
     }
     
     try {
-      // Notify caller that call was accepted
-      SocketService.emit('call-accepted', {
-        'orderId': orderId,
-        'roomId': roomId,
-        'callerId': callerId,
-        'receiverId': userId,
-      });
+      // Ensure socket is connected before proceeding
+      if (!SocketService.isConnected) {
+        debugPrint('⚠️ Socket not connected, attempting to reconnect...');
+        await SocketService.initialize();
+        // Wait a moment for connection
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!SocketService.isConnected) {
+          debugPrint('❌ Socket still not connected after retry');
+          final dialogCtx = loadingDialogContext;
+          if (dialogCtx != null && dialogCtx.mounted) {
+            Navigator.of(dialogCtx).pop();
+          } else if (context.mounted) {
+            Navigator.of(context).pop();
+          }
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Connection error. Please check your internet and try again.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      }
       
-      debugPrint('📤 Call acceptance notification sent to caller');
-      
-      // Fetch token for the receiver
+      // Fetch token for the receiver FIRST
       final tokenData = await fetchToken(
         userId: userId,
         userName: userName,
@@ -400,6 +416,37 @@ class ZegoCallService {
           );
         }
       });
+      
+      // CRITICAL FIX: Emit call-accepted AFTER navigating to call screen
+      // This ensures Zego SDK has started initializing and joining the room
+      // Add a small delay to allow Zego to start the join process
+      await Future.delayed(const Duration(milliseconds: 1500));
+      
+      // Double-check socket is still connected before emitting
+      if (SocketService.isConnected) {
+        SocketService.emit('call-accepted', {
+          'orderId': orderId,
+          'roomId': roomId,
+          'callerId': callerId,
+          'receiverId': userId,
+        });
+        debugPrint('📤 Call acceptance notification sent to caller (after room join initiated)');
+      } else {
+        debugPrint('⚠️ Socket disconnected during call join, attempting to reconnect...');
+        await SocketService.initialize();
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (SocketService.isConnected) {
+          SocketService.emit('call-accepted', {
+            'orderId': orderId,
+            'roomId': roomId,
+            'callerId': callerId,
+            'receiverId': userId,
+          });
+          debugPrint('📤 Call acceptance notification sent to caller (after reconnection)');
+        } else {
+          debugPrint('❌ Failed to send call-accepted: socket not connected');
+        }
+      }
     } catch (e, stackTrace) {
       debugPrint('Exception in _acceptCall: $e');
       debugPrint('Stack trace: $stackTrace');
