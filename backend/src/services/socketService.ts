@@ -17,6 +17,13 @@ const pendingCalls = new Map<string, Array<{
   receiverId: string;
 }>>();
 
+// Track accepted calls to prevent false timeouts: Map<roomId, { callerId, receiverId, acceptedAt }>
+const acceptedCalls = new Map<string, {
+  callerId: string;
+  receiverId: string;
+  acceptedAt: number;
+}>();
+
 const emitToUserRoom = (
   userId: string | null | undefined,
   event: string,
@@ -167,6 +174,13 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
       try {
         console.log(`✅ Call accepted: ${data.receiverId} accepted call from ${data.callerId} for order ${data.orderId}`);
         
+        // Track accepted call to prevent false timeouts
+        acceptedCalls.set(data.roomId, {
+          callerId: data.callerId,
+          receiverId: data.receiverId,
+          acceptedAt: Date.now(),
+        });
+        
         // Remove pending call from tracking
         const callerPendingCalls = pendingCalls.get(data.callerId);
         if (callerPendingCalls) {
@@ -182,11 +196,43 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
         }
         
         // Notify the caller that the call was accepted
-        emitToUserRoom(data.callerId, 'call-accepted', {
-          orderId: data.orderId,
-          roomId: data.roomId,
-          receiverId: data.receiverId,
-        });
+        // Retry mechanism for Render free hosting delays
+        let retryCount = 0;
+        const maxRetries = 3;
+        const retryDelay = 1000; // 1 second
+        
+        const sendCallAccepted = () => {
+          try {
+            emitToUserRoom(data.callerId, 'call-accepted', {
+              orderId: data.orderId,
+              roomId: data.roomId,
+              receiverId: data.receiverId,
+            });
+            console.log(`📤 Call-accepted event sent to caller ${data.callerId} (attempt ${retryCount + 1})`);
+          } catch (error) {
+            console.error(`Error sending call-accepted event (attempt ${retryCount + 1}):`, error);
+            if (retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(sendCallAccepted, retryDelay * retryCount);
+            }
+          }
+        };
+        
+        // Send immediately
+        sendCallAccepted();
+        
+        // Also send a delayed confirmation (handles WebSocket delays on Render free hosting)
+        setTimeout(() => {
+          // Re-send call-accepted event after 2 seconds as a backup
+          // This helps if the first event was delayed or lost
+          emitToUserRoom(data.callerId, 'call-accepted', {
+            orderId: data.orderId,
+            roomId: data.roomId,
+            receiverId: data.receiverId,
+          });
+          console.log(`📤 Call-accepted event re-sent to caller ${data.callerId} (backup)`);
+        }, 2000);
+        
       } catch (error) {
         console.error('Error handling call acceptance:', error);
       }
@@ -266,6 +312,14 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
       const userId = socket.data.user?.userId;
       console.log(`❌ User disconnected: ${userId}`);
       
+      // Clean up accepted calls for this user (older than 5 minutes)
+      const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+      for (const [roomId, call] of acceptedCalls.entries()) {
+        if ((call.callerId === userId || call.receiverId === userId) && call.acceptedAt < fiveMinutesAgo) {
+          acceptedCalls.delete(roomId);
+        }
+      }
+      
       // If user has pending calls, notify receivers that caller disconnected
       if (userId) {
         const callerPendingCalls = pendingCalls.get(userId);
@@ -273,12 +327,18 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
           console.log(`⚠️ User ${userId} disconnected with ${callerPendingCalls.length} pending call(s), notifying receivers...`);
           
           callerPendingCalls.forEach((call) => {
-            // Notify receiver that caller disconnected
-            emitToUserRoom(call.receiverId, 'call-cancelled', {
-              orderId: call.orderId,
-              roomId: call.roomId,
-              callerId: userId,
-            });
+            // Check if call was actually accepted before notifying cancellation
+            const acceptedCall = acceptedCalls.get(call.roomId);
+            if (!acceptedCall) {
+              // Only notify cancellation if call wasn't accepted
+              emitToUserRoom(call.receiverId, 'call-cancelled', {
+                orderId: call.orderId,
+                roomId: call.roomId,
+                callerId: userId,
+              });
+            } else {
+              console.log(`ℹ️ Call ${call.roomId} was already accepted, skipping cancellation notification`);
+            }
           });
           
           // Clear pending calls for this user

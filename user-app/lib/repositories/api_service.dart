@@ -8,8 +8,8 @@ class ApiService {
   // For Android emulator: 'http://10.0.2.2:5001/api'
   // For iOS simulator: 'http://localhost:5001/api'
   // For production: 'https://your-backend-url.com/api'
-  static const String baseUrl = 'http://localhost:5001/api';
- // static const String baseUrl = 'https://waselle.onrender.com/api';
+  //static const String baseUrl = 'http://localhost:5001/api';
+  static const String baseUrl = 'https://waselle.onrender.com/api';
 
   // Get the base URL for socket connections (without /api)
   // For Render.com, socket URL should be the same as base URL without /api

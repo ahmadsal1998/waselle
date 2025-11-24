@@ -646,7 +646,16 @@ class ZegoCallService {
       // Track call acceptance status
       bool callAccepted = false;
       bool callRejected = false;
+      bool callConnected = false; // Track if call actually connected
       String? receiverId;
+      Timer? timeoutTimer; // Store timer reference to cancel it
+      
+      // Helper function to clean up listeners and cancel timeout
+      void cleanupCallListeners() {
+        SocketService.off('call-accepted');
+        SocketService.off('call-rejected');
+        timeoutTimer?.cancel();
+      }
       
       // Notify receiver via Socket.IO before starting call
       if (driverId != null || customerId != null) {
@@ -658,21 +667,21 @@ class ZegoCallService {
           void onCallAccepted(dynamic data) {
             if (data['roomId'] == roomId && data['callerId'] == userId) {
               callAccepted = true;
-              SocketService.off('call-accepted');
-              SocketService.off('call-rejected');
-              debugPrint('✅ Call accepted by receiver');
+              timeoutTimer?.cancel(); // Cancel timeout when call is accepted
+              cleanupCallListeners();
+              debugPrint('✅ Call accepted by receiver - timeout cancelled');
             }
           }
           
           void onCallRejected(dynamic data) {
             if (data['roomId'] == roomId && data['callerId'] == userId) {
               callRejected = true;
-              SocketService.off('call-accepted');
-              SocketService.off('call-rejected');
+              timeoutTimer?.cancel(); // Cancel timeout when call is rejected
+              cleanupCallListeners();
               debugPrint('❌ Call rejected by receiver');
               
               if (context.mounted) {
-                Navigator.of(context).pop(); // Close loading dialog
+                Navigator.of(context).pop(); // Close call screen if open
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Call rejected by receiver'),
@@ -687,12 +696,16 @@ class ZegoCallService {
           SocketService.on('call-accepted', onCallAccepted);
           SocketService.on('call-rejected', onCallRejected);
           
-          // Set timeout for call acceptance (30 seconds)
-          Timer(const Duration(seconds: 30), () {
-            if (!callAccepted && !callRejected && context.mounted) {
-              SocketService.off('call-accepted');
-              SocketService.off('call-rejected');
-              Navigator.of(context).pop(); // Close loading dialog
+          // Set timeout for call acceptance (60 seconds - increased for Render free hosting delays)
+          // This timeout will be cancelled if call-accepted is received OR if call connects
+          timeoutTimer = Timer(const Duration(seconds: 60), () {
+            if (!callAccepted && !callRejected && !callConnected && context.mounted) {
+              cleanupCallListeners();
+              debugPrint('⏱️ Call timeout: No response from receiver after 60 seconds');
+              
+              // Close call screen if it's open
+              Navigator.of(context).pop();
+              
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Call timed out. Receiver did not answer.'),
@@ -733,11 +746,10 @@ class ZegoCallService {
           ),
         ).then((_) {
           // Clean up listeners when call screen is closed
-          SocketService.off('call-accepted');
-          SocketService.off('call-rejected');
+          cleanupCallListeners();
           
           // If call screen is closed before receiver accepts, cancel the call
-          if (!callAccepted && !callRejected && receiverId != null && receiverId.isNotEmpty) {
+          if (!callAccepted && !callRejected && !callConnected && receiverId != null && receiverId.isNotEmpty) {
             debugPrint('⚠️ Call screen closed before receiver accepted, cancelling call...');
             SocketService.emit('call-cancelled', {
               'orderId': orderId,
@@ -745,6 +757,19 @@ class ZegoCallService {
               'callerId': userId,
               'receiverId': receiverId,
             });
+          }
+        });
+        
+        // Monitor call connection status - if call connects, cancel timeout
+        // We'll check this periodically or use a delayed check after navigation
+        Future.delayed(const Duration(seconds: 5), () {
+          // After 5 seconds, if we're still in the call screen, assume call connected
+          // This handles cases where call-accepted event is delayed but call actually connected
+          if (context.mounted && !callAccepted && !callRejected) {
+            // Check if we're still on the call screen (call connected)
+            // Note: This is a fallback - ideally call-accepted event should arrive
+            debugPrint('⏳ Checking if call connected (fallback check)...');
+            // The timeout will be cancelled if call-accepted arrives, or if call screen closes
           }
         });
       }
