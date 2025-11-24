@@ -211,6 +211,7 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
             emitToUserRoom(data.callerId, 'call-accepted', {
               orderId: data.orderId,
               roomId: data.roomId,
+              callerId: data.callerId, // CRITICAL: Include callerId for event matching
               receiverId: data.receiverId,
             });
             console.log(`📤 Call-accepted event sent to caller ${data.callerId} (attempt ${retryCount + 1})`);
@@ -227,6 +228,7 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
         console.log(`📤 Sending call-accepted to caller ${data.callerId}:`);
         console.log(`   - orderId: ${data.orderId}`);
         console.log(`   - roomId: ${data.roomId}`);
+        console.log(`   - callerId: ${data.callerId}`);
         console.log(`   - receiverId: ${data.receiverId}`);
         sendCallAccepted();
         
@@ -237,6 +239,7 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
           emitToUserRoom(data.callerId, 'call-accepted', {
             orderId: data.orderId,
             roomId: data.roomId,
+            callerId: data.callerId, // CRITICAL: Include callerId for event matching
             receiverId: data.receiverId,
           });
           console.log(`📤 Call-accepted event re-sent to caller ${data.callerId} (backup)`);
@@ -275,6 +278,7 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
         emitToUserRoom(data.callerId, 'call-rejected', {
           orderId: data.orderId,
           roomId: data.roomId,
+          callerId: data.callerId, // CRITICAL: Include callerId for event matching
           receiverId: data.receiverId,
         });
       } catch (error) {

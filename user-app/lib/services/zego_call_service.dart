@@ -727,34 +727,69 @@ class ZegoCallService {
       bool callConnected = false; // Track if call actually connected
       String? receiverId;
       Timer? timeoutTimer; // Store timer reference to cancel it
+      bool listenersCleanedUp = false; // Track if listeners were cleaned up
       
       // Helper function to clean up listeners and cancel timeout
       void cleanupCallListeners() {
+        if (listenersCleanedUp) return; // Prevent double cleanup
+        listenersCleanedUp = true;
         SocketService.off('call-accepted');
         SocketService.off('call-rejected');
         timeoutTimer?.cancel();
+        debugPrint('🧹 Call listeners cleaned up');
       }
       
       // Notify receiver via Socket.IO before starting call
       if (driverId != null || customerId != null) {
         receiverId = driverId ?? customerId;
         if (receiverId != null && receiverId.isNotEmpty) {
-          debugPrint('Sending call notification to receiver: $receiverId');
+          debugPrint('📤 Sending call notification to receiver: $receiverId');
+          debugPrint('📋 Call tracking info:');
+          debugPrint('   - roomId: $roomId');
+          debugPrint('   - callerId (userId): $userId');
+          debugPrint('   - receiverId: $receiverId');
           
-          // Set up listener for call rejection/timeout
+          // Set up listener for call acceptance
           void onCallAccepted(dynamic data) {
-            if (data['roomId'] == roomId && data['callerId'] == userId) {
+            debugPrint('📥 CALLER: Received call-accepted event');
+            debugPrint('   - Event roomId: ${data['roomId']}');
+            debugPrint('   - Event callerId: ${data['callerId']}');
+            debugPrint('   - Event receiverId: ${data['receiverId']}');
+            debugPrint('   - Expected roomId: $roomId');
+            debugPrint('   - Expected callerId: $userId');
+            
+            // Match by roomId and callerId to ensure it's the right call
+            final eventRoomId = data['roomId']?.toString();
+            final eventCallerId = data['callerId']?.toString();
+            
+            if (eventRoomId == roomId && eventCallerId == userId) {
+              debugPrint('✅ CALLER: Call-accepted event matched! Cancelling timeout...');
               callAccepted = true;
-              timeoutTimer?.cancel(); // Cancel timeout when call is accepted
+              timeoutTimer?.cancel();
+              timeoutTimer = null; // Clear reference
               cleanupCallListeners();
-              debugPrint('✅ Call accepted by receiver - timeout cancelled');
+              debugPrint('✅ Call accepted by receiver - timeout cancelled successfully');
+            } else {
+              debugPrint('⚠️ CALLER: Call-accepted event received but did not match:');
+              debugPrint('   - RoomId match: ${eventRoomId == roomId}');
+              debugPrint('   - CallerId match: ${eventCallerId == userId}');
             }
           }
           
+          // Set up listener for call rejection
           void onCallRejected(dynamic data) {
-            if (data['roomId'] == roomId && data['callerId'] == userId) {
+            debugPrint('📥 CALLER: Received call-rejected event');
+            debugPrint('   - Event roomId: ${data['roomId']}');
+            debugPrint('   - Event callerId: ${data['callerId']}');
+            
+            final eventRoomId = data['roomId']?.toString();
+            final eventCallerId = data['callerId']?.toString();
+            
+            if (eventRoomId == roomId && eventCallerId == userId) {
+              debugPrint('❌ CALLER: Call-rejected event matched! Cancelling timeout...');
               callRejected = true;
-              timeoutTimer?.cancel(); // Cancel timeout when call is rejected
+              timeoutTimer?.cancel();
+              timeoutTimer = null; // Clear reference
               cleanupCallListeners();
               debugPrint('❌ Call rejected by receiver');
               
@@ -771,13 +806,21 @@ class ZegoCallService {
             }
           }
           
+          // Register listeners BEFORE emitting call-initiate
           SocketService.on('call-accepted', onCallAccepted);
           SocketService.on('call-rejected', onCallRejected);
+          debugPrint('👂 CALLER: Registered listeners for call-accepted and call-rejected');
           
-          // Set timeout for call acceptance (60 seconds - increased for Render free hosting delays)
-          // This timeout will be cancelled if call-accepted is received OR if call connects
+          // Set timeout for call acceptance (60 seconds)
+          // This timeout will be cancelled if call-accepted is received
           timeoutTimer = Timer(const Duration(seconds: 60), () {
-            if (!callAccepted && !callRejected && !callConnected && context.mounted) {
+            // Double-check before showing timeout
+            if (!callAccepted && !callRejected && !listenersCleanedUp && context.mounted) {
+              debugPrint('⏱️ CALLER: Call timeout triggered');
+              debugPrint('   - callAccepted: $callAccepted');
+              debugPrint('   - callRejected: $callRejected');
+              debugPrint('   - listenersCleanedUp: $listenersCleanedUp');
+              
               cleanupCallListeners();
               debugPrint('⏱️ Call timeout: No response from receiver after 60 seconds');
               
@@ -791,6 +834,10 @@ class ZegoCallService {
                   duration: Duration(seconds: 3),
                 ),
               );
+            } else {
+              debugPrint('⏱️ CALLER: Timeout triggered but call was already handled');
+              debugPrint('   - callAccepted: $callAccepted');
+              debugPrint('   - callRejected: $callRejected');
             }
           });
           
@@ -823,11 +870,12 @@ class ZegoCallService {
             ),
           ),
         ).then((_) {
+          debugPrint('🔴 CALLER: Call screen closed');
           // Clean up listeners when call screen is closed
           cleanupCallListeners();
           
           // If call screen is closed before receiver accepts, cancel the call
-          if (!callAccepted && !callRejected && !callConnected && receiverId != null && receiverId.isNotEmpty) {
+          if (!callAccepted && !callRejected && receiverId != null && receiverId.isNotEmpty) {
             debugPrint('⚠️ Call screen closed before receiver accepted, cancelling call...');
             SocketService.emit('call-cancelled', {
               'orderId': orderId,
@@ -835,19 +883,8 @@ class ZegoCallService {
               'callerId': userId,
               'receiverId': receiverId,
             });
-          }
-        });
-        
-        // Monitor call connection status - if call connects, cancel timeout
-        // We'll check this periodically or use a delayed check after navigation
-        Future.delayed(const Duration(seconds: 5), () {
-          // After 5 seconds, if we're still in the call screen, assume call connected
-          // This handles cases where call-accepted event is delayed but call actually connected
-          if (context.mounted && !callAccepted && !callRejected) {
-            // Check if we're still on the call screen (call connected)
-            // Note: This is a fallback - ideally call-accepted event should arrive
-            debugPrint('⏳ Checking if call connected (fallback check)...');
-            // The timeout will be cancelled if call-accepted arrives, or if call screen closes
+          } else if (callAccepted) {
+            debugPrint('✅ Call screen closed after call was accepted - normal end');
           }
         });
       }
