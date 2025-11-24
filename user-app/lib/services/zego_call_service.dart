@@ -238,7 +238,13 @@ class ZegoCallService {
     required String callerId,
     required String callerName,
   }) async {
-    debugPrint('✅ Call accepted: Joining room $roomId');
+    debugPrint('✅ RECEIVER: Call accepted');
+    debugPrint('📋 RECEIVER ACCEPT PARAMETERS:');
+    debugPrint('   - orderId: $orderId');
+    debugPrint('   - roomId (from socket): $roomId');
+    debugPrint('   - callerId: $callerId');
+    debugPrint('   - callerName: $callerName');
+    debugPrint('   - Will use this EXACT roomId to join Zego room');
     
     // Get current user info
     final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
@@ -368,8 +374,14 @@ class ZegoCallService {
       }
       
       debugPrint('✅ Token fetched successfully. Navigating to call screen...');
-      debugPrint('Call parameters - appID: $appID, userId: $userId, userName: $userName, roomId: $roomId');
-      debugPrint('Token length: ${token.length}, Token preview: ${token.substring(0, 20)}...');
+      debugPrint('📋 RECEIVER JOIN PARAMETERS:');
+      debugPrint('   - appID: $appID');
+      debugPrint('   - userID: $userId');
+      debugPrint('   - userName: $userName');
+      debugPrint('   - callID (roomId): $roomId');
+      debugPrint('   - token length: ${token.length}');
+      debugPrint('   - microphone enabled: true');
+      debugPrint('   - Socket connected: ${SocketService.isConnected}');
       
       // Ensure context is still valid before navigation
       if (!context.mounted) {
@@ -389,6 +401,14 @@ class ZegoCallService {
       // Navigate to call screen - receiver joins the same room
       // Use same pattern as caller for consistency (no Scaffold wrapper)
       debugPrint('🚀 Navigating to Zego call screen for receiver...');
+      debugPrint('📋 RECEIVER JOIN PARAMETERS:');
+      debugPrint('   - appID: $appID');
+      debugPrint('   - userID: $userId');
+      debugPrint('   - userName: $userName');
+      debugPrint('   - callID (roomId): $roomId');
+      debugPrint('   - token length: ${token.length}');
+      debugPrint('   - microphone enabled: true');
+      
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (callContext) => ZegoUIKitPrebuiltCall(
@@ -404,9 +424,9 @@ class ZegoCallService {
           ),
         ),
       ).then((_) {
-        debugPrint('Call screen closed');
+        debugPrint('🔴 RECEIVER: Call screen closed');
       }).catchError((error) {
-        debugPrint('Error navigating to call screen: $error');
+        debugPrint('❌ RECEIVER: Error navigating to call screen: $error');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -643,8 +663,14 @@ class ZegoCallService {
         driverId: finalDriverId,
         customerId: finalCustomerId,
       );
-      debugPrint('Starting call with roomId: $roomId, userId: $userId, userName: $userName');
-      debugPrint('Room ID components - orderId: $orderId, driverId: $finalDriverId, customerId: $finalCustomerId');
+      debugPrint('📋 CALLER ROOM ID GENERATION:');
+      debugPrint('   - orderId: $orderId');
+      debugPrint('   - driverId: $finalDriverId');
+      debugPrint('   - customerId: $finalCustomerId');
+      debugPrint('   - Generated roomId: $roomId');
+      debugPrint('   - userId (caller): $userId');
+      debugPrint('   - userName (caller): $userName');
+      debugPrint('   - Socket connected: ${SocketService.isConnected}');
 
       // Fetch token from backend
       final tokenData = await fetchToken(
@@ -687,8 +713,13 @@ class ZegoCallService {
       }
 
       debugPrint('✅ Caller token fetched successfully');
-      debugPrint('Caller parameters - appID: $appID, userId: $userId, userName: $userName, roomId: $roomId');
-      debugPrint('Token length: ${token.length}, Token preview: ${token.substring(0, 20)}...');
+      debugPrint('📋 CALLER JOIN PARAMETERS:');
+      debugPrint('   - appID: $appID');
+      debugPrint('   - userID: $userId');
+      debugPrint('   - userName: $userName');
+      debugPrint('   - callID (roomId): $roomId');
+      debugPrint('   - token length: ${token.length}');
+      debugPrint('   - microphone enabled: true');
 
       // Track call acceptance status
       bool callAccepted = false;

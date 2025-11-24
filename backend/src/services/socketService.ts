@@ -131,6 +131,11 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
         });
         
         // Notify the receiver about the incoming call via Socket.IO
+        console.log(`📤 Sending incoming-call to receiver ${data.receiverId}:`);
+        console.log(`   - orderId: ${data.orderId}`);
+        console.log(`   - roomId: ${data.roomId}`);
+        console.log(`   - callerId: ${data.callerId}`);
+        console.log(`   - callerName: ${data.callerName}`);
         emitToUserRoom(data.receiverId, 'incoming-call', {
           orderId: data.orderId,
           roomId: data.roomId,
@@ -219,6 +224,10 @@ export const initializeSocket = (server: HttpServer): SocketServer => {
         };
         
         // Send immediately
+        console.log(`📤 Sending call-accepted to caller ${data.callerId}:`);
+        console.log(`   - orderId: ${data.orderId}`);
+        console.log(`   - roomId: ${data.roomId}`);
+        console.log(`   - receiverId: ${data.receiverId}`);
         sendCallAccepted();
         
         // Also send a delayed confirmation (handles WebSocket delays on Render free hosting)

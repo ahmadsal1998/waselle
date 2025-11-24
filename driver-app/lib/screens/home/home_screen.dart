@@ -110,7 +110,12 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
       
-      debugPrint('📞 Received incoming call notification: $callerName');
+      debugPrint('📞 RECEIVER: Received incoming call notification');
+      debugPrint('   - callerName: $callerName');
+      debugPrint('   - orderId: $orderId');
+      debugPrint('   - roomId (from server): $roomId');
+      debugPrint('   - callerId: $callerId');
+      debugPrint('   - Will use this EXACT roomId when accepting call');
       
       // Handle incoming call
       ZegoCallService.handleIncomingCall(
