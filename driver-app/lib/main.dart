@@ -107,8 +107,16 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthViewModel>(
-      builder: (context, authViewModel, _) {
+    return Consumer2<AuthViewModel, LocaleViewModel>(
+      builder: (context, authViewModel, localeViewModel, _) {
+        // Sync language preference when user data is available
+        if (authViewModel.isAuthenticated && authViewModel.user != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final preferredLanguage = authViewModel.user?['preferredLanguage'] as String?;
+            localeViewModel.syncFromBackend(preferredLanguage);
+          });
+        }
+        
         // Show loading indicator while checking auth status
         if (authViewModel.isCheckingAuth) {
           return const Scaffold(

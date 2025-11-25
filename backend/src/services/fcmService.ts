@@ -1,5 +1,6 @@
 import { admin } from '../utils/firebase';
 import User from '../models/User';
+import { getNotificationMessages } from '../utils/notificationMessages';
 
 interface CallNotificationData {
   orderId: string;
@@ -11,6 +12,7 @@ interface CallNotificationData {
 
 /**
  * Send FCM push notification to a user
+ * If title/body are not provided, they will be determined from user's language preference
  */
 export const sendPushNotification = async (
   userId: string,
@@ -19,12 +21,15 @@ export const sendPushNotification = async (
   data?: Record<string, string>
 ): Promise<boolean> => {
   try {
-    // Get user's FCM token
+    // Get user's FCM token and language preference
     const user = await User.findById(userId);
     if (!user || !user.fcmToken) {
       console.log(`⚠️  User ${userId} has no FCM token, skipping push notification`);
       return false;
     }
+    
+    // Use user's preferred language if available (defaults to 'ar')
+    const language = (user.preferredLanguage || 'ar') as 'ar' | 'en';
 
     // Determine channel ID based on notification type
     const channelId = data?.type === 'incoming_call' ? 'incoming_calls' : 'order_updates';
@@ -111,20 +116,34 @@ export const sendIncomingCallNotification = async (
   receiverId: string,
   callData: CallNotificationData
 ): Promise<boolean> => {
-  const callerName = callData.callerName || 'Someone';
-  
-  return sendPushNotification(
-    receiverId,
-    'Incoming Call',
-    `${callerName} is calling you`,
-    {
-      type: 'incoming_call',
-      orderId: callData.orderId,
-      roomId: callData.roomId,
-      callerId: callData.callerId,
-      callerName: callData.callerName,
+  try {
+    // Get user to retrieve their preferred language
+    const user = await User.findById(receiverId);
+    if (!user || !user.fcmToken) {
+      console.log(`⚠️  User ${receiverId} has no FCM token, skipping call notification`);
+      return false;
     }
-  );
+    
+    const language = (user.preferredLanguage || 'ar') as 'ar' | 'en';
+    const msgs = getNotificationMessages(language);
+    const callerName = callData.callerName || (language === 'ar' ? 'شخص ما' : 'Someone');
+    
+    return sendPushNotification(
+      receiverId,
+      msgs.incomingCall.title,
+      msgs.incomingCall.body(callerName),
+      {
+        type: 'incoming_call',
+        orderId: callData.orderId,
+        roomId: callData.roomId,
+        callerId: callData.callerId,
+        callerName: callData.callerName,
+      }
+    );
+  } catch (error: any) {
+    console.error(`❌ Error sending incoming call notification:`, error.message);
+    return false;
+  }
 };
 
 /**

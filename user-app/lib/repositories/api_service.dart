@@ -911,4 +911,26 @@ class ApiService {
     }
   }
 
+  /// Update user's preferred language
+  static Future<void> updatePreferredLanguage(String languageCode) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/users/preferred-language'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'preferredLanguage': languageCode,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return;
+      } else {
+        throw Exception('Failed to update preferred language with status ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to update preferred language: $e');
+    }
+  }
+
 }

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/api_service.dart';
 import '../services/socket_service.dart';
+import '../services/fcm_service.dart';
 import '../utils/phone_utils.dart';
 
 class AuthViewModel with ChangeNotifier {
@@ -33,7 +34,9 @@ class AuthViewModel with ChangeNotifier {
         if (response['user'] != null) {
           _user = response['user'];
           _isAuthenticated = true;
-        await SocketService.initialize();
+          await SocketService.initialize();
+          // Save FCM token after successful auth check
+          FCMService().savePendingToken();
         } else {
           // Token is invalid, remove it
           await prefs.remove('token');
@@ -152,6 +155,8 @@ class AuthViewModel with ChangeNotifier {
         await SocketService.initialize();
         // Give socket a moment to connect before proceeding
         await Future.delayed(const Duration(milliseconds: 500));
+        // Save FCM token after successful authentication
+        FCMService().savePendingToken();
         notifyListeners();
         return true;
       }
@@ -184,6 +189,8 @@ class AuthViewModel with ChangeNotifier {
         _isAuthenticated = true;
         _errorMessage = null;
         await SocketService.initialize();
+        // Save FCM token after successful login
+        FCMService().savePendingToken();
         notifyListeners();
         return true;
       }

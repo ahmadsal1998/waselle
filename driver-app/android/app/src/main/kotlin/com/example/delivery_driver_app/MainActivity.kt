@@ -13,19 +13,39 @@ class MainActivity : FlutterActivity() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelId = "incoming_calls"
-            val channelName = "Incoming Calls"
-            val channelDescription = "Notifications for incoming voice calls"
-            val importance = NotificationManager.IMPORTANCE_HIGH
+            val notificationManager = getSystemService(NotificationManager::class.java)
             
-            val channel = NotificationChannel(channelId, channelName, importance).apply {
-                description = channelDescription
+            // Create order_updates channel
+            val orderUpdatesChannelId = "order_updates"
+            val orderUpdatesChannelName = "Order Updates"
+            val orderUpdatesChannelDescription = "Notifications for order status updates"
+            val orderUpdatesChannel = NotificationChannel(
+                orderUpdatesChannelId,
+                orderUpdatesChannelName,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = orderUpdatesChannelDescription
                 enableVibration(true)
                 enableLights(true)
+                setShowBadge(true)
             }
+            notificationManager.createNotificationChannel(orderUpdatesChannel)
             
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
+            // Create incoming_calls channel
+            val incomingCallsChannelId = "incoming_calls"
+            val incomingCallsChannelName = "Incoming Calls"
+            val incomingCallsChannelDescription = "Notifications for incoming voice calls"
+            val incomingCallsChannel = NotificationChannel(
+                incomingCallsChannelId,
+                incomingCallsChannelName,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = incomingCallsChannelDescription
+                enableVibration(true)
+                enableLights(true)
+                setShowBadge(true)
+            }
+            notificationManager.createNotificationChannel(incomingCallsChannel)
         }
     }
 }

@@ -195,13 +195,51 @@ class GlobalNavigatorKey {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    // Sync language preference from backend when user data is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncLanguagePreference();
+    });
+  }
+
+  void _syncLanguagePreference() {
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    final localeViewModel = Provider.of<LocaleViewModel>(context, listen: false);
+    
+    if (authViewModel.isAuthenticated && authViewModel.user != null) {
+      final preferredLanguage = authViewModel.user?['preferredLanguage'] as String?;
+      localeViewModel.syncFromBackend(preferredLanguage);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Allow unauthenticated access - users can use the app without login
-    // Verification only happens when placing an order
-    return const HomeScreen();
+    // Sync language preference when user data changes
+    return Consumer<AuthViewModel>(
+      builder: (context, authViewModel, _) {
+        // Sync language preference when user data is available
+        if (authViewModel.isAuthenticated && authViewModel.user != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final localeViewModel = Provider.of<LocaleViewModel>(context, listen: false);
+            final preferredLanguage = authViewModel.user?['preferredLanguage'] as String?;
+            localeViewModel.syncFromBackend(preferredLanguage);
+          });
+        }
+        
+        // Allow unauthenticated access - users can use the app without login
+        // Verification only happens when placing an order
+        return const HomeScreen();
+      },
+    );
   }
 }

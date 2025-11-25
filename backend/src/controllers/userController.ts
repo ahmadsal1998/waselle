@@ -298,3 +298,45 @@ export const updateFCMToken = async (
     });
   }
 };
+
+// Update user's preferred language
+export const updatePreferredLanguage = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    const { preferredLanguage } = req.body;
+
+    if (!preferredLanguage || !['ar', 'en'].includes(preferredLanguage)) {
+      res.status(400).json({ 
+        message: 'Preferred language is required and must be either "ar" or "en"' 
+      });
+      return;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.userId,
+      { preferredLanguage },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    res.status(200).json({
+      message: 'Preferred language updated successfully',
+      user,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      message: error.message || 'Failed to update preferred language',
+    });
+  }
+};

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../repositories/auth_repository.dart';
 import '../repositories/user_repository.dart';
+import '../services/fcm_service.dart';
 
 class AuthViewModel with ChangeNotifier {
   AuthViewModel({
@@ -52,6 +53,9 @@ class AuthViewModel with ChangeNotifier {
       }
       _isAuthenticated = true;
       _isSuspended = _user?['isActive'] == false;
+      
+      // Save FCM token after successful auth check
+      FCMService().savePendingToken();
     } catch (e) {
       await prefs.remove('token');
       await prefs.remove('vehicleType');
@@ -111,6 +115,10 @@ class AuthViewModel with ChangeNotifier {
         _isAuthenticated = true;
         _isSuspended = _user?['isActive'] == false;
         notifyListeners();
+        
+        // Save FCM token after successful login
+        FCMService().savePendingToken();
+        
         return true;
       }
       return false;

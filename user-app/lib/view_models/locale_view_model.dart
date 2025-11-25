@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../repositories/api_service.dart';
 
 class LocaleViewModel extends ChangeNotifier {
   static const String _localeKey = 'selected_locale';
@@ -30,7 +31,7 @@ class LocaleViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> setLocale(Locale locale) async {
+  Future<void> setLocale(Locale locale, {bool syncToBackend = true}) async {
     if (_locale == locale) return;
 
     _locale = locale;
@@ -39,6 +40,19 @@ class LocaleViewModel extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_localeKey, locale.languageCode);
+      
+      // Sync language preference to backend if user is authenticated and syncToBackend is true
+      if (syncToBackend) {
+        try {
+          final token = prefs.getString('token');
+          if (token != null) {
+            await ApiService.updatePreferredLanguage(locale.languageCode);
+          }
+        } catch (e) {
+          // Silently fail if backend sync fails (user might not be logged in)
+          debugPrint('Failed to sync language preference to backend: $e');
+        }
+      }
     } catch (e) {
       // If saving fails, continue with the locale change
       debugPrint('Failed to save locale: $e');
@@ -54,6 +68,17 @@ class LocaleViewModel extends ChangeNotifier {
       setLanguage('en');
     } else {
       setLanguage('ar');
+    }
+  }
+
+  /// Sync language preference from backend (called after login/auth check)
+  Future<void> syncFromBackend(String? preferredLanguage) async {
+    if (preferredLanguage != null && (preferredLanguage == 'ar' || preferredLanguage == 'en')) {
+      // Only update if different from current locale to avoid unnecessary updates
+      if (_locale.languageCode != preferredLanguage) {
+        // Don't sync back to backend when syncing FROM backend to avoid loops
+        await setLocale(Locale(preferredLanguage), syncToBackend: false);
+      }
     }
   }
 }

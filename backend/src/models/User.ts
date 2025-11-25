@@ -23,6 +23,7 @@ export interface IUser extends Document {
   otpExpires?: Date;
   profilePicture?: string;
   fcmToken?: string; // Firebase Cloud Messaging token for push notifications
+  preferredLanguage?: 'ar' | 'en'; // User's preferred language for notifications ('ar' or 'en')
   createdAt: Date;
   updatedAt: Date;
 }
@@ -139,6 +140,12 @@ const UserSchema: Schema = new Schema(
       type: String,
       trim: true,
       sparse: true, // Allow multiple null values
+    },
+    preferredLanguage: {
+      type: String,
+      enum: ['ar', 'en'],
+      default: 'ar', // Default to Arabic to match app default
+      trim: true,
     },
   },
   {

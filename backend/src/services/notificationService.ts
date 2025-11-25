@@ -1,5 +1,6 @@
 import { admin } from '../utils/firebase';
 import User from '../models/User';
+import { getOrderStatusMessage, getNotificationMessages } from '../utils/notificationMessages';
 
 export interface NotificationPayload {
   title: string;
@@ -110,33 +111,12 @@ export const sendOrderStatusNotification = async (
   status: string,
   orderData?: any
 ): Promise<void> => {
-  const statusMessages: Record<string, { title: string; body: string }> = {
-    pending: {
-      title: 'Order Placed',
-      body: 'Your order has been placed and is waiting for a driver.',
-    },
-    accepted: {
-      title: 'Order Accepted',
-      body: 'A driver has accepted your order and will be on their way soon!',
-    },
-    on_the_way: {
-      title: 'Driver On The Way',
-      body: 'Your driver is on the way to pick up your order.',
-    },
-    delivered: {
-      title: 'Order Delivered',
-      body: 'Your order has been delivered successfully!',
-    },
-    cancelled: {
-      title: 'Order Cancelled',
-      body: 'Your order has been cancelled.',
-    },
-  };
-
-  const message = statusMessages[status] || {
-    title: 'Order Update',
-    body: `Your order status has been updated to ${status}.`,
-  };
+  // Get user to retrieve their preferred language
+  const user = await User.findById(customerId);
+  const language = (user?.preferredLanguage || 'ar') as 'ar' | 'en';
+  
+  // Get language-specific message
+  const message = getOrderStatusMessage(status, language, false);
 
   await sendNotificationToUser(customerId, {
     title: message.title,
@@ -159,29 +139,12 @@ export const sendDriverOrderStatusNotification = async (
   status: string,
   orderData?: any
 ): Promise<void> => {
-  const statusMessages: Record<string, { title: string; body: string }> = {
-    accepted: {
-      title: 'Order Accepted',
-      body: 'You have successfully accepted the order.',
-    },
-    on_the_way: {
-      title: 'Status Updated',
-      body: 'Order status updated to "On The Way".',
-    },
-    delivered: {
-      title: 'Order Delivered',
-      body: 'Order marked as delivered successfully!',
-    },
-    cancelled: {
-      title: 'Order Cancelled',
-      body: 'The order has been cancelled.',
-    },
-  };
-
-  const message = statusMessages[status] || {
-    title: 'Order Update',
-    body: `Order status updated to ${status}.`,
-  };
+  // Get user to retrieve their preferred language
+  const user = await User.findById(driverId);
+  const language = (user?.preferredLanguage || 'ar') as 'ar' | 'en';
+  
+  // Get language-specific message
+  const message = getOrderStatusMessage(status, language, true);
 
   await sendNotificationToUser(driverId, {
     title: message.title,
