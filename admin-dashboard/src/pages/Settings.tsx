@@ -15,6 +15,13 @@ const Settings = () => {
   const [mapDefaultZoom, setMapDefaultZoom] = useState<number>(12);
   const [commissionPercentage, setCommissionPercentage] = useState<number>(2);
   const [maxAllowedBalance, setMaxAllowedBalance] = useState<number>(50);
+  const [otpMessageTemplate, setOtpMessageTemplate] = useState<string>(
+    'Your OTP code is: ${otp}. This code will expire in 10 minutes.'
+  );
+  const [otpMessageTemplateAr, setOtpMessageTemplateAr] = useState<string>(
+    'رمز التحقق الخاص بك هو: ${otp}. هذا الرمز صالح لمدة 10 دقائق فقط.'
+  );
+  const [otpMessageLanguage, setOtpMessageLanguage] = useState<'en' | 'ar'>('en');
   const [vehicleTypes, setVehicleTypes] = useState<{
     bike: { enabled: boolean; basePrice: number };
     car: { enabled: boolean; basePrice: number };
@@ -53,6 +60,15 @@ const Settings = () => {
       }
       if (data.maxAllowedBalance !== undefined) {
         setMaxAllowedBalance(data.maxAllowedBalance);
+      }
+      if (data.otpMessageTemplate !== undefined) {
+        setOtpMessageTemplate(data.otpMessageTemplate);
+      }
+      if (data.otpMessageTemplateAr !== undefined) {
+        setOtpMessageTemplateAr(data.otpMessageTemplateAr);
+      }
+      if (data.otpMessageLanguage !== undefined) {
+        setOtpMessageLanguage(data.otpMessageLanguage);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load settings');
@@ -102,6 +118,36 @@ const Settings = () => {
       return;
     }
 
+    // Validate OTP message template (English)
+    if (!otpMessageTemplate || otpMessageTemplate.trim().length < 10) {
+      setError('OTP message template (English) must be at least 10 characters');
+      return;
+    }
+    if (otpMessageTemplate.length > 500) {
+      setError('OTP message template (English) must be 500 characters or less');
+      return;
+    }
+    if (!otpMessageTemplate.includes('${otp}')) {
+      setError('OTP message template (English) must contain ${otp} placeholder');
+      return;
+    }
+
+    // Validate Arabic OTP message template if provided
+    if (otpMessageTemplateAr) {
+      if (otpMessageTemplateAr.trim().length < 10) {
+        setError('OTP message template (Arabic) must be at least 10 characters');
+        return;
+      }
+      if (otpMessageTemplateAr.length > 500) {
+        setError('OTP message template (Arabic) must be 500 characters or less');
+        return;
+      }
+      if (!otpMessageTemplateAr.includes('${otp}')) {
+        setError('OTP message template (Arabic) must contain ${otp} placeholder');
+        return;
+      }
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -118,6 +164,9 @@ const Settings = () => {
         vehicleTypes: vehicleTypes,
         commissionPercentage: commissionPercentage,
         maxAllowedBalance: maxAllowedBalance,
+        otpMessageTemplate: otpMessageTemplate.trim(),
+        otpMessageTemplateAr: otpMessageTemplateAr.trim(),
+        otpMessageLanguage: otpMessageLanguage,
       });
       setSettings(updated);
       setSuccess('Settings saved successfully!');
@@ -470,6 +519,128 @@ const Settings = () => {
       </div>
 
       <div className="card p-6">
+        <h2 className="text-xl font-semibold mb-4 text-slate-900">OTP Message Templates</h2>
+        <div className="space-y-6">
+          <p className="text-sm text-slate-600 mb-4">
+            Customize the SMS messages sent to users when they request an OTP code. Use <code className="bg-slate-100 px-2 py-1 rounded text-sm">{'${otp}'}</code> as a placeholder for the OTP code. You can set separate templates for English and Arabic, and choose which language to use by default.
+          </p>
+
+          <div>
+            <label
+              htmlFor="otpMessageLanguage"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
+              Default OTP Message Language
+            </label>
+            <p className="text-sm text-slate-600 mb-3">
+              Select the default language for OTP SMS messages. Users can override this by specifying a language parameter when requesting OTP.
+            </p>
+            <select
+              id="otpMessageLanguage"
+              value={otpMessageLanguage}
+              onChange={(e) => setOtpMessageLanguage(e.target.value as 'en' | 'ar')}
+              className="input w-48"
+            >
+              <option value="en">English (English)</option>
+              <option value="ar">Arabic (العربية)</option>
+            </select>
+            {settings && (
+              <p className="mt-2 text-xs text-slate-500">
+                Current default: {settings.otpMessageLanguage === 'ar' ? 'Arabic (العربية)' : 'English (English)'}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="otpMessageTemplate"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
+              OTP Message Template (English / Default)
+            </label>
+            <p className="text-sm text-slate-600 mb-3">
+              The message template for OTP SMS in English. Must include <code className="bg-slate-100 px-2 py-1 rounded text-sm">{'${otp}'}</code> placeholder. Maximum 500 characters. Recommended: Keep under 150 characters for single SMS delivery.
+            </p>
+            <textarea
+              id="otpMessageTemplate"
+              rows={4}
+              value={otpMessageTemplate}
+              onChange={(e) => setOtpMessageTemplate(e.target.value)}
+              className="input w-full font-mono text-sm"
+              placeholder="Your OTP code is: ${otp}. This code will expire in 10 minutes."
+            />
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-xs text-slate-500">
+                {otpMessageTemplate.length} / 500 characters
+                {otpMessageTemplate.length > 150 && (
+                  <span className="ml-2 text-amber-600">
+                    (May be split into multiple SMS)
+                  </span>
+                )}
+              </p>
+              {!otpMessageTemplate.includes('${otp}') && (
+                <p className="text-xs text-red-600">
+                  ⚠️ Must include {'${otp}'} placeholder
+                </p>
+              )}
+            </div>
+            {settings && settings.otpMessageTemplate && (
+              <div className="mt-3 p-3 bg-slate-50 rounded border border-slate-200">
+                <p className="text-xs font-medium text-slate-700 mb-1">Preview (with example OTP):</p>
+                <p className="text-sm text-slate-600 font-mono">
+                  {settings.otpMessageTemplate.replace(/\$\{otp\}/g, '123456')}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-slate-200 pt-6">
+            <label
+              htmlFor="otpMessageTemplateAr"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
+              OTP Message Template (Arabic / العربية)
+            </label>
+            <p className="text-sm text-slate-600 mb-3">
+              The message template for OTP SMS in Arabic. Must include <code className="bg-slate-100 px-2 py-1 rounded text-sm">{'${otp}'}</code> placeholder. Maximum 500 characters. Recommended: Keep under 150 characters for single SMS delivery. If not set, the English template will be used.
+            </p>
+            <textarea
+              id="otpMessageTemplateAr"
+              rows={4}
+              value={otpMessageTemplateAr}
+              onChange={(e) => setOtpMessageTemplateAr(e.target.value)}
+              className="input w-full font-mono text-sm"
+              placeholder="رمز التحقق الخاص بك هو: ${otp}. هذا الرمز صالح لمدة 10 دقائق فقط."
+              dir="rtl"
+            />
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-xs text-slate-500">
+                {otpMessageTemplateAr.length} / 500 characters
+                {otpMessageTemplateAr.length > 150 && (
+                  <span className="ml-2 text-amber-600">
+                    (May be split into multiple SMS)
+                  </span>
+                )}
+              </p>
+              {otpMessageTemplateAr && !otpMessageTemplateAr.includes('${otp}') && (
+                <p className="text-xs text-red-600">
+                  ⚠️ Must include {'${otp}'} placeholder
+                </p>
+              )}
+            </div>
+            {settings && settings.otpMessageTemplateAr && (
+              <div className="mt-3 p-3 bg-slate-50 rounded border border-slate-200">
+                <p className="text-xs font-medium text-slate-700 mb-1">Preview (with example OTP):</p>
+                <p className="text-sm text-slate-600 font-mono" dir="rtl">
+                  {settings.otpMessageTemplateAr.replace(/\$\{otp\}/g, '123456')}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="card p-6">
         <h2 className="text-xl font-semibold mb-4 text-slate-900">System Information</h2>
         <div className="space-y-4">
           <div>
@@ -504,7 +675,16 @@ const Settings = () => {
               mapDefaultZoom > 18 ||
               commissionPercentage < 0 ||
               commissionPercentage > 100 ||
-              maxAllowedBalance < 0
+              maxAllowedBalance < 0 ||
+              !otpMessageTemplate ||
+              otpMessageTemplate.trim().length < 10 ||
+              otpMessageTemplate.length > 500 ||
+              !otpMessageTemplate.includes('${otp}') ||
+              (otpMessageTemplateAr && (
+                otpMessageTemplateAr.trim().length < 10 ||
+                otpMessageTemplateAr.length > 500 ||
+                !otpMessageTemplateAr.includes('${otp}')
+              ))
             }
             className="btn-primary px-8 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >

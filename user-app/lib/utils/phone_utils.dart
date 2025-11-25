@@ -1,5 +1,49 @@
 /// Utility functions for phone number handling
 class PhoneUtils {
+  /// Converts Arabic-Indic numerals (٠-٩) to English digits (0-9)
+  /// Also handles Eastern Arabic-Indic numerals (۰-۹)
+  static String convertArabicToEnglishDigits(String input) {
+    const Map<String, String> arabicToEnglish = {
+      // Arabic-Indic numerals
+      '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+      '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+      // Eastern Arabic-Indic numerals
+      '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+      '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+    };
+    
+    String result = input;
+    arabicToEnglish.forEach((arabic, english) {
+      result = result.replaceAll(arabic, english);
+    });
+    return result;
+  }
+
+  /// Formats phone number for submission:
+  /// 1. Converts Arabic digits to English
+  /// 2. Removes leading zero if present
+  /// 3. Appends +972 prefix
+  /// Example: ٠٥٩٣٢٠٢٠٢٦ -> +972593202026
+  static String formatPhoneForSubmission(String phoneNumber) {
+    // Step 1: Convert Arabic digits to English
+    String englishDigits = convertArabicToEnglishDigits(phoneNumber);
+    
+    // Step 2: Remove all non-digit characters
+    String digitsOnly = englishDigits.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // Step 3: Remove leading zero if present
+    if (digitsOnly.startsWith('0')) {
+      digitsOnly = digitsOnly.substring(1);
+    }
+    
+    // Step 4: Ensure it's exactly 9 digits (after removing leading zero)
+    if (digitsOnly.length > 9) {
+      digitsOnly = digitsOnly.substring(0, 9);
+    }
+    
+    // Step 5: Append +972 prefix
+    return '+972$digitsOnly';
+  }
   /// Splits a phone number into country code and local number
   /// 
   /// Handles formats like:

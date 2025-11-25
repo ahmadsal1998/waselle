@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:delivery_user_app/l10n/app_localizations.dart';
 import '../../view_models/auth_view_model.dart';
+import '../../utils/phone_utils.dart';
 import 'otp_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -51,13 +53,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Send OTP to phone number
       final phoneNumber = _phoneController.text.trim();
       if (phoneNumber.isNotEmpty) {
-        final otpSent = await authViewModel.sendOTP(phoneNumber);
+        // Format phone number: convert Arabic digits, remove leading zero, add +972
+        final formattedPhone = PhoneUtils.formatPhoneForSubmission(phoneNumber);
+        final otpSent = await authViewModel.sendOTP(formattedPhone);
         if (otpSent && mounted) {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => OTPVerificationScreen(
-                phoneNumber: phoneNumber,
+                phoneNumber: formattedPhone, // Show formatted phone number
               ),
             ),
           );
@@ -133,14 +137,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
+                // Phone number field (accepts Arabic and English digits)
+                // Country code +972 is fixed internally and not shown to user
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    // Allow both English and Arabic digits
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9٠-٩۰-۹]')),
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                   decoration: InputDecoration(
                     labelText: '${l10n.phoneNumber} (Optional)',
+                    hintText: '0593202026',
                     prefixIcon: const Icon(Icons.phone),
                     border: const OutlineInputBorder(),
                   ),
+                  onChanged: (value) {
+                    // Convert Arabic digits to English in real-time for display
+                    final converted = PhoneUtils.convertArabicToEnglishDigits(value);
+                    if (converted != value) {
+                      // Update controller with converted value
+                      final selection = _phoneController.selection;
+                      _phoneController.value = TextEditingValue(
+                        text: converted,
+                        selection: selection.copyWith(
+                          baseOffset: converted.length,
+                          extentOffset: converted.length,
+                        ),
+                      );
+                    }
+                  },
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

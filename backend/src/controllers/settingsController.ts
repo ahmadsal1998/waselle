@@ -41,6 +41,9 @@ export const updateSettings = async (
       maxAllowedBalance,
       mapDefaultCenter,
       mapDefaultZoom,
+      otpMessageTemplate,
+      otpMessageTemplateAr,
+      otpMessageLanguage,
     } = req.body;
 
     // Validate internalOrderRadiusKm
@@ -216,6 +219,89 @@ export const updateSettings = async (
         return;
       }
       settings.mapDefaultZoom = mapDefaultZoom;
+    }
+
+    // Update OTP message template if provided
+    if (otpMessageTemplate !== undefined) {
+      if (typeof otpMessageTemplate !== 'string') {
+        res.status(400).json({
+          message: 'otpMessageTemplate must be a string',
+        });
+        return;
+      }
+
+      // Validate template contains ${otp} placeholder
+      if (!otpMessageTemplate.includes('${otp}')) {
+        res.status(400).json({
+          message: 'otpMessageTemplate must contain ${otp} placeholder for the OTP code',
+        });
+        return;
+      }
+
+      // Validate length (SMS messages are typically limited, but allow up to 500 chars for template)
+      if (otpMessageTemplate.length > 500) {
+        res.status(400).json({
+          message: 'otpMessageTemplate must be 500 characters or less',
+        });
+        return;
+      }
+
+      // Validate minimum length
+      if (otpMessageTemplate.trim().length < 10) {
+        res.status(400).json({
+          message: 'otpMessageTemplate must be at least 10 characters',
+        });
+        return;
+      }
+
+      settings.otpMessageTemplate = otpMessageTemplate.trim();
+    }
+
+    // Update Arabic OTP message template if provided
+    if (otpMessageTemplateAr !== undefined) {
+      if (typeof otpMessageTemplateAr !== 'string') {
+        res.status(400).json({
+          message: 'otpMessageTemplateAr must be a string',
+        });
+        return;
+      }
+
+      // Validate template contains ${otp} placeholder
+      if (!otpMessageTemplateAr.includes('${otp}')) {
+        res.status(400).json({
+          message: 'otpMessageTemplateAr must contain ${otp} placeholder for the OTP code',
+        });
+        return;
+      }
+
+      // Validate length
+      if (otpMessageTemplateAr.length > 500) {
+        res.status(400).json({
+          message: 'otpMessageTemplateAr must be 500 characters or less',
+        });
+        return;
+      }
+
+      // Validate minimum length
+      if (otpMessageTemplateAr.trim().length < 10) {
+        res.status(400).json({
+          message: 'otpMessageTemplateAr must be at least 10 characters',
+        });
+        return;
+      }
+
+      settings.otpMessageTemplateAr = otpMessageTemplateAr.trim();
+    }
+
+    // Update OTP message language preference if provided
+    if (otpMessageLanguage !== undefined) {
+      if (otpMessageLanguage !== 'en' && otpMessageLanguage !== 'ar') {
+        res.status(400).json({
+          message: 'otpMessageLanguage must be either "en" or "ar"',
+        });
+        return;
+      }
+      settings.otpMessageLanguage = otpMessageLanguage;
     }
 
     await settings.save();

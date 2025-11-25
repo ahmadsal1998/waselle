@@ -22,6 +22,7 @@ export interface IUser extends Document {
   otpCode?: string;
   otpExpires?: Date;
   profilePicture?: string;
+  fcmToken?: string; // Firebase Cloud Messaging token for push notifications
   createdAt: Date;
   updatedAt: Date;
 }
@@ -131,6 +132,10 @@ const UserSchema: Schema = new Schema(
       type: Date,
     },
     profilePicture: {
+      type: String,
+      trim: true,
+    },
+    fcmToken: {
       type: String,
       trim: true,
     },

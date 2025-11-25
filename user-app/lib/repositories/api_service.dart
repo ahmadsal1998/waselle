@@ -8,8 +8,8 @@ class ApiService {
   // For Android emulator: 'http://10.0.2.2:5001/api'
   // For iOS simulator: 'http://localhost:5001/api'
   // For production: 'https://your-backend-url.com/api'
-  static const String baseUrl = 'http://localhost:5001/api';
-  //static const String baseUrl = 'https://waselle.onrender.com/api';
+  //static const String baseUrl = 'http://localhost:5001/api';
+  static const String baseUrl = 'https://waselle.onrender.com/api';
 
   // Get the base URL for socket connections (without /api)
   // For Render.com, socket URL should be the same as base URL without /api
@@ -173,7 +173,91 @@ class ApiService {
     }
   }
 
-  // Verify Firebase ID token with backend
+  // Send OTP to phone number via SMS provider (replaces Firebase)
+  static Future<Map<String, dynamic>> sendPhoneOTP({
+    required String phoneNumber,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/send-phone-otp'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'phoneNumber': phoneNumber,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return _parseResponse(response);
+      } else {
+        try {
+          final responseData = _parseResponse(response);
+          throw Exception(responseData['message'] ?? 'Failed to send OTP');
+        } catch (e) {
+          if (e is Exception) rethrow;
+          throw Exception(
+              'Failed to send OTP with status ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (e is http.ClientException ||
+          e.toString().contains('Connection refused') ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Network is unreachable')) {
+        throw Exception(
+            'Unable to connect to server. Please check your internet connection or ensure the backend server is running on port 5001.');
+      }
+      rethrow;
+    }
+  }
+
+  // Verify phone OTP (replaces Firebase verification)
+  static Future<Map<String, dynamic>> verifyPhoneOTP({
+    required String phoneNumber,
+    required String otp,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/verify-phone-otp'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'phoneNumber': phoneNumber,
+          'otp': otp,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final responseData = _parseResponse(response);
+        
+        // Store JWT token if provided
+        if (responseData['token'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', responseData['token'] as String);
+        }
+        
+        return responseData;
+      } else {
+        try {
+          final responseData = _parseResponse(response);
+          throw Exception(responseData['message'] ?? 'OTP verification failed');
+        } catch (e) {
+          if (e is Exception) rethrow;
+          throw Exception(
+              'OTP verification failed with status ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (e is http.ClientException ||
+          e.toString().contains('Connection refused') ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Network is unreachable')) {
+        throw Exception(
+            'Unable to connect to server. Please check your internet connection or ensure the backend server is running on port 5001.');
+      }
+      rethrow;
+    }
+  }
+
+  // Verify Firebase ID token with backend (DEPRECATED - kept for backward compatibility)
   static Future<Map<String, dynamic>> verifyFirebaseToken({
     required String idToken,
     required String phoneNumber,
@@ -741,6 +825,33 @@ class ApiService {
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('Failed to verify OTP and create order: $e');
+    }
+  }
+
+  // Register FCM token for push notifications
+  static Future<Map<String, dynamic>> registerFCMToken(String fcmToken) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/fcm-token'),
+        headers: headers,
+        body: jsonEncode({'fcmToken': fcmToken}),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return _parseResponse(response);
+      } else {
+        try {
+          final responseData = _parseResponse(response);
+          throw Exception(responseData['message'] ?? 'Failed to register FCM token');
+        } catch (e) {
+          if (e is Exception) rethrow;
+          throw Exception('Failed to register FCM token with status ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to register FCM token: $e');
     }
   }
 

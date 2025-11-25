@@ -3,8 +3,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:delivery_user_app/firebase_options.dart';
 import 'package:delivery_user_app/l10n/app_localizations.dart';
-import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'view_models/auth_view_model.dart';
 import 'view_models/order_view_model.dart';
@@ -15,13 +15,20 @@ import 'view_models/driver_view_model.dart';
 import 'view_models/region_view_model.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SharedPreferences.getInstance();
+  
+  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // Initialize notification service
+  await NotificationService().initialize();
+  
   runApp(const MyApp());
 }
 
@@ -58,22 +65,9 @@ class MyApp extends StatelessWidget {
             ],
             theme: AppTheme.lightTheme,
             home: const AuthWrapper(),
-            // Handle unknown routes (like Firebase Auth callbacks) gracefully
+            // Handle unknown routes gracefully
             onUnknownRoute: (settings) {
-              // Firebase Auth callbacks use custom URL schemes - ignore them
-              // They're handled natively by Firebase Auth, not by Flutter routing
-              final uri = Uri.tryParse(settings.name ?? '');
-              if (uri != null && 
-                  (uri.scheme.startsWith('app-') || 
-                   uri.scheme.contains('googleusercontent') ||
-                   uri.scheme == 'com.googleusercontent.apps')) {
-                // This is a Firebase Auth callback - return a dummy route that does nothing
-                return MaterialPageRoute(
-                  builder: (_) => const SizedBox.shrink(),
-                  settings: settings,
-                );
-              }
-              // For other unknown routes, return to home
+              // For unknown routes, return to home
               return MaterialPageRoute(
                 builder: (_) => const AuthWrapper(),
                 settings: settings,

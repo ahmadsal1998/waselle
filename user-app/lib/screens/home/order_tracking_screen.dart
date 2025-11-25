@@ -34,8 +34,9 @@ class _OrderTrackingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final body = Consumer2<OrderTrackingViewModel, MapStyleViewModel>(
-      builder: (context, trackingViewModel, mapStyleProvider, _) {
+    // Watch OrderViewModel to ensure UI updates when order status changes
+    final body = Consumer3<OrderTrackingViewModel, MapStyleViewModel, OrderViewModel>(
+      builder: (context, trackingViewModel, mapStyleProvider, orderViewModel, _) {
         if (!trackingViewModel.isInitialized &&
             trackingViewModel.activeOrders.isEmpty) {
           return const _LoadingState();
@@ -79,6 +80,7 @@ class _OrderTrackingView extends StatelessWidget {
                   _kDefaultMapCenter;
 
               return _TrackedOrderCard(
+                key: ValueKey('order_${orderId}_${order['status']}'), // Force rebuild on status change
                 order: order,
                 state: state,
                 mapStyleProvider: mapStyleProvider,
@@ -105,6 +107,7 @@ class _OrderTrackingView extends StatelessWidget {
 
 class _TrackedOrderCard extends StatefulWidget {
   const _TrackedOrderCard({
+    super.key,
     required this.order,
     required this.state,
     required this.mapStyleProvider,
@@ -126,19 +129,25 @@ class _TrackedOrderCard extends StatefulWidget {
 
 class _TrackedOrderCardState extends State<_TrackedOrderCard> {
   bool _isOrderProgressVisible = false;
-
+  
+  // Watch OrderViewModel to get latest order data
   @override
   Widget build(BuildContext context) {
+    // Get the latest order data from OrderViewModel to ensure we have the most up-to-date status
+    final orderViewModel = Provider.of<OrderViewModel>(context, listen: true);
     final orderId = widget.order['_id']?.toString();
     if (orderId == null) {
       return const SizedBox.shrink();
     }
+    
+    // Get the latest order data (may have updated status)
+    final latestOrder = orderViewModel.getActiveOrderById(orderId) ?? widget.order;
 
     final routePoints = widget.state.routePoints;
     final isLoadingRoute = widget.state.isRouteLoading;
     final distanceMeters = widget.state.distanceMeters;
-    final formattedDate = _formatDate(widget.order['createdAt']);
-    final status = widget.order['status']?.toString().toLowerCase() ?? 'unknown';
+    final formattedDate = _formatDate(latestOrder['createdAt']);
+    final status = latestOrder['status']?.toString().toLowerCase() ?? 'unknown';
 
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
@@ -190,7 +199,7 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Order ${_readableOrderId(widget.order['_id']?.toString() ?? '')}',
+                        'Order ${_readableOrderId(latestOrder['_id']?.toString() ?? '')}',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w700,
                               letterSpacing: -0.5,
@@ -233,7 +242,7 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => OrderMapViewScreen(
-                    order: widget.order,
+                    order: latestOrder,
                     state: widget.state,
                   ),
                 ),
@@ -472,7 +481,7 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                     child: _OrderStageTimeline(
                       currentStatus: status,
-                      order: widget.order,
+                      order: latestOrder,
                       state: widget.state,
                     ),
                   )
@@ -480,7 +489,7 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
           ),
 
           // Driver Info Section
-          if (widget.order['driverId'] != null)
+          if (latestOrder['driverId'] != null)
             Container(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               child: _InfoSection(
@@ -489,18 +498,18 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
                   _InfoRow(
                     icon: Icons.person_outline_rounded,
                     label: 'Name',
-                    value: widget.order['driverId']['name'],
+                    value: latestOrder['driverId']['name'],
                   ),
                   _InfoRow(
                     icon: Icons.phone_android_rounded,
                     label: 'Phone',
-                    value: _formatPhone(widget.order['driverId']['phoneNumber']),
+                    value: _formatPhone(latestOrder['driverId']['phoneNumber']),
                   ),
                   _InfoRow(
                     icon: Icons.directions_car_filled_rounded,
                     label: 'Vehicle',
-                    value: widget.order['driverId']['vehicleType'] ??
-                        widget.order['vehicleType'],
+                    value: latestOrder['driverId']['vehicleType'] ??
+                        latestOrder['vehicleType'],
                   ),
                 ],
               ),

@@ -4,6 +4,45 @@ import { AuthRequest } from '../middleware/auth';
 import { calculateDriverBalance } from '../utils/balance';
 import mongoose from 'mongoose';
 
+export const registerFCMToken = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    const { fcmToken } = req.body;
+
+    if (!fcmToken || typeof fcmToken !== 'string') {
+      res.status(400).json({ message: 'FCM token is required' });
+      return;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.userId,
+      { fcmToken },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    res.status(200).json({
+      message: 'FCM token registered successfully',
+      user,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      message: error.message || 'Failed to register FCM token',
+    });
+  }
+};
+
 export const updateLocation = async (
   req: AuthRequest,
   res: Response

@@ -141,7 +141,9 @@ class OrderTrackingViewModel extends ChangeNotifier {
   void _registerListeners() {
     _ordersListener = () {
       if (_isDisposed) return;
+      debugPrint('🔄 OrderViewModel notified - syncing tracked orders');
       _syncTrackedOrders(orderViewModel.activeOrders);
+      _notifySafely(); // Ensure UI updates when orders change
     };
     orderViewModel.addListener(_ordersListener!);
 
@@ -199,6 +201,17 @@ class OrderTrackingViewModel extends ChangeNotifier {
       final state = _trackedOrders[orderId];
       if (state == null) continue;
 
+      // Check if order status has changed - this is important for UI updates
+      final currentOrder = orderViewModel.getActiveOrderById(orderId);
+      if (currentOrder != null) {
+        final newStatus = order['status']?.toString();
+        final oldStatus = currentOrder['status']?.toString();
+        if (newStatus != oldStatus) {
+          debugPrint('📊 Order $orderId status changed: $oldStatus -> $newStatus');
+          didChange = true;
+        }
+      }
+
       if (_bootstrappingOrders.contains(orderId)) continue;
 
       if (!state.hasBootstrapped) {
@@ -212,7 +225,10 @@ class OrderTrackingViewModel extends ChangeNotifier {
       }
     }
 
-    if (didChange) {
+    // Always notify listeners when syncing orders to ensure UI updates
+    // This is critical for real-time status updates
+    if (didChange || orders.isNotEmpty) {
+      debugPrint('📢 Notifying listeners after syncing ${orders.length} orders');
       _notifySafely();
     }
   }

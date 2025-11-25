@@ -10,6 +10,10 @@ import {
   emitOrderAccepted,
   emitOrderUpdated,
 } from '../services/socketService';
+import {
+  sendOrderStatusNotification,
+  sendDriverOrderStatusNotification,
+} from '../services/notificationService';
 import OrderCategory from '../models/OrderCategory';
 import Settings from '../models/Settings';
 import City from '../models/City';
@@ -19,6 +23,8 @@ import { normalizeAddress } from '../utils/address';
 import { admin } from '../utils/firebase';
 import { normalizePhoneNumber, splitPhoneNumber } from '../utils/phone';
 import { checkAndSuspendDriverIfNeeded } from '../utils/balance';
+import { sendSMSOTP } from '../utils/smsProvider';
+import { generateOTP } from '../utils/otp';
 
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -282,6 +288,16 @@ export const createOrder = async (
     const orderData = order.toObject();
 
     emitNewOrder(orderData);
+
+    // Send push notification to customer when order is created
+    if (order.customerId) {
+      await sendOrderStatusNotification(
+        order._id.toString(),
+        order.customerId.toString(),
+        'pending',
+        orderData
+      );
+    }
 
     res.status(201).json({
       message: 'Order created successfully',
@@ -631,6 +647,26 @@ export const acceptOrder = async (
 
     emitOrderAccepted(orderData);
 
+    // Send push notification to customer
+    if (order.customerId) {
+      await sendOrderStatusNotification(
+        order._id.toString(),
+        order.customerId.toString(),
+        'accepted',
+        orderData
+      );
+    }
+
+    // Send push notification to driver
+    if (order.driverId) {
+      await sendDriverOrderStatusNotification(
+        order._id.toString(),
+        order.driverId.toString(),
+        'accepted',
+        orderData
+      );
+    }
+
     res.status(200).json({
       message: 'Order accepted successfully',
       order: orderData,
@@ -702,6 +738,25 @@ export const updateOrderStatus = async (
     const orderData = order.toObject();
     emitOrderUpdated(orderData);
 
+    // Send push notifications to customer and driver
+    if (order.customerId) {
+      await sendOrderStatusNotification(
+        order._id.toString(),
+        order.customerId.toString(),
+        status,
+        orderData
+      );
+    }
+
+    if (order.driverId) {
+      await sendDriverOrderStatusNotification(
+        order._id.toString(),
+        order.driverId.toString(),
+        status,
+        orderData
+      );
+    }
+
     res.status(200).json({
       message: 'Order status updated successfully',
       order: orderData,
@@ -764,7 +819,7 @@ export const sendOrderOTP = async (
     }
 
     // Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = generateOTP();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Find or create user by phone number (check both normalized and raw formats)
@@ -796,21 +851,33 @@ export const sendOrderOTP = async (
       });
     }
 
-    // NOTE: This endpoint is deprecated for order creation
-    // New orders should use Firebase Phone Auth via /orders/create-with-firebase-token
-    // This endpoint is kept for backward compatibility
-    // TODO: Remove this endpoint once all clients migrate to Firebase Phone Auth
-    console.log(`📱 OTP for ${fullPhoneNumber}: ${otp}`);
-    console.log('⚠️  DEPRECATED: Use Firebase Phone Auth instead. This endpoint will be removed.');
-    console.log('⚠️  For production, use /orders/create-with-firebase-token endpoint with Firebase ID token.');
+    // Send OTP via SMS provider
+    try {
+      await sendSMSOTP(fullPhoneNumber, otp);
+    } catch (error: any) {
+      console.error('Error sending SMS OTP:', error);
+      // In development, return OTP in response if SMS fails
+      const isDevelopment = process.env.NODE_ENV !== 'production';
+      if (isDevelopment) {
+        console.warn(`⚠️  SMS sending failed. OTP for ${fullPhoneNumber}: ${otp}`);
+        res.status(200).json({
+          message: 'OTP generated. Check console for OTP code (SMS sending failed).',
+          phone: fullPhoneNumber,
+          otp: otp, // Only in development
+        });
+        return;
+      }
+      // In production, return error
+      res.status(500).json({
+        message: 'Failed to send OTP. Please try again later.',
+      });
+      return;
+    }
 
-    // In development, return OTP in response (remove in production)
+    // Success response (don't include OTP in production)
     const isDevelopment = process.env.NODE_ENV !== 'production';
-    
     res.status(200).json({
-      message: isDevelopment 
-        ? 'OTP generated. Check console for OTP code.'
-        : 'OTP sent successfully',
+      message: 'OTP sent successfully',
       phone: fullPhoneNumber,
       ...(isDevelopment && { otp }), // Only include OTP in development
     });

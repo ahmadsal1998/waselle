@@ -7,6 +7,27 @@ import '../services/socket_service.dart';
 class OrderViewModel with ChangeNotifier {
   OrderViewModel() {
     _setupSocketListeners();
+    // Ensure listeners are attached when socket connects/reconnects
+    _ensureSocketListeners();
+  }
+  
+  void _ensureSocketListeners() {
+    // Re-setup listeners when socket connects (in case socket wasn't ready initially)
+    SocketService.socket?.on('connect', (_) {
+      debugPrint('🔌 Socket connected, re-setting up order listeners');
+      _setupSocketListeners();
+    });
+    // Also setup immediately if socket is already connected
+    if (SocketService.socket?.connected == true) {
+      debugPrint('🔌 Socket already connected, setting up order listeners');
+      _setupSocketListeners();
+    }
+  }
+  
+  /// Public method to re-setup socket listeners (can be called after socket initialization)
+  void reSetupSocketListeners() {
+    debugPrint('🔄 Re-setting up socket listeners for OrderViewModel');
+    _setupSocketListeners();
   }
 
   final Map<String, Map<String, dynamic>> _activeOrders = {};
@@ -57,24 +78,42 @@ class OrderViewModel with ChangeNotifier {
   String? get orderCategoriesError => _orderCategoriesError;
 
   void _setupSocketListeners() {
+    // Remove existing listeners to avoid duplicates
     SocketService.off('order-accepted');
+    SocketService.off('order-updated');
+    
+    // Set up order-accepted listener
     SocketService.on('order-accepted', (data) {
+      debugPrint('📦 Received order-accepted event: $data');
       final order = _normalizeOrder(data);
-      if (order == null) return;
+      if (order == null) {
+        debugPrint('⚠️ Failed to normalize order-accepted data');
+        return;
+      }
+      debugPrint('✅ Processing order-accepted: ${order['_id']}, status: ${order['status']}');
       _applyIncomingOrder(order);
     });
 
-    SocketService.off('order-updated');
+    // Set up order-updated listener
     SocketService.on('order-updated', (data) {
+      debugPrint('📦 Received order-updated event: $data');
       final order = _normalizeOrder(data);
-      if (order == null) return;
+      if (order == null) {
+        debugPrint('⚠️ Failed to normalize order-updated data');
+        return;
+      }
+      debugPrint('✅ Processing order-updated: ${order['_id']}, status: ${order['status']}');
       _applyIncomingOrder(order);
     });
+    
+    debugPrint('✅ Socket listeners set up for order-accepted and order-updated');
   }
 
   void _applyIncomingOrder(Map<String, dynamic> order) {
+    debugPrint('🔄 Applying incoming order update: ${order['_id']}, status: ${order['status']}');
     _updateOrderInList(order);
     _syncActiveOrders(order);
+    debugPrint('📢 Notifying listeners about order update - activeOrders count: ${_activeOrders.length}');
     notifyListeners();
   }
 

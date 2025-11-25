@@ -6,6 +6,7 @@ import { generateAndSendOTP, generateOTP } from '../utils/otp';
 import { verifyFirebaseToken as verifyFirebaseIdToken, admin } from '../utils/firebase';
 import { AuthRequest } from '../middleware/auth';
 import { normalizePhoneNumber } from '../utils/phone';
+import { sendSMSOTP } from '../utils/smsProvider';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -523,5 +524,192 @@ export const getCurrentUser = async (
     res.status(200).json({ user: userData });
   } catch (error: any) {
     res.status(500).json({ message: error.message || 'Failed to get user' });
+  }
+};
+
+/**
+ * Send OTP to phone number via SMS provider
+ * Replaces Firebase Phone Authentication
+ */
+export const sendPhoneOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { phoneNumber, language } = req.body;
+
+    if (!phoneNumber || typeof phoneNumber !== 'string' || phoneNumber.trim().length < 9) {
+      res.status(400).json({ message: 'A valid phone number is required' });
+      return;
+    }
+
+    // Validate language if provided (should be 'ar' or 'en')
+    const validLanguage = language && ['ar', 'en'].includes(language) ? language : undefined;
+
+    // Normalize phone number
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    if (!normalizedPhone) {
+      res.status(400).json({ message: 'Invalid phone number format' });
+      return;
+    }
+
+    // Generate 6-digit OTP
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Find or create user by phone number
+    let user = await User.findOne({ 
+      $or: [
+        { phone: normalizedPhone },
+        { phone: phoneNumber },
+      ]
+    });
+
+    if (user) {
+      // Update existing user's OTP
+      user.otpCode = otp;
+      user.otpExpires = otpExpires;
+      if (user.phone !== normalizedPhone) {
+        user.phone = normalizedPhone;
+      }
+      await user.save();
+    } else {
+      // Create new user with phone number
+      const phoneDigits = normalizedPhone.replace(/[^0-9]/g, '');
+      const emailPlaceholder = `${phoneDigits}@phone.local`;
+      
+      user = await User.create({
+        name: `User ${normalizedPhone.substring(normalizedPhone.length - 4)}`,
+        email: emailPlaceholder,
+        phone: normalizedPhone,
+        role: 'customer',
+        isEmailVerified: false, // Will be verified after OTP verification
+        otpCode: otp,
+        otpExpires: otpExpires,
+      });
+    }
+
+    // Send OTP via SMS provider
+    try {
+      await sendSMSOTP(normalizedPhone, otp, validLanguage);
+    } catch (error: any) {
+      console.error('Error sending SMS OTP:', error);
+      // In development, return OTP in response if SMS fails
+      const isDevelopment = process.env.NODE_ENV !== 'production';
+      if (isDevelopment) {
+        console.warn(`⚠️  SMS sending failed. OTP for ${normalizedPhone}: ${otp}`);
+        res.status(200).json({
+          message: 'OTP generated. Check console for OTP code (SMS sending failed).',
+          phone: normalizedPhone,
+          otp: otp, // Only in development
+        });
+        return;
+      }
+      // In production, return error
+      res.status(500).json({ 
+        message: 'Failed to send OTP. Please try again later.' 
+      });
+      return;
+    }
+
+    // Success response (don't include OTP in production)
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    res.status(200).json({
+      message: 'OTP sent successfully',
+      phone: normalizedPhone,
+      ...(isDevelopment && { otp }), // Only include OTP in development
+    });
+  } catch (error: any) {
+    console.error('Error in sendPhoneOTP:', error);
+    res.status(500).json({ message: error.message || 'Failed to send OTP' });
+  }
+};
+
+/**
+ * Verify phone OTP and authenticate user
+ * Replaces Firebase Phone Authentication verification
+ */
+export const verifyPhoneOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { phoneNumber, otp } = req.body;
+
+    if (!phoneNumber || typeof phoneNumber !== 'string') {
+      res.status(400).json({ message: 'Phone number is required' });
+      return;
+    }
+
+    if (!otp || typeof otp !== 'string' || otp.length !== 6) {
+      res.status(400).json({ message: 'A valid 6-digit OTP is required' });
+      return;
+    }
+
+    // Normalize phone number
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    if (!normalizedPhone) {
+      res.status(400).json({ message: 'Invalid phone number format' });
+      return;
+    }
+
+    // Find user by phone number
+    const user = await User.findOne({ 
+      $or: [
+        { phone: normalizedPhone },
+        { phone: phoneNumber },
+      ]
+    });
+
+    if (!user) {
+      res.status(404).json({ 
+        message: 'No OTP request found for this phone number. Please request a new OTP.' 
+      });
+      return;
+    }
+
+    // Check if OTP exists
+    if (!user.otpCode) {
+      res.status(400).json({ message: 'No OTP found. Please request a new OTP.' });
+      return;
+    }
+
+    // Verify OTP
+    if (user.otpCode !== otp) {
+      res.status(400).json({ message: 'Invalid OTP' });
+      return;
+    }
+
+    // Check if OTP expired
+    if (user.otpExpires && new Date() > user.otpExpires) {
+      res.status(400).json({ message: 'OTP expired. Please request a new OTP.' });
+      return;
+    }
+
+    // OTP verified successfully
+    // Mark user as verified and clear OTP
+    user.isEmailVerified = true;
+    user.otpCode = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    // Generate JWT token
+    const token = generateToken({
+      userId: user._id.toString(),
+      role: user.role,
+      email: user.email || `${normalizedPhone.replace(/[^0-9]/g, '')}@phone.local`,
+    });
+
+    res.status(200).json({
+      message: 'Phone verified successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        vehicleType: user.vehicleType,
+        isAvailable: user.isAvailable,
+        profilePicture: user.profilePicture,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error in verifyPhoneOTP:', error);
+    res.status(500).json({ message: error.message || 'OTP verification failed' });
   }
 };

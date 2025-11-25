@@ -11,7 +11,7 @@ import '../../../../view_models/region_view_model.dart';
 import '../../../../view_models/auth_view_model.dart';
 import '../../../../repositories/api_service.dart';
 import '../../../../services/socket_service.dart';
-import '../../../../services/firebase_auth_service.dart';
+// Firebase Auth Service removed - using SMS-based OTP instead
 import '../../../../services/saved_address_service.dart';
 import '../../../../models/saved_address.dart';
 import '../../../../utils/phone_utils.dart';
@@ -54,7 +54,8 @@ class DeliveryRequestFormController extends ChangeNotifier {
   final notesController = TextEditingController();
   final otpController = TextEditingController();
 
-  String _selectedCountryCode = '+970'; // Default to +970
+  // Country code is fixed to +972 and not editable
+  static const String _fixedCountryCode = '+972';
 
   final ValueNotifier<DeliveryRequestFormMessage?> messageNotifier =
       ValueNotifier<DeliveryRequestFormMessage?>(null);
@@ -89,14 +90,12 @@ class DeliveryRequestFormController extends ChangeNotifier {
   List<Map<String, dynamic>> get vehicleTypes => _vehicleTypes;
   bool get isLoadingVehicleTypes => _isLoadingVehicleTypes;
   String? get vehicleTypesError => _vehicleTypesError;
-  String get selectedCountryCode => _selectedCountryCode;
+  String get selectedCountryCode => _fixedCountryCode;
   
   bool _isSendingOTP = false;
   bool _isVerifyingOTP = false;
   bool _otpSent = false;
   String? _otpError;
-  String? _firebaseVerificationId; // Store Firebase verification ID
-  final FirebaseAuthService _firebaseAuth = FirebaseAuthService();
   
   // Localization callback for getting localized messages
   String? Function(String key)? _getLocalizedMessage;
@@ -149,32 +148,24 @@ class DeliveryRequestFormController extends ChangeNotifier {
         if (phoneParts != null) {
           // Set the local phone number (without country code)
           phoneNumberController.text = phoneParts['phone'] ?? '';
-          
-          // Set the country code
-          final countryCode = phoneParts['countryCode'] ?? '+972';
-          if (_selectedCountryCode != countryCode) {
-            _selectedCountryCode = countryCode;
-          }
         } else {
-          // Fallback: try to use countryCode from user if available
-          final countryCode = user['countryCode']?.toString() ?? '+972';
+          // Fallback: extract local number from full phone
           String phoneNumber = phone;
           
-          // Try to remove country code if phone starts with it
-          if (phone.startsWith(countryCode)) {
-            phoneNumber = phone.substring(countryCode.length);
-          } else if (phone.startsWith('+972')) {
-            // Handle +972593202026 or +9720593202026 format
+          // Remove country code if present
+          if (phone.startsWith('+972')) {
             phoneNumber = phone.substring(4); // Remove +972
+            if (phoneNumber.isNotEmpty && phoneNumber[0] == '0') {
+              phoneNumber = phoneNumber.substring(1); // Remove leading 0
+            }
+          } else if (phone.startsWith('972')) {
+            phoneNumber = phone.substring(3); // Remove 972
             if (phoneNumber.isNotEmpty && phoneNumber[0] == '0') {
               phoneNumber = phoneNumber.substring(1); // Remove leading 0
             }
           }
           
           phoneNumberController.text = phoneNumber;
-          if (_selectedCountryCode != countryCode) {
-            _selectedCountryCode = countryCode;
-          }
         }
       }
       
@@ -281,11 +272,7 @@ class DeliveryRequestFormController extends ChangeNotifier {
     _notifyListenersSafely();
   }
 
-  void onCountryCodeChanged(String countryCode) {
-    if (_selectedCountryCode == countryCode) return;
-    _selectedCountryCode = countryCode;
-    _notifyListenersSafely();
-  }
+  // Country code is fixed to +972, no need for change handler
 
   void onCityChanged(
     String? cityId, {
@@ -827,7 +814,7 @@ class DeliveryRequestFormController extends ChangeNotifier {
     }
   }
 
-  // Send OTP using Firebase Phone Authentication
+  // Send OTP using SMS provider (replaces Firebase)
   Future<void> sendOTP({
     required LocationViewModel locationProvider,
     required RegionViewModel regionProvider,
@@ -845,51 +832,28 @@ class DeliveryRequestFormController extends ChangeNotifier {
 
     _isSendingOTP = true;
     _otpError = null;
-    _firebaseVerificationId = null;
+    _otpSent = false;
     _notifyListenersSafely();
 
     try {
-      // Format phone number with country code
-      String fullPhoneNumber = trimmedPhone;
-      if (!fullPhoneNumber.startsWith('+')) {
-        fullPhoneNumber = '$_selectedCountryCode$fullPhoneNumber';
-      }
-
-      print('📱 Sending Firebase OTP to: $fullPhoneNumber');
-
-      // Use Firebase Phone Auth
-      final completer = Completer<bool>();
+      // Format phone number: convert Arabic digits, remove leading zero, add +972
+      final formattedPhone = PhoneUtils.formatPhoneForSubmission(trimmedPhone);
       
-      _firebaseAuth.sendOTPWithCallback(
-        fullPhoneNumber,
-        (verificationId) {
-          print('✅ Firebase OTP sent. Verification ID received.');
-          _firebaseVerificationId = verificationId;
-          _otpSent = true;
-          _otpError = null;
-          if (!completer.isCompleted) {
-            completer.complete(true);
-          }
-        },
-        (error) {
-          print('❌ Firebase OTP error: $error');
-          _otpError = error;
-          _otpSent = false;
-          if (!completer.isCompleted) {
-            completer.complete(false);
-          }
-        },
+      print('📱 Sending OTP via SMS to: $formattedPhone');
+
+      // Call backend API to send OTP via SMS provider
+      final response = await ApiService.sendPhoneOTP(
+        phoneNumber: formattedPhone,
       );
 
-      // Wait for callback with timeout
-      await completer.future.timeout(
-        const Duration(seconds: 60),
-        onTimeout: () {
-          _otpError = 'OTP request timed out. Please try again.';
-          _otpSent = false;
-          return false;
-        },
-      );
+      if (response['message'] != null) {
+        print('✅ OTP sent successfully');
+        _otpSent = true;
+        _otpError = null;
+      } else {
+        _otpError = 'Failed to send OTP. Please try again.';
+        _otpSent = false;
+      }
     } catch (e) {
       print('❌ Exception in sendOTP: $e');
       _otpError = e.toString().replaceAll('Exception: ', '');
@@ -903,7 +867,6 @@ class DeliveryRequestFormController extends ChangeNotifier {
   void resetOTPState() {
     _otpSent = false;
     _otpError = null;
-    _firebaseVerificationId = null;
     otpController.clear();
     _notifyListenersSafely();
   }
@@ -1428,7 +1391,7 @@ class DeliveryRequestFormController extends ChangeNotifier {
     }
   }
 
-  // Verify OTP with Firebase and create order
+  // Verify OTP with SMS provider and create order (replaces Firebase)
   Future<DeliveryRequestSubmitResult> verifyOTPAndCreateOrder({
     required LocationViewModel locationProvider,
     required RegionViewModel regionProvider,
@@ -1447,8 +1410,8 @@ class DeliveryRequestFormController extends ChangeNotifier {
       );
     }
 
-    // Check if Firebase verification ID exists
-    if (_firebaseVerificationId == null) {
+    // Check if OTP was sent first
+    if (!_otpSent) {
       return DeliveryRequestSubmitResult.failure(
         'Please request OTP first',
       );
@@ -1597,86 +1560,65 @@ class DeliveryRequestFormController extends ChangeNotifier {
     
     // For saved addresses, village is optional - we can proceed without it
 
-    // Verify OTP with Firebase first
+    // Verify OTP with SMS provider first
     _isVerifyingOTP = true;
     _notifyListenersSafely();
 
     try {
-      print('🔄 Verifying Firebase OTP...');
+      print('🔄 Verifying OTP via SMS provider...');
       
-      // Format phone number with country code
-      String fullPhoneNumber = trimmedPhone;
-      if (!fullPhoneNumber.startsWith('+')) {
-        fullPhoneNumber = '$_selectedCountryCode$fullPhoneNumber';
-      }
+      // Format phone number: convert Arabic digits, remove leading zero, add +972
+      final formattedPhone = PhoneUtils.formatPhoneForSubmission(trimmedPhone);
 
-      // Verify OTP with Firebase
-      final userCredential = await _firebaseAuth.verifyOTP(
-        verificationId: _firebaseVerificationId!,
-        smsCode: otp,
+      // Verify OTP with backend SMS provider
+      final verifyResponse = await ApiService.verifyPhoneOTP(
+        phoneNumber: formattedPhone,
+        otp: otp,
       );
 
-      // Get Firebase user and ID token
-      final firebaseUser = userCredential.user;
-      if (firebaseUser == null) {
+      if (verifyResponse['token'] == null) {
         _isVerifyingOTP = false;
         return DeliveryRequestSubmitResult.failure(
-          'Failed to get Firebase user after verification',
+          verifyResponse['message'] ?? 'OTP verification failed. Please try again.',
         );
       }
 
-      final idToken = await firebaseUser.getIdToken();
-      if (idToken == null) {
-        _isVerifyingOTP = false;
-        return DeliveryRequestSubmitResult.failure(
-          'Failed to get authentication token from Firebase',
+      print('✅ OTP verified. User authenticated.');
+
+      // Update auth state with user data from verification response
+      if (verifyResponse['user'] != null) {
+        await authProvider.setAuthenticated(
+          token: verifyResponse['token'] as String,
+          user: Map<String, dynamic>.from(verifyResponse['user'] as Map<String, dynamic>),
         );
       }
 
-      print('✅ Firebase OTP verified. Saving user to MongoDB...');
+      print('✅ Creating order...');
 
-      // Normalize phone number before sending to backend
-      // This ensures consistent format (+9720XXXXXXXX) regardless of input format
-      String? normalizedPhone = PhoneUtils.normalizePhoneNumber(fullPhoneNumber);
-      if (normalizedPhone == null) {
+      // Extract digits only (remove +972) for integer conversion
+      // formattedPhone is already available from OTP verification above
+      // formattedPhone is like +972593202026, we need 0593202026 (10 digits with leading 0)
+      final phoneDigits = formattedPhone.replaceAll(RegExp(r'[^\d]'), '');
+      // Remove 972 prefix to get local number, then add leading 0 if needed
+      String localPhone = phoneDigits.startsWith('972') 
+          ? phoneDigits.substring(3) 
+          : phoneDigits;
+      // Ensure it starts with 0 for 10-digit format
+      if (!localPhone.startsWith('0') && localPhone.length == 9) {
+        localPhone = '0$localPhone';
+      }
+      
+      final phoneNumberInt = int.tryParse(localPhone);
+      
+      if (phoneNumberInt == null || localPhone.length != 10) {
         _isVerifyingOTP = false;
         return DeliveryRequestSubmitResult.failure(
           'Invalid phone number format',
         );
       }
 
-      // Call phone-login endpoint to save user in MongoDB and get JWT token
-      try {
-        final phoneLoginResponse = await ApiService.phoneLogin(
-          phone: normalizedPhone,
-          firebaseUid: firebaseUser.uid,
-          verificationId: _firebaseVerificationId!,
-          smsCode: otp,
-          idToken: idToken,
-        );
-
-        print('✅ User saved in MongoDB. JWT token received.');
-
-        // Update auth state with user data from phone-login response
-        if (phoneLoginResponse['user'] != null) {
-          await authProvider.setAuthenticated(
-            token: phoneLoginResponse['token'] as String,
-            user: Map<String, dynamic>.from(phoneLoginResponse['user'] as Map<String, dynamic>),
-          );
-        }
-      } catch (e) {
-        print('❌ Error calling phone-login: $e');
-        _isVerifyingOTP = false;
-        return DeliveryRequestSubmitResult.failure(
-          'Failed to save user. Please try again.',
-        );
-      }
-
-      print('✅ Creating order...');
-
-      // Create order with Firebase token
-      final response = await ApiService.createOrderWithFirebaseToken(
-        idToken: idToken,
+      // Create order (user is now authenticated via JWT token)
+      final response = await ApiService.createOrder(
         type: requestType,
         deliveryType: _selectedDeliveryType!,
         pickupLocation: pickupLocation,
@@ -1687,7 +1629,9 @@ class DeliveryRequestFormController extends ChangeNotifier {
         senderCity: cityName,
         senderVillage: villageName,
         senderStreetDetails: streetDetails,
+        senderPhoneNumber: phoneNumberInt,
         deliveryNotes: notesController.text.trim(),
+        estimatedPrice: _estimatedPrice,
       );
 
       if (_isDisposed) {

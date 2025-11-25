@@ -21,6 +21,9 @@ export interface ISettings extends Document {
   };
   commissionPercentage: number; // Commission percentage (e.g., 2 for 2%)
   maxAllowedBalance: number; // Maximum allowed balance in NIS before suspension
+  otpMessageTemplate?: string; // Custom OTP SMS message template (supports ${otp} placeholder) - Default/English
+  otpMessageTemplateAr?: string; // Arabic OTP SMS message template (supports ${otp} placeholder)
+  otpMessageLanguage?: 'en' | 'ar'; // Default language for OTP messages ('en' or 'ar')
   createdAt: Date;
   updatedAt: Date;
 }
@@ -119,6 +122,27 @@ const SettingsSchema: Schema = new Schema(
       default: 50, // Default 50 NIS
       min: 0,
     },
+    otpMessageTemplate: {
+      type: String,
+      required: false,
+      trim: true,
+      maxlength: 500, // SMS messages are typically limited to 160 characters, but allow longer for template
+      // Default will be handled in getSettings() method
+    },
+    otpMessageTemplateAr: {
+      type: String,
+      required: false,
+      trim: true,
+      maxlength: 500, // SMS messages are typically limited to 160 characters, but allow longer for template
+      // Arabic template - optional, falls back to otpMessageTemplate if not set
+    },
+    otpMessageLanguage: {
+      type: String,
+      required: false,
+      enum: ['en', 'ar'],
+      default: 'en', // Default to English
+      // Language preference for OTP messages
+    },
   },
   {
     timestamps: true,
@@ -142,7 +166,11 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
       },
       commissionPercentage: 2,
       maxAllowedBalance: 50,
+      otpMessageTemplate: 'Your OTP code is: ${otp}. This code will expire in 10 minutes.',
+      otpMessageTemplateAr: 'رمز التحقق الخاص بك هو: ${otp}. هذا الرمز صالح لمدة 10 دقائق فقط.',
+      otpMessageLanguage: 'en',
     });
+    return settings;
   } else {
     // Migrate existing settings if needed
     if (settings.internalOrderRadiusKm === undefined) {
@@ -186,6 +214,18 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
     }
     if (settings.maxAllowedBalance === undefined) {
       settings.maxAllowedBalance = 50;
+    }
+    // Set default OTP message template if not set
+    if (!settings.otpMessageTemplate) {
+      settings.otpMessageTemplate = 'Your OTP code is: ${otp}. This code will expire in 10 minutes.';
+    }
+    // Set default Arabic OTP message template if not set
+    if (!settings.otpMessageTemplateAr) {
+      settings.otpMessageTemplateAr = 'رمز التحقق الخاص بك هو: ${otp}. هذا الرمز صالح لمدة 10 دقائق فقط.';
+    }
+    // Set default OTP message language if not set
+    if (!settings.otpMessageLanguage) {
+      settings.otpMessageLanguage = 'en';
     }
     await settings.save();
   }

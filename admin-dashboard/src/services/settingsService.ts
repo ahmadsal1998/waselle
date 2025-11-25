@@ -22,6 +22,9 @@ export interface Settings {
   };
   commissionPercentage?: number;
   maxAllowedBalance?: number;
+  otpMessageTemplate?: string;
+  otpMessageTemplateAr?: string;
+  otpMessageLanguage?: 'en' | 'ar';
   createdAt?: string;
   updatedAt?: string;
 }

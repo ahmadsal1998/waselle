@@ -10,6 +10,7 @@ import '../../../../view_models/auth_view_model.dart';
 import '../../../../screens/home/order_success_screen.dart';
 import '../../../../services/saved_address_service.dart';
 import '../../../../models/saved_address.dart';
+import '../../../../utils/phone_utils.dart';
 import '../controllers/delivery_request_form_controller.dart';
 
 class DeliveryRequestFormView extends StatefulWidget {
@@ -1506,75 +1507,63 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
           },
         ),
         const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Country code selector
-            SizedBox(
-              width: 130,
-              child: DropdownButtonFormField<String>(
-                value: controller.selectedCountryCode,
-                decoration: InputDecoration(
-                  labelText: 'Code',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 16,
-                  ),
-                  isDense: true,
-                ),
-                items: const [
-                  DropdownMenuItem<String>(
-                    value: '+970',
-                    child: Text('+970'),
-                  ),
-                  DropdownMenuItem<String>(
-                    value: '+972',
-                    child: Text('+972'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    controller.onCountryCodeChanged(value);
-                  }
-                },
-                icon: const Icon(Icons.arrow_drop_down, size: 20),
-                isExpanded: true,
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Phone number field
-            Expanded(
-              child: TextFormField(
-                controller: controller.phoneNumberController,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(10),
-                ],
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: l10n.phoneNumber,
-                  prefixIcon: const Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return l10n.pleaseEnterPhoneNumber;
-                  }
-                  final trimmed = value.trim();
-                  if (trimmed.length < 9 || trimmed.length > 10) {
-                    return l10n.pleaseEnterValidPhoneNumber;
-                  }
-                  return null;
-                },
-              ),
-            ),
+        // Phone number field (accepts Arabic and English digits)
+        // Country code +972 is fixed internally and not shown to user
+        TextFormField(
+          controller: controller.phoneNumberController,
+          keyboardType: TextInputType.phone,
+          inputFormatters: [
+            // Allow both English and Arabic digits
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9٠-٩۰-۹]')),
+            LengthLimitingTextInputFormatter(10),
           ],
+          textInputAction: TextInputAction.next,
+          decoration: InputDecoration(
+            labelText: l10n.phoneNumber,
+            hintText: '0593202026',
+            prefixIcon: const Icon(Icons.phone_outlined),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          onChanged: (value) {
+            // Convert Arabic digits to English in real-time for display
+            final converted = PhoneUtils.convertArabicToEnglishDigits(value);
+            if (converted != value) {
+              // Update controller with converted value
+              final selection = controller.phoneNumberController.selection;
+              controller.phoneNumberController.value = TextEditingValue(
+                text: converted,
+                selection: selection.copyWith(
+                  baseOffset: converted.length,
+                  extentOffset: converted.length,
+                ),
+              );
+            }
+          },
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return l10n.pleaseEnterPhoneNumber;
+            }
+            // Convert Arabic digits before validation
+            final converted = PhoneUtils.convertArabicToEnglishDigits(value.trim());
+            // Remove leading zero for validation
+            final digitsOnly = converted.replaceAll(RegExp(r'[^\d]'), '');
+            final digitsWithoutLeadingZero = digitsOnly.startsWith('0') 
+                ? digitsOnly.substring(1) 
+                : digitsOnly;
+            
+            // Should be 9 digits after removing leading zero, or 10 digits with leading zero
+            if (digitsOnly.length == 10 && digitsOnly.startsWith('0')) {
+              // Valid: 10 digits starting with 0
+              return null;
+            } else if (digitsWithoutLeadingZero.length == 9) {
+              // Valid: 9 digits without leading zero
+              return null;
+            } else {
+              return l10n.pleaseEnterValidPhoneNumber;
+            }
+          },
         ),
       ],
     );

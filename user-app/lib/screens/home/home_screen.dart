@@ -11,6 +11,7 @@ import '../../view_models/location_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../view_models/auth_view_model.dart';
+import '../../services/notification_service.dart';
 import 'order_history_screen.dart';
 import 'order_tracking_screen.dart';
 import 'profile_screen.dart';
@@ -46,8 +47,31 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _HomeScreenView extends StatelessWidget {
+class _HomeScreenView extends StatefulWidget {
   const _HomeScreenView();
+
+  @override
+  State<_HomeScreenView> createState() => _HomeScreenViewState();
+}
+
+class _HomeScreenViewState extends State<_HomeScreenView> {
+  @override
+  void initState() {
+    super.initState();
+    // Check for pending navigation from notification
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkPendingNavigation();
+    });
+  }
+
+  Future<void> _checkPendingNavigation() async {
+    final orderId = await NotificationService.getPendingNavigation();
+    if (orderId != null && mounted) {
+      // Navigate to order tracking tab (index 1)
+      final viewModel = Provider.of<HomeViewModel>(context, listen: false);
+      viewModel.onTabSelected(1);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
