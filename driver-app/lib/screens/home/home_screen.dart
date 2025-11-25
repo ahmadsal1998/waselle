@@ -6,6 +6,7 @@ import '../../view_models/auth_view_model.dart';
 import '../../view_models/location_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../services/socket_service.dart';
+import '../../services/zego_call_service.dart';
 import '../auth/suspended_account_screen.dart';
 import 'available_orders_screen.dart';
 import 'active_order_screen.dart';
@@ -68,6 +69,9 @@ class _HomeScreenState extends State<HomeScreen> {
     // Setup socket listeners after socket is initialized
     orderViewModel.setupSocketListeners();
     
+    // Setup call listener
+    _setupCallListener();
+    
     // Wait a bit more to ensure listeners are attached
     await Future.delayed(const Duration(milliseconds: 300));
     
@@ -90,6 +94,58 @@ class _HomeScreenState extends State<HomeScreen> {
         MaterialPageRoute(builder: (_) => const SuspendedAccountScreen()),
       );
     }
+  }
+
+  void _setupCallListener() {
+    SocketService.on('incoming-call', (data) {
+      if (!mounted) return;
+      
+      final orderId = data['orderId']?.toString();
+      final roomId = data['roomId']?.toString();
+      final callerId = data['callerId']?.toString();
+      final callerName = data['callerName']?.toString() ?? 'Unknown';
+      
+      if (orderId == null || roomId == null || callerId == null) {
+        debugPrint('Error: Invalid incoming call data');
+        return;
+      }
+      
+      debugPrint('📞 RECEIVER: Received incoming call notification');
+      debugPrint('   - callerName: $callerName');
+      debugPrint('   - orderId: $orderId');
+      debugPrint('   - roomId (from server): $roomId');
+      debugPrint('   - callerId: $callerId');
+      debugPrint('   - Will use this EXACT roomId when accepting call');
+      
+      // Handle incoming call
+      ZegoCallService.handleIncomingCall(
+        context: context,
+        orderId: orderId,
+        roomId: roomId,
+        callerId: callerId,
+        callerName: callerName,
+      );
+    });
+    
+    SocketService.on('call-cancelled', (data) {
+      if (!mounted) return;
+      
+      final roomId = data['roomId']?.toString();
+      final callerId = data['callerId']?.toString();
+      
+      if (roomId == null || callerId == null) {
+        debugPrint('Error: Invalid call cancellation data');
+        return;
+      }
+      
+      debugPrint('🚫 Call cancelled: Caller $callerId disconnected');
+      
+      // Cancel the incoming call dialog
+      ZegoCallService.cancelIncomingCall(
+        roomId: roomId,
+        callerId: callerId,
+      );
+    });
   }
 
 

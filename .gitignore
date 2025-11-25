@@ -12,3 +12,8 @@ firebase-adminsdk*.json
 google-services.json
 GoogleService-Info.plist
 
+# Firebase client configuration (contains API keys)
+**/firebase_options.dart
+driver-app/lib/firebase_options.dart
+user-app/lib/firebase_options.dart
+

@@ -8,6 +8,8 @@ class SocketService {
   static final Map<String, List<void Function(dynamic)>> _queuedListeners = {};
 
   static io.Socket? get socket => _socket;
+  
+  static bool get isConnected => _socket != null && _socket!.connected;
 
   static Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
@@ -26,12 +28,16 @@ class SocketService {
     _socket = io.io(
       ApiService.socketUrl,
       <String, dynamic>{
-        'transports': ['websocket'],
+        'transports': ['websocket', 'polling'], // Fallback to polling for Render free hosting
         'auth': {'token': token},
         'reconnection': true,
         'reconnectionAttempts': 10,
         'reconnectionDelay': 1000,
+        'reconnectionDelayMax': 5000,
+        'timeout': 20000, // 20 seconds timeout for Render free hosting delays
         'autoConnect': true,
+        'forceNew': false,
+        'upgrade': true,
       },
     );
 

@@ -43,6 +43,8 @@ class SocketService {
     if (_socket == null || !_socket!.connected) return;
     _queuedListeners.forEach((event, callbacks) {
       for (final callback in callbacks) {
+        // Remove any existing listener for this callback before adding
+        _socket!.off(event, callback);
         _socket!.on(event, callback);
       }
     });
@@ -74,12 +76,16 @@ class SocketService {
     _socket = io.io(
       ApiClient.socketUrl,
       <String, dynamic>{
-        'transports': ['websocket'],
+        'transports': ['websocket', 'polling'], // Fallback to polling for Render free hosting
         'auth': {'token': token},
         'reconnection': true,
         'reconnectionAttempts': 10,
         'reconnectionDelay': 1000,
+        'reconnectionDelayMax': 5000,
+        'timeout': 20000, // 20 seconds timeout for Render free hosting delays
         'autoConnect': true,
+        'forceNew': false,
+        'upgrade': true,
       },
     );
 
@@ -108,13 +114,16 @@ class SocketService {
   }
 
   static void on(String event, Function(dynamic) callback) {
-    // Remove existing listeners from socket but keep the queue structure
-    if (_socket != null) {
-      _socket!.off(event);
-    }
+    // Add callback to the list of listeners for this event (supports multiple listeners)
+    final callbacks = _queuedListeners.putIfAbsent(
+      event,
+      () => <Function(dynamic)>[],
+    );
     
-    // Clear existing callbacks for this event and add new one
-    _queuedListeners[event] = [callback];
+    // Only add if not already present (avoid duplicates)
+    if (!callbacks.contains(callback)) {
+      callbacks.add(callback);
+    }
     
     // Attach listener immediately if socket is connected, otherwise it will be attached on connect
     if (_socket != null && _socket!.connected) {
@@ -123,6 +132,17 @@ class SocketService {
     } else {
       print('SocketService: Queueing listener for event: $event (socket not connected yet)');
     }
+  }
+  
+  /// Remove a specific listener
+  static void removeListener(String event, Function(dynamic) callback) {
+    final callbacks = _queuedListeners[event];
+    if (callbacks == null) return;
+    callbacks.remove(callback);
+    if (callbacks.isEmpty) {
+      _queuedListeners.remove(event);
+    }
+    _socket?.off(event, callback);
   }
 
   static void emit(String event, dynamic data) {

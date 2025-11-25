@@ -9,6 +9,7 @@ import '../main.dart';
 class ApiClient {
   //static const String baseUrl = 'http://localhost:5001/api';
   static const String baseUrl = 'https://waselle.onrender.com/api';
+
   static String get socketUrl => baseUrl.replaceAll('/api', '');
 
   static Future<Map<String, String>> _buildHeaders({

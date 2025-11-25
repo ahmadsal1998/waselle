@@ -1,6 +1,9 @@
+// Load environment variables FIRST, before any other imports
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { connectDatabase } from './config/database';
 import { initializeFirebase } from './utils/firebase';
@@ -13,9 +16,8 @@ import villageRoutes from './routes/villageRoutes';
 import orderCategoryRoutes from './routes/orderCategoryRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import paymentRoutes from './routes/paymentRoutes';
+import zegoRoutes from './routes/zegoRoutes';
 import { initializeSocket } from './services/socketService';
-
-dotenv.config();
 
 // Initialize Firebase Admin SDK
 try {
@@ -79,6 +81,7 @@ app.use('/api/villages', villageRoutes);
 app.use('/api/order-categories', orderCategoryRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/zego', zegoRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

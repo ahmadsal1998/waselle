@@ -8,6 +8,8 @@ import '../../view_models/location_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../view_models/order_tracking_view_model.dart';
+import '../../view_models/auth_view_model.dart';
+import '../../services/zego_call_service.dart';
 import 'order_map_view_screen.dart';
 
 class OrderTrackingScreen extends StatelessWidget {
@@ -492,24 +494,67 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
           if (latestOrder['driverId'] != null)
             Container(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: _InfoSection(
-                title: 'Driver Information',
-                rows: [
-                  _InfoRow(
-                    icon: Icons.person_outline_rounded,
-                    label: 'Name',
-                    value: latestOrder['driverId']['name'],
+              child: Column(
+                children: [
+                  _InfoSection(
+                    title: 'Driver Information',
+                    rows: [
+                      _InfoRow(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Name',
+                        value: latestOrder['driverId']['name'],
+                      ),
+                      _InfoRow(
+                        icon: Icons.phone_android_rounded,
+                        label: 'Phone',
+                        value: _formatPhone(latestOrder['driverId']['phoneNumber']),
+                      ),
+                      _InfoRow(
+                        icon: Icons.directions_car_filled_rounded,
+                        label: 'Vehicle',
+                        value: latestOrder['driverId']['vehicleType'] ??
+                            latestOrder['vehicleType'],
+                      ),
+                    ],
                   ),
-                  _InfoRow(
-                    icon: Icons.phone_android_rounded,
-                    label: 'Phone',
-                    value: _formatPhone(latestOrder['driverId']['phoneNumber']),
-                  ),
-                  _InfoRow(
-                    icon: Icons.directions_car_filled_rounded,
-                    label: 'Vehicle',
-                    value: latestOrder['driverId']['vehicleType'] ??
-                        latestOrder['vehicleType'],
+                  const SizedBox(height: 16),
+                  // Call Button
+                  Consumer<AuthViewModel>(
+                    builder: (context, authViewModel, _) {
+                      final orderId = latestOrder['_id']?.toString();
+                      final user = authViewModel.user;
+                      if (orderId == null || user == null) {
+                        return const SizedBox.shrink();
+                      }
+                      
+                      // Backend returns 'id' field, not '_id' - handle both for compatibility
+                      final userId = (user['id'] ?? user['_id'] ?? '').toString();
+                      final userName = user['name']?.toString() ?? 'User';
+                      
+                      final driverId = latestOrder['driverId']?['_id']?.toString();
+                      
+                      return SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            ZegoCallService.startCall(
+                              context: context,
+                              orderId: orderId,
+                              userId: userId,
+                              userName: userName,
+                              driverId: driverId, // Driver is the receiver
+                              customerId: null, // User is the caller, so customerId should be null
+                            );
+                          },
+                          icon: const Icon(Icons.phone_rounded),
+                          label: const Text('Call Driver'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: colorScheme.primary,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

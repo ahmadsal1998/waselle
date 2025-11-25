@@ -10,8 +10,11 @@ import '../../view_models/home_view_model.dart';
 import '../../view_models/location_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
+import 'package:provider/provider.dart';
 import '../../view_models/auth_view_model.dart';
 import '../../services/notification_service.dart';
+import '../../services/socket_service.dart';
+import '../../services/zego_call_service.dart';
 import 'order_history_screen.dart';
 import 'order_tracking_screen.dart';
 import 'profile_screen.dart';
@@ -58,9 +61,10 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
   @override
   void initState() {
     super.initState();
-    // Check for pending navigation from notification
+    // Check for pending navigation from notification and initialize call listener
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPendingNavigation();
+      _initializeCallListener();
     });
   }
 
@@ -71,6 +75,69 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
       final viewModel = Provider.of<HomeViewModel>(context, listen: false);
       viewModel.onTabSelected(1);
     }
+  }
+
+  Future<void> _initializeCallListener() async {
+    // Ensure SocketService is initialized
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    if (authViewModel.isAuthenticated) {
+      await SocketService.initialize();
+      // Wait a bit for socket to connect
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+    _setupCallListener();
+  }
+
+  void _setupCallListener() {
+    SocketService.on('incoming-call', (data) {
+      if (!mounted) return;
+      
+      final orderId = data['orderId']?.toString();
+      final roomId = data['roomId']?.toString();
+      final callerId = data['callerId']?.toString();
+      final callerName = data['callerName']?.toString() ?? 'Unknown';
+      
+      if (orderId == null || roomId == null || callerId == null) {
+        debugPrint('Error: Invalid incoming call data');
+        return;
+      }
+      
+      debugPrint('📞 RECEIVER: Received incoming call notification');
+      debugPrint('   - callerName: $callerName');
+      debugPrint('   - orderId: $orderId');
+      debugPrint('   - roomId (from server): $roomId');
+      debugPrint('   - callerId: $callerId');
+      debugPrint('   - Will use this EXACT roomId when accepting call');
+      
+      // Handle incoming call
+      ZegoCallService.handleIncomingCall(
+        context: context,
+        orderId: orderId,
+        roomId: roomId,
+        callerId: callerId,
+        callerName: callerName,
+      );
+    });
+    
+    SocketService.on('call-cancelled', (data) {
+      if (!mounted) return;
+      
+      final roomId = data['roomId']?.toString();
+      final callerId = data['callerId']?.toString();
+      
+      if (roomId == null || callerId == null) {
+        debugPrint('Error: Invalid call cancellation data');
+        return;
+      }
+      
+      debugPrint('🚫 Call cancelled: Caller $callerId disconnected');
+      
+      // Cancel the incoming call dialog
+      ZegoCallService.cancelIncomingCall(
+        roomId: roomId,
+        callerId: callerId,
+      );
+    });
   }
 
   @override

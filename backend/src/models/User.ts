@@ -138,6 +138,7 @@ const UserSchema: Schema = new Schema(
     fcmToken: {
       type: String,
       trim: true,
+      sparse: true, // Allow multiple null values
     },
   },
   {

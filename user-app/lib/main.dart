@@ -16,6 +16,7 @@ import 'view_models/region_view_model.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'services/notification_service.dart';
+import 'services/app_lifecycle_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +29,10 @@ void main() async {
   
   // Initialize notification service
   await NotificationService().initialize();
+  
+  // Initialize app lifecycle service for handling calls across all app states
+  final navigatorKey = GlobalNavigatorKey.navigatorKey;
+  await AppLifecycleService().initialize(navigatorKey: navigatorKey);
   
   runApp(const MyApp());
 }
@@ -64,6 +69,7 @@ class MyApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             theme: AppTheme.lightTheme,
+            navigatorKey: GlobalNavigatorKey.navigatorKey,
             home: const AuthWrapper(),
             // Handle unknown routes gracefully
             onUnknownRoute: (settings) {
@@ -78,6 +84,11 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
+}
+
+// Global navigator key for navigation from anywhere in the app
+class GlobalNavigatorKey {
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 }
 
 class AuthWrapper extends StatelessWidget {
