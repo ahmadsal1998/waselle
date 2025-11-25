@@ -20,10 +20,27 @@ export const sendNotificationToUser = async (
 ): Promise<void> => {
   try {
     const user = await User.findById(userId);
-    if (!user || !user.fcmToken) {
-      console.log(`User ${userId} has no FCM token, skipping notification`);
+    if (!user) {
+      console.log(`❌ User ${userId} not found, skipping notification`);
       return;
     }
+    
+    if (!user.fcmToken || user.fcmToken.trim() === '') {
+      console.log(`❌ User ${userId} has no FCM token, skipping notification`);
+      console.log(`   User role: ${user.role}, isAvailable: ${user.isAvailable}, isActive: ${user.isActive}`);
+      return;
+    }
+
+    // Validate token format (FCM tokens are typically long strings)
+    if (user.fcmToken.length < 50) {
+      console.log(`❌ User ${userId} has invalid FCM token (too short: ${user.fcmToken.length} chars), skipping notification`);
+      return;
+    }
+
+    console.log(`📤 Sending notification to user ${userId}`);
+    console.log(`   Title: ${payload.title}`);
+    console.log(`   Body: ${payload.body}`);
+    console.log(`   Token: ${user.fcmToken.substring(0, 20)}... (${user.fcmToken.length} chars)`);
 
     // HTTP v1 API message format - ensures delivery in all app states
     const message: admin.messaging.Message = {
@@ -97,10 +114,13 @@ export const sendNotificationToUser = async (
     // Handle invalid token errors gracefully
     if (error.code === 'messaging/invalid-registration-token' || 
         error.code === 'messaging/registration-token-not-registered') {
-      console.log(`Invalid FCM token for user ${userId}, removing token`);
+      console.log(`❌ Invalid FCM token for user ${userId}, removing token`);
+      console.log(`   Error code: ${error.code}`);
       await User.findByIdAndUpdate(userId, { fcmToken: undefined });
     } else {
       console.error(`❌ Error sending push notification to user ${userId}:`, error.message);
+      console.error(`   Error code: ${error.code}`);
+      console.error(`   Full error:`, error);
     }
   }
 };
@@ -174,17 +194,28 @@ export const sendNewOrderNotificationToDrivers = async (
 ): Promise<{ notified: number; skipped: number }> => {
   try {
     // Find all available drivers with matching vehicle type
-    const drivers = await User.find({
+    // CRITICAL: Only include drivers with valid FCM tokens (not empty strings)
+    const allDrivers = await User.find({
       role: 'driver',
       vehicleType: vehicleType,
       isAvailable: true,
       isActive: true, // Only active drivers
       location: { $exists: true, $ne: null },
-      fcmToken: { $exists: true, $ne: null }, // Only drivers with FCM tokens
+      fcmToken: { $exists: true, $ne: null, $type: 'string' }, // Only drivers with FCM tokens (string type)
     }).lean();
+    
+    // Additional validation: filter out drivers with invalid tokens
+    const drivers = allDrivers.filter(driver => {
+      const token = driver.fcmToken;
+      return token && typeof token === 'string' && token.trim().length >= 50;
+    });
+    
+    if (drivers.length !== allDrivers.length) {
+      console.log(`⚠️ Filtered out ${allDrivers.length - drivers.length} drivers with invalid FCM tokens`);
+    }
 
     if (drivers.length === 0) {
-      console.log(`No available drivers found for vehicle type ${vehicleType}`);
+      console.log(`No available drivers found for vehicle type ${vehicleType} with valid FCM tokens`);
       return { notified: 0, skipped: 0 };
     }
 

@@ -196,6 +196,7 @@ class FCMService {
     final data = message.data;
 
     // Show local notification when app is in foreground
+    // CRITICAL: Always show notification even if app is in foreground
     String title = 'Order Update';
     String body = '';
 
@@ -207,21 +208,31 @@ class FCMService {
       body = data['body'] ?? '';
     }
 
+    // If we still don't have content, try to generate from data
+    if (body.isEmpty && data['type'] == 'new_order') {
+      title = 'طلب جديد متاح';
+      body = 'تم وضع طلب توصيل جديد. اضغط لعرض الطلبات المتاحة.';
+    } else if (body.isEmpty && data['type'] == 'order_status_update') {
+      title = 'تحديث حالة الطلب';
+      body = 'تم تحديث حالة الطلب';
+    }
+
     // Determine channel ID based on notification type
     String channelId = 'order_updates';
     if (data['type'] == 'incoming_call') {
       channelId = 'incoming_calls';
     }
 
-    // Show notification if we have content
-    if (body.isNotEmpty || title != 'Order Update') {
+    // ALWAYS show notification when app is in foreground
+    // This ensures drivers see new orders even when app is open
+    if (title.isNotEmpty) {
       await _showLocalNotification(
         title: title,
-        body: body,
+        body: body.isNotEmpty ? body : 'لديك إشعار جديد',
         data: data,
         channelId: channelId,
       );
-      debugPrint('✅ Local notification shown in foreground');
+      debugPrint('✅ Local notification shown in foreground: $title - $body');
     } else {
       debugPrint('⚠️ No notification content to display');
     }
@@ -491,6 +502,12 @@ class FCMService {
         return false;
       }
       
+      // Validate token format (FCM tokens are typically long strings)
+      if (token.length < 50) {
+        debugPrint('⚠️ FCM token seems invalid (too short): ${token.length} characters');
+        return false;
+      }
+      
       // Check if user is authenticated before saving token
       final prefs = await SharedPreferences.getInstance();
       final authToken = prefs.getString('token');
@@ -503,8 +520,11 @@ class FCMService {
       }
       
       debugPrint('📤 Sending FCM token to backend: ${token.substring(0, 20)}...');
-      await ApiClient.post('/users/fcm-token', body: {'fcmToken': token});
+      debugPrint('📤 Full token length: ${token.length} characters');
+      
+      final response = await ApiClient.post('/users/fcm-token', body: {'fcmToken': token});
       debugPrint('✅ FCM token saved to backend successfully');
+      debugPrint('✅ Backend response: $response');
       
       // Clear pending token if save was successful
       await prefs.remove('pending_fcm_token');
@@ -512,6 +532,7 @@ class FCMService {
     } catch (e) {
       debugPrint('❌ Error saving FCM token to backend: $e');
       debugPrint('   Token: ${token.substring(0, 20)}...');
+      debugPrint('   Token length: ${token.length}');
       
       // Store token to retry later
       try {
