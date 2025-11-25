@@ -26,36 +26,66 @@ export const sendPushNotification = async (
       return false;
     }
 
+    // HTTP v1 API message format - ensures delivery in all app states
     const message: admin.messaging.Message = {
       token: user.fcmToken,
+      // Include both notification and data for compatibility
       notification: {
         title,
         body,
       },
+      // Data payload - always delivered regardless of app state
       data: data ? Object.fromEntries(
         Object.entries(data).map(([key, value]) => [key, String(value)])
       ) : undefined,
+      // Android-specific configuration for HTTP v1
       android: {
-        priority: 'high',
+        priority: 'high' as const,
         notification: {
           sound: 'default',
-          channelId: 'incoming_calls',
+          channelId: 'incoming_calls', // Must match channel ID in Android app
           priority: 'high' as const,
+          visibility: 'public' as const,
+          defaultSound: true,
+          defaultVibrateTimings: true,
+          notificationCount: 1,
         },
       },
+      // iOS (APNS) configuration for HTTP v1
       apns: {
+        headers: {
+          'apns-priority': '10', // High priority for immediate delivery
+          'apns-push-type': 'alert', // Alert type for user-visible notifications
+        },
         payload: {
           aps: {
             sound: 'default',
             badge: 1,
-            contentAvailable: true,
+            contentAvailable: true, // Enable background notification processing
+            mutableContent: true, // Allow notification modification
+            alert: {
+              title,
+              body,
+            },
+            'thread-id': 'incoming_calls',
           },
         },
       },
+      // Web push configuration
+      webpush: {
+        notification: {
+          title,
+          body,
+          icon: '/icon.png',
+          badge: '/badge.png',
+        },
+        data: data || {},
+      },
     };
 
+    // Use HTTP v1 API explicitly (default in Firebase Admin SDK v12+)
     const response = await admin.messaging().send(message);
-    console.log(`✅ Push notification sent successfully to user ${userId}:`, response);
+    console.log(`✅ Push notification sent successfully to user ${userId} via HTTP v1 API:`, response);
     return true;
   } catch (error: any) {
     console.error(`❌ Error sending push notification to user ${userId}:`, error.message);

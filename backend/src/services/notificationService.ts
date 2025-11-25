@@ -21,30 +21,44 @@ export const sendNotificationToUser = async (
       return;
     }
 
-    const message = {
+    // HTTP v1 API message format - ensures delivery in all app states
+    const message: admin.messaging.Message = {
       token: user.fcmToken,
+      // Include both notification and data for compatibility
+      // notification: shown when app is in background/terminated
+      // data: always delivered, can be handled when app is in foreground
       notification: {
         title: payload.title,
         body: payload.body,
       },
+      // Data payload - always delivered regardless of app state
       data: Object.fromEntries(
         Object.entries(payload.data || {}).map(([key, value]) => [
           key,
           typeof value === 'string' ? value : String(value),
         ])
       ),
+      // Android-specific configuration for HTTP v1
       android: {
         priority: 'high' as const,
+        // Notification configuration for Android
         notification: {
           sound: 'default',
-          channelId: 'order_updates',
+          channelId: 'order_updates', // Must match channel ID in Android app
           priority: 'high' as const,
           visibility: 'public' as const,
           defaultSound: true,
           defaultVibrateTimings: true,
+          // Ensure notification is shown even when app is in foreground
+          notificationCount: 1,
         },
       },
+      // iOS (APNS) configuration for HTTP v1
       apns: {
+        headers: {
+          'apns-priority': '10', // High priority for immediate delivery
+          'apns-push-type': 'alert', // Alert type for user-visible notifications
+        },
         payload: {
           aps: {
             sound: 'default',
@@ -55,13 +69,26 @@ export const sendNotificationToUser = async (
               title: payload.title,
               body: payload.body,
             },
+            // Ensure notification is shown even when app is in foreground
+            'thread-id': 'order_updates',
           },
         },
       },
+      // Web push configuration
+      webpush: {
+        notification: {
+          title: payload.title,
+          body: payload.body,
+          icon: '/icon.png',
+          badge: '/badge.png',
+        },
+        data: payload.data || {},
+      },
     };
 
+    // Use HTTP v1 API explicitly (default in Firebase Admin SDK v12+)
     const response = await admin.messaging().send(message);
-    console.log(`✅ Push notification sent to user ${userId}: ${response}`);
+    console.log(`✅ Push notification sent to user ${userId} via HTTP v1 API: ${response}`);
   } catch (error: any) {
     // Handle invalid token errors gracefully
     if (error.code === 'messaging/invalid-registration-token' || 
@@ -167,4 +194,5 @@ export const sendDriverOrderStatusNotification = async (
     },
   });
 };
+
 
