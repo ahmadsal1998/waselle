@@ -26,6 +26,9 @@ export const sendPushNotification = async (
       return false;
     }
 
+    // Determine channel ID based on notification type
+    const channelId = data?.type === 'incoming_call' ? 'incoming_calls' : 'order_updates';
+
     // HTTP v1 API message format - ensures delivery in all app states
     const message: admin.messaging.Message = {
       token: user.fcmToken,
@@ -43,7 +46,7 @@ export const sendPushNotification = async (
         priority: 'high' as const,
         notification: {
           sound: 'default',
-          channelId: 'incoming_calls', // Must match channel ID in Android app
+          channelId: channelId, // Must match channel ID in Android app
           priority: 'high' as const,
           visibility: 'public' as const,
           defaultSound: true,
@@ -67,7 +70,7 @@ export const sendPushNotification = async (
               title,
               body,
             },
-            'thread-id': 'incoming_calls',
+            'thread-id': channelId,
           },
         },
       },

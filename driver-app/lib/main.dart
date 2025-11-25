@@ -19,6 +19,7 @@ import 'services/app_lifecycle_service.dart';
 import 'services/fcm_service.dart';
 
 // Background message handler - must be top-level function
+// MUST be registered BEFORE Firebase.initializeApp() for terminated app state
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -29,14 +30,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SharedPreferences.getInstance();
   
+  // CRITICAL: Register background handler BEFORE Firebase initialization
+  // This ensures notifications work when app is terminated
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
   // Initialize Firebase (driver app needs Firebase configured)
   // Note: You'll need to add firebase_options.dart for driver app
   // Run: flutterfire configure --project=your-project-id
   try {
     await Firebase.initializeApp();
-    
-    // Set up background message handler
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     
     // Initialize FCM service for push notifications
     await FCMService().initialize();

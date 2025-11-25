@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/api_client.dart';
 import '../main.dart'; // For GlobalNavigatorKey
@@ -12,6 +14,8 @@ class FCMService {
   FCMService._internal();
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
   String? _fcmToken;
   bool _isInitialized = false;
 
@@ -36,6 +40,50 @@ class FCMService {
         debugPrint('❌ User declined notification permission');
         return;
       }
+
+      // Initialize local notifications for foreground notifications
+      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+      const initSettings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      );
+
+      await _localNotifications.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: _onNotificationTapped,
+      );
+
+      // Create notification channels for Android
+      const orderUpdatesChannel = AndroidNotificationChannel(
+        'order_updates',
+        'Order Updates',
+        description: 'Notifications for order status updates',
+        importance: Importance.high,
+        playSound: true,
+      );
+
+      const incomingCallsChannel = AndroidNotificationChannel(
+        'incoming_calls',
+        'Incoming Calls',
+        description: 'Notifications for incoming calls',
+        importance: Importance.high,
+        playSound: true,
+      );
+
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(orderUpdatesChannel);
+
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(incomingCallsChannel);
 
       // Get FCM token
       _fcmToken = await _firebaseMessaging.getToken();
@@ -75,14 +123,49 @@ class FCMService {
   }
 
   /// Handle foreground messages (when app is open)
-  void _handleForegroundMessage(RemoteMessage message) {
+  Future<void> _handleForegroundMessage(RemoteMessage message) async {
     debugPrint('📨 Foreground message received: ${message.messageId}');
+    debugPrint('   Title: ${message.notification?.title}');
+    debugPrint('   Body: ${message.notification?.body}');
     debugPrint('   Data: ${message.data}');
-    debugPrint('   Notification: ${message.notification?.title}');
+
+    final notification = message.notification;
+    final data = message.data;
+
+    // Show local notification when app is in foreground
+    String title = 'Order Update';
+    String body = '';
+
+    if (notification != null) {
+      title = notification.title ?? title;
+      body = notification.body ?? body;
+    } else if (data['title'] != null) {
+      title = data['title']!;
+      body = data['body'] ?? '';
+    }
+
+    // Determine channel ID based on notification type
+    String channelId = 'order_updates';
+    if (data['type'] == 'incoming_call') {
+      channelId = 'incoming_calls';
+    }
+
+    // Show notification if we have content
+    if (body.isNotEmpty || title != 'Order Update') {
+      await _showLocalNotification(
+        title: title,
+        body: body,
+        data: data,
+        channelId: channelId,
+      );
+      debugPrint('✅ Local notification shown in foreground');
+    } else {
+      debugPrint('⚠️ No notification content to display');
+    }
 
     // Handle incoming call notification
-    if (message.data['type'] == 'incoming_call') {
-      _handleIncomingCallNotification(message.data);
+    if (data['type'] == 'incoming_call') {
+      _handleIncomingCallNotification(data);
     }
   }
 
@@ -91,10 +174,78 @@ class FCMService {
     debugPrint('👆 Notification tapped: ${message.messageId}');
     debugPrint('   Data: ${message.data}');
 
+    final data = message.data;
+
     // Handle incoming call notification
-    if (message.data['type'] == 'incoming_call') {
-      _handleIncomingCallNotification(message.data);
+    if (data['type'] == 'incoming_call') {
+      _handleIncomingCallNotification(data);
+    } else if (data['type'] == 'order_status_update' && data['orderId'] != null) {
+      // Store order ID for navigation
+      _storePendingNavigation(data['orderId']);
     }
+  }
+
+  /// Handle local notification tap
+  void _onNotificationTapped(NotificationResponse response) {
+    debugPrint('👆 Local notification tapped: ${response.id}');
+    final payload = response.payload;
+    if (payload != null) {
+      try {
+        final data = Map<String, dynamic>.from(
+          Uri.splitQueryString(payload),
+        );
+        if (data['orderId'] != null) {
+          _storePendingNavigation(data['orderId']!);
+        }
+      } catch (e) {
+        debugPrint('❌ Error parsing notification payload: $e');
+      }
+    }
+  }
+
+  /// Show local notification
+  Future<void> _showLocalNotification({
+    required String title,
+    required String body,
+    Map<String, dynamic>? data,
+    String channelId = 'order_updates',
+  }) async {
+    final androidDetails = AndroidNotificationDetails(
+      channelId,
+      channelId == 'incoming_calls' ? 'Incoming Calls' : 'Order Updates',
+      channelDescription: channelId == 'incoming_calls'
+          ? 'Notifications for incoming calls'
+          : 'Notifications for order status updates',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: true,
+      playSound: true,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    // Create payload string from data
+    String? payload;
+    if (data != null && data['orderId'] != null) {
+      payload = 'orderId=${data['orderId']}';
+    }
+
+    await _localNotifications.show(
+      DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      title,
+      body,
+      details,
+      payload: payload,
+    );
   }
 
   /// Handle incoming call notification data
@@ -141,6 +292,17 @@ class FCMService {
     }
   }
 
+  /// Store pending navigation order ID
+  void _storePendingNavigation(String orderId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pending_order_navigation', orderId);
+      debugPrint('💾 Stored pending order navigation: $orderId');
+    } catch (e) {
+      debugPrint('❌ Error storing pending navigation: $e');
+    }
+  }
+
   /// Save FCM token to backend
   Future<void> _saveTokenToBackend(String token) async {
     try {
@@ -162,10 +324,120 @@ class FCMService {
 /// This must be a top-level function, not a class method
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Initialize Firebase in background isolate
+  // Note: If firebase_options.dart exists, use: await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Otherwise, Firebase will use platform-specific config files (GoogleService-Info.plist for iOS, google-services.json for Android)
+  await Firebase.initializeApp();
+  
   debugPrint('📨 Background message received: ${message.messageId}');
+  debugPrint('   Title: ${message.notification?.title}');
+  debugPrint('   Body: ${message.notification?.body}');
   debugPrint('   Data: ${message.data}');
   
-  // Background messages are handled here
-  // The app will handle the notification tap via onMessageOpenedApp
+  // Initialize local notifications plugin for background handler
+  final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
+  
+  // Initialize Android settings
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const iosSettings = DarwinInitializationSettings(
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestSoundPermission: true,
+  );
+  const initSettings = InitializationSettings(
+    android: androidSettings,
+    iOS: iosSettings,
+  );
+  
+  await localNotifications.initialize(initSettings);
+  
+  // Create notification channels for Android
+  const orderUpdatesChannel = AndroidNotificationChannel(
+    'order_updates',
+    'Order Updates',
+    description: 'Notifications for order status updates',
+    importance: Importance.high,
+    playSound: true,
+  );
+  
+  const incomingCallsChannel = AndroidNotificationChannel(
+    'incoming_calls',
+    'Incoming Calls',
+    description: 'Notifications for incoming calls',
+    importance: Importance.high,
+    playSound: true,
+  );
+  
+  await localNotifications
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(orderUpdatesChannel);
+  
+  await localNotifications
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(incomingCallsChannel);
+  
+  // Show local notification if notification payload exists
+  if (message.notification != null) {
+    final notification = message.notification!;
+    final title = notification.title ?? 'Order Update';
+    final body = notification.body ?? '';
+    
+    // Determine channel ID based on notification type
+    String channelId = 'order_updates';
+    if (message.data['type'] == 'incoming_call') {
+      channelId = 'incoming_calls';
+    }
+    
+    final androidDetails = AndroidNotificationDetails(
+      channelId,
+      channelId == 'incoming_calls' ? 'Incoming Calls' : 'Order Updates',
+      channelDescription: channelId == 'incoming_calls'
+          ? 'Notifications for incoming calls'
+          : 'Notifications for order status updates',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: true,
+      playSound: true,
+    );
+    
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+    
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+    
+    // Create payload string from data
+    String? payload;
+    if (message.data['orderId'] != null) {
+      payload = 'orderId=${message.data['orderId']}';
+    }
+    
+    await localNotifications.show(
+      DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      title,
+      body,
+      details,
+      payload: payload,
+    );
+    
+    debugPrint('✅ Local notification shown in background handler');
+  }
+  
+  // Store notification data for when app opens
+  if (message.data['type'] == 'order_status_update' && message.data['orderId'] != null) {
+    try {
+      // Note: SharedPreferences requires WidgetsFlutterBinding.ensureInitialized()
+      // which is already done in main.dart before Firebase initialization
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pending_order_navigation', message.data['orderId']!);
+      debugPrint('✅ Stored order ID for navigation: ${message.data['orderId']}');
+    } catch (e) {
+      debugPrint('❌ Error storing notification data: $e');
+    }
+  }
 }
-
