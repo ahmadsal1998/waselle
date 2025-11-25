@@ -291,9 +291,12 @@ export const createOrder = async (
 
     // Send push notification to customer when order is created
     if (order.customerId) {
+      const customerId = typeof order.customerId === 'object' && (order.customerId as any)._id 
+        ? (order.customerId as any)._id.toString() 
+        : order.customerId.toString();
       await sendOrderStatusNotification(
         order._id.toString(),
-        order.customerId.toString(),
+        customerId,
         'pending',
         orderData
       );
@@ -649,9 +652,12 @@ export const acceptOrder = async (
 
     // Send push notification to customer
     if (order.customerId) {
+      const customerId = typeof order.customerId === 'object' && (order.customerId as any)._id 
+        ? (order.customerId as any)._id.toString() 
+        : order.customerId.toString();
       await sendOrderStatusNotification(
         order._id.toString(),
-        order.customerId.toString(),
+        customerId,
         'accepted',
         orderData
       );
@@ -659,9 +665,12 @@ export const acceptOrder = async (
 
     // Send push notification to driver
     if (order.driverId) {
+      const driverId = typeof order.driverId === 'object' && (order.driverId as any)._id 
+        ? (order.driverId as any)._id.toString() 
+        : order.driverId.toString();
       await sendDriverOrderStatusNotification(
         order._id.toString(),
-        order.driverId.toString(),
+        driverId,
         'accepted',
         orderData
       );
@@ -740,18 +749,24 @@ export const updateOrderStatus = async (
 
     // Send push notifications to customer and driver
     if (order.customerId) {
+      const customerId = typeof order.customerId === 'object' && (order.customerId as any)._id 
+        ? (order.customerId as any)._id.toString() 
+        : order.customerId.toString();
       await sendOrderStatusNotification(
         order._id.toString(),
-        order.customerId.toString(),
+        customerId,
         status,
         orderData
       );
     }
 
     if (order.driverId) {
+      const driverId = typeof order.driverId === 'object' && (order.driverId as any)._id 
+        ? (order.driverId as any)._id.toString() 
+        : order.driverId.toString();
       await sendDriverOrderStatusNotification(
         order._id.toString(),
-        order.driverId.toString(),
+        driverId,
         status,
         orderData
       );
