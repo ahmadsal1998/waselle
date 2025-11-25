@@ -22,8 +22,15 @@ class FCMService {
   bool _isInitialized = false;
 
   /// Initialize FCM service
+  /// This is called on every app start to ensure FCM is always ready
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (_isInitialized) {
+      // Even if already initialized, verify token is synced
+      // This handles cases where app was reinstalled or token became invalid
+      debugPrint('🔄 FCM already initialized, verifying token sync...');
+      await _verifyAndSyncToken();
+      return;
+    }
 
     try {
       // Request notification permissions
@@ -145,11 +152,21 @@ class FCMService {
       }
 
       // Listen for token refresh
+      // CRITICAL: This listener ensures tokens are always refreshed when Firebase generates a new one
+      // This happens automatically when app is reinstalled, token expires, or Firebase refreshes it
       _firebaseMessaging.onTokenRefresh.listen((newToken) {
-        debugPrint('🔄 FCM token refreshed: ${newToken.substring(0, 20)}...');
+        debugPrint('🔄 FCM token refreshed automatically by Firebase: ${newToken.substring(0, 20)}...');
         debugPrint('🔄 Full refreshed token: $newToken');
         _fcmToken = newToken;
-        _saveTokenToBackend(newToken);
+        // Always try to save to backend immediately when token refreshes
+        // This ensures backend always has the latest token
+        _saveTokenToBackend(newToken).then((success) {
+          if (success) {
+            debugPrint('✅ Refreshed FCM token synced to backend successfully');
+          } else {
+            debugPrint('⚠️ Refreshed FCM token stored locally, will sync when authenticated');
+          }
+        });
       });
 
       // Handle foreground messages
@@ -176,12 +193,54 @@ class FCMService {
 
       _isInitialized = true;
       debugPrint('✅ FCM Service initialized');
+      
+      // CRITICAL: After initialization, verify token is synced
+      // This ensures token is sent to backend even if user is already authenticated
+      // This handles cases where backend removed invalid token
+      await _verifyAndSyncToken();
     } catch (e) {
       // Log error but don't prevent initialization from completing
       // This ensures the app can still function even if FCM setup fails
       debugPrint('❌ Error initializing FCM service: $e');
       // Still mark as initialized to prevent retry loops
       _isInitialized = true;
+    }
+  }
+
+  /// Verify token is synced to backend and sync if needed
+  /// This is called on app start and periodically to ensure token is always up to date
+  Future<void> _verifyAndSyncToken() async {
+    try {
+      // Check if user is authenticated
+      final prefs = await SharedPreferences.getInstance();
+      final authToken = prefs.getString('token');
+      
+      if (authToken == null) {
+        debugPrint('🔍 Token sync check: User not authenticated, will sync after login');
+        return;
+      }
+      
+      // If we have a token, ensure it's synced
+      if (_fcmToken != null && _fcmToken!.isNotEmpty) {
+        debugPrint('🔍 Token sync check: Verifying token is synced to backend...');
+        // Try to sync token (will only send if not already synced)
+        await _saveTokenToBackend(_fcmToken!);
+      } else {
+        // No token yet, try to retrieve one
+        debugPrint('🔍 Token sync check: No token found, retrieving...');
+        if (Platform.isAndroid) {
+          await _retrieveAndroidToken(retryCount: 0, maxRetries: 2);
+        } else if (Platform.isIOS) {
+          final token = await _retrieveIOSTokenWithRetry(retryCount: 0, maxRetries: 2);
+          if (token != null) {
+            _fcmToken = token;
+            await _saveTokenToBackend(token);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error verifying token sync: $e');
+      // Don't throw - this is a background check
     }
   }
 
@@ -494,6 +553,7 @@ class FCMService {
 
   /// Save FCM token to backend
   /// Returns true if successful, false otherwise
+  /// CRITICAL: This method always updates the token on backend, never skips
   Future<bool> _saveTokenToBackend(String token) async {
     try {
       // Validate token
@@ -519,15 +579,24 @@ class FCMService {
         return false;
       }
       
+      // CRITICAL: Always send token to backend, even if we think it's already there
+      // This ensures backend always has the latest token, especially after app reinstallation
+      // or when backend removed an invalid token
       debugPrint('📤 Sending FCM token to backend: ${token.substring(0, 20)}...');
       debugPrint('📤 Full token length: ${token.length} characters');
+      debugPrint('📤 This will UPDATE the token on backend (not create new)');
       
       final response = await ApiClient.post('/users/fcm-token', body: {'fcmToken': token});
-      debugPrint('✅ FCM token saved to backend successfully');
+      debugPrint('✅ FCM token saved/updated to backend successfully');
       debugPrint('✅ Backend response: $response');
       
       // Clear pending token if save was successful
       await prefs.remove('pending_fcm_token');
+      await prefs.remove('needs_fcm_token_refresh');
+      
+      // Store last successful sync time to avoid unnecessary syncs
+      await prefs.setInt('last_fcm_token_sync', DateTime.now().millisecondsSinceEpoch);
+      
       return true;
     } catch (e) {
       debugPrint('❌ Error saving FCM token to backend: $e');
@@ -548,6 +617,7 @@ class FCMService {
 
   /// Save pending FCM token after authentication
   /// This method ensures a fresh token is retrieved and synced to backend
+  /// CRITICAL: Called after login to ensure token is always synced
   Future<void> savePendingToken() async {
     try {
       debugPrint('📱 Starting FCM token sync after authentication...');
@@ -569,7 +639,7 @@ class FCMService {
       }
       
       // Force refresh token to ensure we have the latest one
-      // This is critical after app reinstallation
+      // This is critical after app reinstallation or when backend removed invalid token
       debugPrint('🔄 Forcing FCM token refresh after authentication...');
       String? newToken;
       
@@ -579,7 +649,7 @@ class FCMService {
         newToken = _fcmToken;
       } else if (Platform.isIOS) {
         // Force retrieve iOS token with retry
-        newToken = await _retrieveIOSTokenWithRetry();
+        newToken = await _retrieveIOSTokenWithRetry(retryCount: 0, maxRetries: 5);
       } else {
         // Other platforms
         try {
@@ -597,10 +667,11 @@ class FCMService {
           debugPrint('✅ FCM token synced to backend successfully');
           // Clear any pending token
           await prefs.remove('pending_fcm_token');
+          await prefs.remove('needs_fcm_token_refresh');
         } else {
-          // Store as pending if save failed
+          // Store as pending if save failed (shouldn't happen if authenticated)
           await prefs.setString('pending_fcm_token', newToken);
-          debugPrint('⚠️ FCM token saved locally, will retry later');
+          debugPrint('⚠️ FCM token save failed, stored locally for retry');
         }
       } else {
         debugPrint('⚠️ Could not retrieve FCM token, will retry later');
@@ -615,6 +686,52 @@ class FCMService {
       Future.delayed(const Duration(seconds: 5), () {
         savePendingToken();
       });
+    }
+  }
+  
+  /// Periodic token sync check
+  /// This ensures token is synced even if initial sync failed
+  /// Called periodically to catch cases where backend removed token
+  Future<void> periodicTokenSyncCheck() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final authToken = prefs.getString('token');
+      
+      // Only check if user is authenticated
+      if (authToken == null) {
+        return;
+      }
+      
+      // Check last sync time to avoid unnecessary syncs
+      final lastSync = prefs.getInt('last_fcm_token_sync') ?? 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final timeSinceLastSync = now - lastSync;
+      
+      // Only sync if it's been more than 1 hour since last sync
+      // This prevents excessive API calls while ensuring token stays fresh
+      if (timeSinceLastSync < 3600000) { // 1 hour in milliseconds
+        return;
+      }
+      
+      debugPrint('🔄 Periodic token sync check: Verifying token is synced...');
+      
+      // If we have a token, ensure it's synced
+      if (_fcmToken != null && _fcmToken!.isNotEmpty) {
+        await _saveTokenToBackend(_fcmToken!);
+      } else {
+        // No token, try to retrieve one
+        if (Platform.isAndroid) {
+          await _retrieveAndroidToken(retryCount: 0, maxRetries: 2);
+        } else if (Platform.isIOS) {
+          final token = await _retrieveIOSTokenWithRetry(retryCount: 0, maxRetries: 2);
+          if (token != null) {
+            _fcmToken = token;
+            await _saveTokenToBackend(token);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error in periodic token sync check: $e');
     }
   }
 

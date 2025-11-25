@@ -21,6 +21,18 @@ export const registerFCMToken = async (
       return;
     }
 
+    // Validate token format (FCM tokens are typically long strings)
+    if (fcmToken.length < 50) {
+      res.status(400).json({ message: 'Invalid FCM token format' });
+      return;
+    }
+
+    // Check if user already has a token
+    const existingUser = await User.findById(req.user.userId).select('fcmToken');
+    const hadExistingToken = existingUser?.fcmToken && existingUser.fcmToken !== fcmToken;
+
+    // CRITICAL: Always update the token, even if it's the same
+    // This ensures the token is refreshed after app reinstallation or when backend removed invalid token
     const user = await User.findByIdAndUpdate(
       req.user.userId,
       { fcmToken },
@@ -32,11 +44,19 @@ export const registerFCMToken = async (
       return;
     }
 
+    // Log token update for debugging
+    if (hadExistingToken) {
+      console.log(`🔄 FCM token updated for user ${req.user.userId} (replaced old token)`);
+    } else {
+      console.log(`✅ FCM token ${existingUser?.fcmToken ? 'updated' : 'registered'} for user ${req.user.userId}`);
+    }
+
     res.status(200).json({
       message: 'FCM token registered successfully',
       user,
     });
   } catch (error: any) {
+    console.error(`❌ Error registering FCM token for user ${req.user?.userId}:`, error);
     res.status(500).json({
       message: error.message || 'Failed to register FCM token',
     });

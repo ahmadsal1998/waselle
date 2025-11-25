@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -41,7 +42,18 @@ void main() async {
     await Firebase.initializeApp();
     
     // Initialize FCM service for push notifications
+    // CRITICAL: This is called on every app start to ensure FCM token is always available
+    // Even if user is not logged in yet, token will be generated and stored for later sync
     await FCMService().initialize();
+    
+    // Start periodic token sync check (every hour)
+    // This ensures token is synced even if initial sync failed
+    // or if backend removed invalid token
+    FCMService().periodicTokenSyncCheck();
+    // Schedule periodic checks every hour
+    Timer.periodic(const Duration(hours: 1), (_) {
+      FCMService().periodicTokenSyncCheck();
+    });
   } catch (e) {
     debugPrint('⚠️ Firebase initialization failed: $e');
     debugPrint('   FCM features will not work until Firebase is configured');
@@ -124,34 +136,40 @@ class _AuthWrapperState extends State<AuthWrapper> {
           });
         }
         
-        // Check and refresh FCM token if user is authenticated
-        // This is critical after app reinstallation
+        // CRITICAL: Always check and refresh FCM token if user is authenticated
+        // This ensures token is synced on every app start, even after reinstallation
+        // or when backend removed invalid token
         if (authViewModel.isAuthenticated && !authViewModel.isCheckingAuth && !_hasCheckedFCMToken) {
           _hasCheckedFCMToken = true;
           WidgetsBinding.instance.addPostFrameCallback((_) async {
-            // Check if we need to refresh token
-            final prefs = await SharedPreferences.getInstance();
-            final needsRefresh = prefs.getBool('needs_fcm_token_refresh') ?? false;
-            final pendingToken = prefs.getString('pending_fcm_token');
+            debugPrint('🔍 App launch: Ensuring FCM token is synced for authenticated user...');
             
-            if (needsRefresh || pendingToken != null) {
-              debugPrint('🔄 App launch: Refreshing FCM token for authenticated user...');
-              // Small delay to ensure Firebase is ready
-              await Future.delayed(const Duration(milliseconds: 1000));
-              await FCMService().savePendingToken();
+            // Small delay to ensure Firebase is ready
+            await Future.delayed(const Duration(milliseconds: 1000));
+            
+            final fcmService = FCMService();
+            
+            // Always verify token is synced, regardless of flags
+            // This handles cases where:
+            // 1. App was reinstalled (token changed)
+            // 2. Backend removed invalid token (needs new token)
+            // 3. Token refresh happened while app was closed
+            if (fcmService.hasToken) {
+              // Token exists, ensure it's synced to backend
+              debugPrint('✅ Token exists, verifying sync to backend...');
+              await fcmService.savePendingToken();
             } else {
-              // Even if no flag is set, verify token is synced
-              // This handles the case where app was reinstalled but flag wasn't set
-              debugPrint('🔍 App launch: Verifying FCM token is synced...');
-              await Future.delayed(const Duration(milliseconds: 1000));
-              final fcmService = FCMService();
-              if (fcmService.hasToken) {
-                // Token exists, ensure it's synced
-                await fcmService.savePendingToken();
-              } else {
-                // No token, force refresh
-                await fcmService.forceRefreshAndSyncToken();
-              }
+              // No token, force refresh and sync
+              debugPrint('⚠️ No token found, forcing refresh...');
+              await fcmService.forceRefreshAndSyncToken();
+            }
+            
+            // Also check for pending tokens
+            final prefs = await SharedPreferences.getInstance();
+            final pendingToken = prefs.getString('pending_fcm_token');
+            if (pendingToken != null) {
+              debugPrint('📱 Found pending token, syncing...');
+              await fcmService.savePendingToken();
             }
           });
         }

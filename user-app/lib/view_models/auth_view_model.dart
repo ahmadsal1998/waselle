@@ -36,7 +36,10 @@ class AuthViewModel with ChangeNotifier {
           _isAuthenticated = true;
           await SocketService.initialize();
           // Save FCM token after successful auth check
-          FCMService().savePendingToken();
+          // Use a small delay to ensure Firebase is fully ready
+          Future.delayed(const Duration(milliseconds: 500), () {
+            FCMService().savePendingToken();
+          });
         } else {
           // Token is invalid, remove it
           await prefs.remove('token');
@@ -156,7 +159,14 @@ class AuthViewModel with ChangeNotifier {
         // Give socket a moment to connect before proceeding
         await Future.delayed(const Duration(milliseconds: 500));
         // Save FCM token after successful authentication
-        FCMService().savePendingToken();
+        // Use a small delay to ensure Firebase is fully ready
+        // This is critical after app reinstallation
+        Future.delayed(const Duration(milliseconds: 500), () async {
+          // Force refresh and sync token to ensure we have the latest one
+          await FCMService().forceRefreshAndSyncToken();
+          // Also try savePendingToken as fallback
+          await FCMService().savePendingToken();
+        });
         notifyListeners();
         return true;
       }
@@ -190,7 +200,14 @@ class AuthViewModel with ChangeNotifier {
         _errorMessage = null;
         await SocketService.initialize();
         // Save FCM token after successful login
-        FCMService().savePendingToken();
+        // Use a small delay to ensure Firebase is fully ready
+        // This is critical after app reinstallation
+        Future.delayed(const Duration(milliseconds: 500), () async {
+          // Force refresh and sync token to ensure we have the latest one
+          await FCMService().forceRefreshAndSyncToken();
+          // Also try savePendingToken as fallback
+          await FCMService().savePendingToken();
+        });
         notifyListeners();
         return true;
       }
