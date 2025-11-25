@@ -102,8 +102,15 @@ class GlobalNavigatorKey {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _hasCheckedFCMToken = false;
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +121,38 @@ class AuthWrapper extends StatelessWidget {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             final preferredLanguage = authViewModel.user?['preferredLanguage'] as String?;
             localeViewModel.syncFromBackend(preferredLanguage);
+          });
+        }
+        
+        // Check and refresh FCM token if user is authenticated
+        // This is critical after app reinstallation
+        if (authViewModel.isAuthenticated && !authViewModel.isCheckingAuth && !_hasCheckedFCMToken) {
+          _hasCheckedFCMToken = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            // Check if we need to refresh token
+            final prefs = await SharedPreferences.getInstance();
+            final needsRefresh = prefs.getBool('needs_fcm_token_refresh') ?? false;
+            final pendingToken = prefs.getString('pending_fcm_token');
+            
+            if (needsRefresh || pendingToken != null) {
+              debugPrint('🔄 App launch: Refreshing FCM token for authenticated user...');
+              // Small delay to ensure Firebase is ready
+              await Future.delayed(const Duration(milliseconds: 1000));
+              await FCMService().savePendingToken();
+            } else {
+              // Even if no flag is set, verify token is synced
+              // This handles the case where app was reinstalled but flag wasn't set
+              debugPrint('🔍 App launch: Verifying FCM token is synced...');
+              await Future.delayed(const Duration(milliseconds: 1000));
+              final fcmService = FCMService();
+              if (fcmService.hasToken) {
+                // Token exists, ensure it's synced
+                await fcmService.savePendingToken();
+              } else {
+                // No token, force refresh
+                await fcmService.forceRefreshAndSyncToken();
+              }
+            }
           });
         }
         

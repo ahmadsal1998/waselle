@@ -26,6 +26,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -43,8 +44,14 @@ android {
         versionName = flutter.versionName
     }
 
-    // Note: Using Flutter's --split-per-abi flag instead of gradle splits
-    // to avoid conflicts with plugin dependencies that set ndk abiFilters
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86_64")
+            isUniversalApk = false
+        }
+    }
 
     signingConfigs {
         create("release") {
@@ -77,4 +84,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    implementation("com.google.firebase:firebase-messaging:23.4.1")
 }

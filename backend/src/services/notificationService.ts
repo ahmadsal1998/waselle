@@ -285,6 +285,7 @@ export const sendNewOrderNotificationToDrivers = async (
         try {
           const driver = await User.findById(driverInfo.driverId);
           if (!driver || !driver.fcmToken) {
+            console.log(`[sendNewOrderNotificationToDrivers] ⚠️ Skipping driver ${driverInfo.driverId} - ${!driver ? 'driver not found' : 'no FCM token'}`);
             skipped++;
             return;
           }
@@ -302,6 +303,7 @@ export const sendNewOrderNotificationToDrivers = async (
             },
           });
 
+          console.log(`[sendNewOrderNotificationToDrivers] ✅ Notification sent to driver ${driverInfo.driverId} for order ${orderId} (distance: ${driverInfo.distance.toFixed(2)}km)`);
           notified++;
         } catch (error: any) {
           console.error(

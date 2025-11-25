@@ -112,9 +112,15 @@ class FCMService {
             await _saveTokenToBackend(_fcmToken!);
           } else {
             debugPrint('⚠️ FCM Token is null on iOS - Firebase may not be properly configured');
+            // Store flag to retry token retrieval after authentication
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('needs_fcm_token_refresh', true);
           }
         } catch (e) {
           debugPrint('❌ Error getting FCM token on iOS: $e');
+          // Store flag to retry token retrieval after authentication
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('needs_fcm_token_refresh', true);
           // Don't rethrow - allow initialization to continue
         }
       } else {
@@ -124,9 +130,16 @@ class FCMService {
           if (_fcmToken != null) {
             debugPrint('📱 FCM Token retrieved (other platform): ${_fcmToken!.substring(0, 20)}...');
             await _saveTokenToBackend(_fcmToken!);
+          } else {
+            // Store flag to retry token retrieval after authentication
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('needs_fcm_token_refresh', true);
           }
         } catch (e) {
           debugPrint('⚠️ Error getting FCM token on other platform: $e');
+          // Store flag to retry token retrieval after authentication
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('needs_fcm_token_refresh', true);
           // Don't block initialization
         }
       }
@@ -469,12 +482,13 @@ class FCMService {
   }
 
   /// Save FCM token to backend
-  Future<void> _saveTokenToBackend(String token) async {
+  /// Returns true if successful, false otherwise
+  Future<bool> _saveTokenToBackend(String token) async {
     try {
       // Validate token
       if (token.isEmpty) {
         debugPrint('⚠️ Cannot save empty FCM token');
-        return;
+        return false;
       }
       
       // Check if user is authenticated before saving token
@@ -485,7 +499,7 @@ class FCMService {
         debugPrint('⚠️ User not authenticated, storing FCM token for later: ${token.substring(0, 20)}...');
         // Store token temporarily to save after login
         await prefs.setString('pending_fcm_token', token);
-        return;
+        return false;
       }
       
       debugPrint('📤 Sending FCM token to backend: ${token.substring(0, 20)}...');
@@ -494,6 +508,7 @@ class FCMService {
       
       // Clear pending token if save was successful
       await prefs.remove('pending_fcm_token');
+      return true;
     } catch (e) {
       debugPrint('❌ Error saving FCM token to backend: $e');
       debugPrint('   Token: ${token.substring(0, 20)}...');
@@ -506,43 +521,136 @@ class FCMService {
       } catch (storageError) {
         debugPrint('❌ Failed to store pending FCM token: $storageError');
       }
+      return false;
     }
   }
 
   /// Save pending FCM token after authentication
+  /// This method ensures a fresh token is retrieved and synced to backend
   Future<void> savePendingToken() async {
     try {
+      debugPrint('📱 Starting FCM token sync after authentication...');
+      
+      // First, try to save any pending token
       final prefs = await SharedPreferences.getInstance();
       final pendingToken = prefs.getString('pending_fcm_token');
       
-      if (pendingToken != null) {
-        debugPrint('📱 Saving pending FCM token after authentication');
-        await _saveTokenToBackend(pendingToken);
-      } else if (_fcmToken != null && _fcmToken!.isNotEmpty) {
-        // If no pending token but we have a token, try to save it
-        debugPrint('📱 Saving current FCM token after authentication');
-        await _saveTokenToBackend(_fcmToken!);
-      } else {
-        // No token available, try to retrieve it
-        debugPrint('⚠️ No FCM token available, attempting to retrieve...');
-        if (Platform.isAndroid) {
-          await _retrieveAndroidToken();
-          if (_fcmToken != null && _fcmToken!.isNotEmpty) {
-            await _saveTokenToBackend(_fcmToken!);
-          }
-        } else if (Platform.isIOS) {
-          try {
-            _fcmToken = await _firebaseMessaging.getToken();
-            if (_fcmToken != null) {
-              await _saveTokenToBackend(_fcmToken!);
-            }
-          } catch (e) {
-            debugPrint('❌ Error retrieving FCM token on iOS: $e');
-          }
+      if (pendingToken != null && pendingToken.isNotEmpty) {
+        debugPrint('📱 Found pending FCM token, saving to backend...');
+        final success = await _saveTokenToBackend(pendingToken);
+        if (success) {
+          // Clear pending token after successful save
+          await prefs.remove('pending_fcm_token');
+          _fcmToken = pendingToken;
+          debugPrint('✅ Pending FCM token saved successfully');
+          return;
         }
+      }
+      
+      // Force refresh token to ensure we have the latest one
+      // This is critical after app reinstallation
+      debugPrint('🔄 Forcing FCM token refresh after authentication...');
+      String? newToken;
+      
+      if (Platform.isAndroid) {
+        // Force retrieve Android token with retry
+        await _retrieveAndroidToken(retryCount: 0, maxRetries: 5);
+        newToken = _fcmToken;
+      } else if (Platform.isIOS) {
+        // Force retrieve iOS token with retry
+        newToken = await _retrieveIOSTokenWithRetry();
+      } else {
+        // Other platforms
+        try {
+          newToken = await _firebaseMessaging.getToken();
+        } catch (e) {
+          debugPrint('❌ Error retrieving FCM token: $e');
+        }
+      }
+      
+      if (newToken != null && newToken.isNotEmpty) {
+        _fcmToken = newToken;
+        debugPrint('✅ FCM token retrieved: ${newToken.substring(0, 20)}...');
+        final success = await _saveTokenToBackend(newToken);
+        if (success) {
+          debugPrint('✅ FCM token synced to backend successfully');
+          // Clear any pending token
+          await prefs.remove('pending_fcm_token');
+        } else {
+          // Store as pending if save failed
+          await prefs.setString('pending_fcm_token', newToken);
+          debugPrint('⚠️ FCM token saved locally, will retry later');
+        }
+      } else {
+        debugPrint('⚠️ Could not retrieve FCM token, will retry later');
+        // Schedule retry after a delay
+        Future.delayed(const Duration(seconds: 5), () {
+          savePendingToken();
+        });
       }
     } catch (e) {
       debugPrint('❌ Error saving pending FCM token: $e');
+      // Retry after delay
+      Future.delayed(const Duration(seconds: 5), () {
+        savePendingToken();
+      });
+    }
+  }
+
+  /// Retrieve iOS FCM token with retry logic
+  Future<String?> _retrieveIOSTokenWithRetry({int retryCount = 0, int maxRetries = 5}) async {
+    try {
+      debugPrint('📱 Attempting to retrieve FCM token on iOS (attempt ${retryCount + 1}/$maxRetries)...');
+      
+      // Ensure Firebase is initialized
+      if (!Firebase.apps.isNotEmpty) {
+        debugPrint('⚠️ Firebase not initialized, initializing now...');
+        await Firebase.initializeApp();
+      }
+      
+      // On iOS, ensure APNS token is available first
+      try {
+        final apnsToken = await _firebaseMessaging.getAPNSToken();
+        if (apnsToken == null && retryCount < maxRetries) {
+          debugPrint('⚠️ APNS token not available yet, waiting...');
+          await Future.delayed(Duration(seconds: (retryCount + 1) * 2));
+          return await _retrieveIOSTokenWithRetry(retryCount: retryCount + 1, maxRetries: maxRetries);
+        }
+      } catch (e) {
+        debugPrint('⚠️ Error getting APNS token: $e');
+        // Continue anyway - might work without it
+      }
+      
+      final token = await _firebaseMessaging.getToken();
+      
+      if (token != null && token.isNotEmpty) {
+        debugPrint('✅ FCM Token retrieved successfully (iOS): ${token.substring(0, 20)}...');
+        return token;
+      } else {
+        debugPrint('⚠️ FCM Token is null or empty on iOS');
+        if (retryCount < maxRetries) {
+          final delaySeconds = (retryCount + 1) * 2;
+          debugPrint('🔄 Retrying token retrieval in $delaySeconds seconds...');
+          await Future.delayed(Duration(seconds: delaySeconds));
+          return await _retrieveIOSTokenWithRetry(retryCount: retryCount + 1, maxRetries: maxRetries);
+        } else {
+          debugPrint('❌ Failed to retrieve FCM token after $maxRetries attempts');
+          return null;
+        }
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error getting FCM token on iOS: $e');
+      debugPrint('📚 Stack trace: $stackTrace');
+      
+      if (retryCount < maxRetries) {
+        final delaySeconds = (retryCount + 1) * 2;
+        debugPrint('🔄 Retrying token retrieval in $delaySeconds seconds...');
+        await Future.delayed(Duration(seconds: delaySeconds));
+        return await _retrieveIOSTokenWithRetry(retryCount: retryCount + 1, maxRetries: maxRetries);
+      } else {
+        debugPrint('❌ Failed to retrieve FCM token after $maxRetries attempts');
+        return null;
+      }
     }
   }
 
@@ -634,18 +742,61 @@ class FCMService {
       'firebaseInitialized': Firebase.apps.isNotEmpty,
     };
     
-    if (Platform.isAndroid) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final pendingToken = prefs.getString('pending_fcm_token');
-        diagnostics['pendingTokenStored'] = pendingToken != null;
-        diagnostics['userAuthenticated'] = prefs.getString('token') != null;
-      } catch (e) {
-        diagnostics['prefsError'] = e.toString();
-      }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pendingToken = prefs.getString('pending_fcm_token');
+      final needsRefresh = prefs.getBool('needs_fcm_token_refresh') ?? false;
+      diagnostics['pendingTokenStored'] = pendingToken != null;
+      diagnostics['needsTokenRefresh'] = needsRefresh;
+      diagnostics['userAuthenticated'] = prefs.getString('token') != null;
+    } catch (e) {
+      diagnostics['prefsError'] = e.toString();
     }
     
     return diagnostics;
+  }
+
+  /// Force refresh FCM token and sync to backend
+  /// This is useful after app reinstallation or when token might be stale
+  Future<bool> forceRefreshAndSyncToken() async {
+    try {
+      debugPrint('🔄 Force refreshing FCM token...');
+      
+      String? newToken;
+      if (Platform.isAndroid) {
+        await _retrieveAndroidToken(retryCount: 0, maxRetries: 5);
+        newToken = _fcmToken;
+      } else if (Platform.isIOS) {
+        newToken = await _retrieveIOSTokenWithRetry(retryCount: 0, maxRetries: 5);
+        if (newToken != null) {
+          _fcmToken = newToken;
+        }
+      } else {
+        try {
+          newToken = await _firebaseMessaging.getToken();
+          if (newToken != null) {
+            _fcmToken = newToken;
+          }
+        } catch (e) {
+          debugPrint('❌ Error retrieving FCM token: $e');
+        }
+      }
+      
+      if (newToken != null && newToken.isNotEmpty) {
+        final success = await _saveTokenToBackend(newToken);
+        if (success) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('needs_fcm_token_refresh');
+          debugPrint('✅ FCM token force refreshed and synced successfully');
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (e) {
+      debugPrint('❌ Error force refreshing FCM token: $e');
+      return false;
+    }
   }
 }
 

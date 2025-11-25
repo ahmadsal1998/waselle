@@ -607,6 +607,7 @@ export const getAvailableOrders = async (
       .sort((a: any, b: any) => a.distanceFromDriver - b.distanceFromDriver);
 
     console.log(`[getAvailableOrders] Returning ${filteredOrders.length} orders to driver ${driver._id} (vehicleType=${driver.vehicleType})`);
+    console.log(`[getAvailableOrders] Note: Push notifications for new orders are sent when orders are created, not when drivers fetch the orders list`);
     
     res.status(200).json({ orders: filteredOrders });
   } catch (error: any) {

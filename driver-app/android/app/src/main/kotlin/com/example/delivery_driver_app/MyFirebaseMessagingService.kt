@@ -19,7 +19,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "Message received from: ${remoteMessage.from}")
         
         // Check if message contains data payload
-        if (remoteMessage.data.isNotEmpty) {
+        if (remoteMessage.data.isNotEmpty()) {
             Log.d(TAG, "Message data payload: ${remoteMessage.data}")
         }
 

@@ -55,7 +55,10 @@ class AuthViewModel with ChangeNotifier {
       _isSuspended = _user?['isActive'] == false;
       
       // Save FCM token after successful auth check
-      FCMService().savePendingToken();
+      // Use a small delay to ensure Firebase is fully ready
+      Future.delayed(const Duration(milliseconds: 500), () {
+        FCMService().savePendingToken();
+      });
     } catch (e) {
       await prefs.remove('token');
       await prefs.remove('vehicleType');
@@ -117,7 +120,14 @@ class AuthViewModel with ChangeNotifier {
         notifyListeners();
         
         // Save FCM token after successful login
-        FCMService().savePendingToken();
+        // Use a small delay to ensure Firebase is fully ready
+        // This is critical after app reinstallation
+        Future.delayed(const Duration(milliseconds: 500), () async {
+          // Force refresh and sync token to ensure we have the latest one
+          await FCMService().forceRefreshAndSyncToken();
+          // Also try savePendingToken as fallback
+          await FCMService().savePendingToken();
+        });
         
         return true;
       }
