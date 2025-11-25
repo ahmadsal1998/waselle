@@ -4,12 +4,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/api_service.dart';
 
-/// Top-level function to handle background messages
-@pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  print('Handling background message: ${message.messageId}');
-  // Handle background message here if needed
-}
+// Note: Background handler is now registered in main.dart BEFORE Firebase.initializeApp()
+// This ensures it works when the app is terminated
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -96,11 +92,15 @@ class NotificationService {
       // Handle notification when app is opened from terminated state
       final initialMessage = await _firebaseMessaging.getInitialMessage();
       if (initialMessage != null) {
-        _handleNotificationTap(initialMessage);
+        print('📱 App opened from notification (terminated state)');
+        // Wait a bit for app to initialize before handling
+        Future.delayed(const Duration(seconds: 1), () {
+          _handleNotificationTap(initialMessage);
+        });
       }
 
-      // Set background message handler
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      // Note: Background handler is registered in main.dart BEFORE Firebase.initializeApp()
+      // This is required for notifications to work when app is terminated
 
       _isInitialized = true;
       print('✅ Notification service initialized');
@@ -129,17 +129,35 @@ class NotificationService {
   /// Handle foreground messages (when app is open)
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     print('📨 Foreground message received: ${message.messageId}');
+    print('   Notification: ${message.notification?.title} - ${message.notification?.body}');
+    print('   Data: ${message.data}');
     
     final notification = message.notification;
     final data = message.data;
 
+    // Show local notification when app is in foreground
+    // Use notification payload if available, otherwise use data
+    String title = 'Order Update';
+    String body = '';
+    
     if (notification != null) {
-      // Show local notification when app is in foreground
+      title = notification.title ?? title;
+      body = notification.body ?? body;
+    } else if (data['title'] != null) {
+      title = data['title']!;
+      body = data['body'] ?? '';
+    }
+    
+    // Only show if we have a body or title
+    if (body.isNotEmpty || title != 'Order Update') {
       await _showLocalNotification(
-        title: notification.title ?? 'Order Update',
-        body: notification.body ?? '',
+        title: title,
+        body: body,
         data: data,
       );
+      print('✅ Local notification shown in foreground');
+    } else {
+      print('⚠️ No notification content to display');
     }
   }
 

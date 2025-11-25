@@ -9,8 +9,8 @@ import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../view_models/auth_view_model.dart';
 import '../../services/route_service.dart';
-import '../../services/zego_call_service.dart';
 import '../../utils/address_formatter.dart';
+import '../../widgets/responsive_button.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   final String? orderId;
@@ -923,62 +923,39 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 return const SizedBox.shrink();
               }
               
-              // Backend returns 'id' field, not '_id' - handle both for compatibility
-              final userId = (user['id'] ?? user['_id'] ?? '').toString();
-              final userName = user['name']?.toString() ?? 'Driver';
-              final customerId = _order!['customerId']?['_id']?.toString() ?? 
-                                 _order!['customerId']?.toString();
-              
-              return SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    ZegoCallService.startCall(
-                      context: context,
-                      orderId: orderId,
-                      userId: userId,
-                      userName: userName,
-                      driverId: null, // Driver is the caller, so driverId should be null
-                      customerId: customerId, // Customer is the receiver
-                    );
-                  },
-                  icon: const Icon(Icons.phone, size: 18),
-                  label: const Text('Call Customer'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: theme.colorScheme.primaryContainer,
-                    foregroundColor: theme.colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              );
+              // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
+              return const SizedBox.shrink();
             },
           ),
           
           // Action button
           const SizedBox(height: 12),
           if (orderStatus == 'accepted')
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _updateStatus('on_the_way'),
-                icon: const Icon(Icons.directions_car, size: 18),
-                label: Text(l10n.startDelivery),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
+            ResponsiveButton.elevated(
+              context: context,
+              onPressed: () => _updateStatus('on_the_way'),
+              icon: Icons.directions_car,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              child: Text(
+                l10n.startDelivery,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                textAlign: TextAlign.center,
               ),
             ),
           if (orderStatus == 'on_the_way')
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _updateStatus('delivered'),
-                icon: const Icon(Icons.check_circle, size: 18),
-                label: Text(l10n.markAsDelivered),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  backgroundColor: theme.colorScheme.secondary,
-                ),
+            ResponsiveButton.elevated(
+              context: context,
+              onPressed: () => _updateStatus('delivered'),
+              icon: Icons.check_circle,
+              backgroundColor: theme.colorScheme.secondary,
+              foregroundColor: theme.colorScheme.onSecondary,
+              child: Text(
+                l10n.markAsDelivered,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                textAlign: TextAlign.center,
               ),
             ),
         ],
@@ -1237,62 +1214,39 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   return const SizedBox.shrink();
                 }
                 
-                // Backend returns 'id' field, not '_id' - handle both for compatibility
-                final userId = (user['id'] ?? user['_id'] ?? '').toString();
-                final userName = user['name']?.toString() ?? 'Driver';
-                final customerId = _order!['customerId']?['_id']?.toString() ?? 
-                                   _order!['customerId']?.toString();
-                
-                return SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      ZegoCallService.startCall(
-                        context: context,
-                        orderId: orderId,
-                        userId: userId,
-                        userName: userName,
-                        driverId: null, // Driver is the caller, so driverId should be null
-                        customerId: customerId, // Customer is the receiver
-                      );
-                    },
-                    icon: const Icon(Icons.phone),
-                    label: const Text('Call Customer'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: theme.colorScheme.primaryContainer,
-                      foregroundColor: theme.colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                );
+                // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
+                return const SizedBox.shrink();
               },
             ),
             
             // Action Buttons
             const SizedBox(height: 16),
             if (orderStatus == 'accepted')
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _updateStatus('on_the_way'),
-                  icon: const Icon(Icons.directions_car),
-                  label: Text(l10n.startDelivery),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
+              ResponsiveButton.elevated(
+                context: context,
+                onPressed: () => _updateStatus('on_the_way'),
+                icon: Icons.directions_car,
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                child: Text(
+                  l10n.startDelivery,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
                 ),
               ),
             if (orderStatus == 'on_the_way')
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _updateStatus('delivered'),
-                  icon: const Icon(Icons.check_circle),
-                  label: Text(l10n.markAsDelivered),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: theme.colorScheme.secondary,
-                  ),
+              ResponsiveButton.elevated(
+                context: context,
+                onPressed: () => _updateStatus('delivered'),
+                icon: Icons.check_circle,
+                backgroundColor: theme.colorScheme.secondary,
+                foregroundColor: theme.colorScheme.onSecondary,
+                child: Text(
+                  l10n.markAsDelivered,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
                 ),
               ),
         ],

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:delivery_user_app/l10n/app_localizations.dart';
 import '../../view_models/auth_view_model.dart';
 import '../../utils/phone_utils.dart';
+import '../../widgets/responsive_button.dart';
 import 'otp_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -189,17 +190,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton(
+                ResponsiveButton.elevated(
+                  context: context,
                   onPressed: _isLoading ? null : _handleRegister,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.blue,
-                  ),
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : Text(
                           l10n.signUp,
-                          style: const TextStyle(fontSize: 16, color: Colors.white),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
                         ),
                 ),
               ],

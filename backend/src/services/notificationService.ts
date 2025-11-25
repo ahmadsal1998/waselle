@@ -27,12 +27,21 @@ export const sendNotificationToUser = async (
         title: payload.title,
         body: payload.body,
       },
-      data: payload.data || {},
+      data: Object.fromEntries(
+        Object.entries(payload.data || {}).map(([key, value]) => [
+          key,
+          typeof value === 'string' ? value : String(value),
+        ])
+      ),
       android: {
         priority: 'high' as const,
         notification: {
           sound: 'default',
           channelId: 'order_updates',
+          priority: 'high' as const,
+          visibility: 'public' as const,
+          defaultSound: true,
+          defaultVibrateTimings: true,
         },
       },
       apns: {
@@ -40,6 +49,12 @@ export const sendNotificationToUser = async (
           aps: {
             sound: 'default',
             badge: 1,
+            contentAvailable: true, // Enable background notification processing
+            mutableContent: true, // Allow notification modification
+            alert: {
+              title: payload.title,
+              body: payload.body,
+            },
           },
         },
       },

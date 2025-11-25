@@ -3,6 +3,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:delivery_user_app/firebase_options.dart';
 import 'package:delivery_user_app/l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
@@ -18,9 +20,111 @@ import 'screens/home/home_screen.dart';
 import 'services/notification_service.dart';
 import 'services/app_lifecycle_service.dart';
 
+/// Top-level function to handle background messages
+/// MUST be registered BEFORE Firebase.initializeApp() for terminated app state
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Initialize Firebase in background isolate
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  print('📨 Background message received: ${message.messageId}');
+  print('   Title: ${message.notification?.title}');
+  print('   Body: ${message.notification?.body}');
+  print('   Data: ${message.data}');
+  
+  // Initialize local notifications plugin for background handler
+  final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
+  
+  // Initialize Android settings
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const iosSettings = DarwinInitializationSettings(
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestSoundPermission: true,
+  );
+  const initSettings = InitializationSettings(
+    android: androidSettings,
+    iOS: iosSettings,
+  );
+  
+  await localNotifications.initialize(initSettings);
+  
+  // Create notification channel for Android
+  const androidChannel = AndroidNotificationChannel(
+    'order_updates',
+    'Order Updates',
+    description: 'Notifications for order status updates',
+    importance: Importance.high,
+    playSound: true,
+  );
+  
+  await localNotifications
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(androidChannel);
+  
+  // Show local notification if notification payload exists
+  if (message.notification != null) {
+    final notification = message.notification!;
+    final title = notification.title ?? 'Order Update';
+    final body = notification.body ?? '';
+    
+    const androidDetails = AndroidNotificationDetails(
+      'order_updates',
+      'Order Updates',
+      channelDescription: 'Notifications for order status updates',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: true,
+      playSound: true,
+    );
+    
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+    
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+    
+    // Create payload string from data
+    String? payload;
+    if (message.data['orderId'] != null) {
+      payload = 'orderId=${message.data['orderId']}';
+    }
+    
+    await localNotifications.show(
+      DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      title,
+      body,
+      details,
+      payload: payload,
+    );
+    
+    print('✅ Local notification shown in background handler');
+  }
+  
+  // Store notification data for when app opens
+  if (message.data['type'] == 'order_status_update' && message.data['orderId'] != null) {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pending_order_navigation', message.data['orderId']!);
+      print('✅ Stored order ID for navigation: ${message.data['orderId']}');
+    } catch (e) {
+      print('❌ Error storing notification data: $e');
+    }
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SharedPreferences.getInstance();
+  
+  // CRITICAL: Register background handler BEFORE Firebase initialization
+  // This ensures notifications work when app is terminated
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   
   // Initialize Firebase
   await Firebase.initializeApp(

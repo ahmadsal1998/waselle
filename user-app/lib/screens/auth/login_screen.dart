@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:delivery_user_app/l10n/app_localizations.dart';
 import '../../view_models/auth_view_model.dart';
+import '../../widgets/responsive_button.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -120,7 +121,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton(
+                ResponsiveButton.elevated(
+                  context: context,
                   onPressed: _isLoading ? null : _handleLogin,
                   child: _isLoading
                       ? const SizedBox(
@@ -131,10 +133,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : Text(l10n.signIn),
+                      : Text(
+                          l10n.signIn,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                        ),
                 ),
                 const SizedBox(height: 16),
-                TextButton(
+                ResponsiveButton.text(
+                  context: context,
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -143,7 +151,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     );
                   },
-                  child: Text(l10n.dontHaveAccount),
+                  child: Text(
+                    l10n.dontHaveAccount,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ],
             ),

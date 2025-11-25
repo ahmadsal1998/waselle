@@ -5,6 +5,7 @@ import '../../theme/app_theme.dart';
 import '../../view_models/auth_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/responsive_button.dart';
 import 'order_details_screen.dart';
 
 class AvailableOrdersScreen extends StatefulWidget {
@@ -609,29 +610,18 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                   // Order Contents Button (for notes)
                   if (notes.isNotEmpty) ...[
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: ResponsiveButton.outlined(
+                        context: context,
                         onPressed: () => _showOrderNotes(context, l10n, notes),
-                        icon: const Icon(
-                          Icons.note_rounded,
-                          size: 16,
-                        ),
-                        label: Text(
+                        icon: Icons.note_rounded,
+                        foregroundColor: AppTheme.textPrimary,
+                        borderColor: Colors.grey[300]!,
+                        borderRadius: 10,
+                        child: Text(
                           l10n.orderContents,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.textPrimary,
-                          side: BorderSide(
-                            color: Colors.grey[300]!,
-                            width: 1,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ),
@@ -639,26 +629,19 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                   ],
                   // Accept Button
                   Expanded(
-                    child: ElevatedButton(
+                    child: ResponsiveButton.elevated(
+                      context: context,
                       onPressed: normalizedId != null
                           ? () => _acceptOrder(normalizedId)
                           : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        elevation: 0,
-                      ),
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      borderRadius: 10,
                       child: Text(
                         l10n.accept,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
@@ -879,34 +862,18 @@ class _OrderNotesDialogState extends State<_OrderNotesDialog> {
               ),
               child: SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child:                 ResponsiveButton.elevated(
+                  context: context,
                   onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.check_rounded,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.l10n.close,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
+                  icon: Icons.check_rounded,
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  borderRadius: 14,
+                  child: Text(
+                    widget.l10n.close,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),

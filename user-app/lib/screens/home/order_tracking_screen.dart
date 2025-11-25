@@ -9,7 +9,7 @@ import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../view_models/order_tracking_view_model.dart';
 import '../../view_models/auth_view_model.dart';
-import '../../services/zego_call_service.dart';
+import '../../widgets/responsive_button.dart';
 import 'order_map_view_screen.dart';
 
 class OrderTrackingScreen extends StatelessWidget {
@@ -440,34 +440,27 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
                         fontWeight: FontWeight.w700,
                       ),
                 ),
-                FilledButton.tonalIcon(
+                ResponsiveButton.filled(
+                  context: context,
                   onPressed: () {
                     setState(() {
                       _isOrderProgressVisible = !_isOrderProgressVisible;
                     });
                   },
-                  icon: Icon(
-                    _isOrderProgressVisible
-                        ? Icons.visibility_off_rounded
-                        : Icons.visibility_rounded,
-                    size: 18,
-                  ),
-                  label: Text(
+                  icon: _isOrderProgressVisible
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                  borderRadius: 12,
+                  isFullWidth: false,
+                  child: Text(
                     _isOrderProgressVisible
                         ? l10n.hideOrderProgress
                         : l10n.showOrderProgress,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],
@@ -533,27 +526,8 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
                       
                       final driverId = latestOrder['driverId']?['_id']?.toString();
                       
-                      return SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: () {
-                            ZegoCallService.startCall(
-                              context: context,
-                              orderId: orderId,
-                              userId: userId,
-                              userName: userName,
-                              driverId: driverId, // Driver is the receiver
-                              customerId: null, // User is the caller, so customerId should be null
-                            );
-                          },
-                          icon: const Icon(Icons.phone_rounded),
-                          label: const Text('Call Driver'),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: colorScheme.primary,
-                          ),
-                        ),
-                      );
+                      // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
+                      return const SizedBox.shrink();
                     },
                   ),
                 ],
@@ -1006,18 +980,16 @@ class _StageDetailSheet extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 // Close button
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close_rounded),
-                    label: const Text('Close'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
+                ResponsiveButton.filled(
+                  context: context,
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Icons.close_rounded,
+                  borderRadius: 16,
+                  child: const Text(
+                    'Close',
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
                   ),
                 ),
 

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'zego_call_service.dart';
 import 'socket_service.dart';
 
 /// Service to handle app lifecycle and ensure calls work across all app states
@@ -69,11 +68,8 @@ class AppLifecycleService with WidgetsBindingObserver {
       // Clear pending call
       _clearPendingCall();
       
-      // Cancel the incoming call dialog
-      ZegoCallService.cancelIncomingCall(
-        roomId: roomId,
-        callerId: callerId,
-      );
+      // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
+      // Call cancellation handling disabled
     });
   }
 
@@ -86,13 +82,8 @@ class AppLifecycleService with WidgetsBindingObserver {
   ) {
     debugPrint('📞 Attempting to handle incoming call');
     
-    // Try to handle call - will use global navigator key if context not available
-    ZegoCallService.handleIncomingCall(
-      orderId: orderId,
-      roomId: roomId,
-      callerId: callerId,
-      callerName: callerName,
-    );
+    // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
+    // Incoming call handling disabled
   }
 
   /// Store pending call data for recovery

@@ -3,7 +3,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/api_service.dart';
-import 'zego_call_service.dart';
 import '../main.dart'; // For GlobalNavigatorKey
 
 /// Firebase Cloud Messaging service for handling push notifications
@@ -121,13 +120,8 @@ class FCMService {
       return;
     }
 
-    // Handle the call
-    ZegoCallService.handleIncomingCall(
-      orderId: orderId,
-      roomId: roomId,
-      callerId: callerId,
-      callerName: callerName,
-    );
+    // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
+    // Incoming call handling disabled
   }
 
   /// Store pending call for later handling

@@ -14,7 +14,7 @@ import 'package:provider/provider.dart';
 import '../../view_models/auth_view_model.dart';
 import '../../services/notification_service.dart';
 import '../../services/socket_service.dart';
-import '../../services/zego_call_service.dart';
+import '../../widgets/responsive_button.dart';
 import 'order_history_screen.dart';
 import 'order_tracking_screen.dart';
 import 'profile_screen.dart';
@@ -109,14 +109,8 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
       debugPrint('   - callerId: $callerId');
       debugPrint('   - Will use this EXACT roomId when accepting call');
       
-      // Handle incoming call
-      ZegoCallService.handleIncomingCall(
-        context: context,
-        orderId: orderId,
-        roomId: roomId,
-        callerId: callerId,
-        callerName: callerName,
-      );
+      // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
+      // Incoming call handling disabled
     });
     
     SocketService.on('call-cancelled', (data) {
@@ -132,11 +126,8 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
       
       debugPrint('🚫 Call cancelled: Caller $callerId disconnected');
       
-      // Cancel the incoming call dialog
-      ZegoCallService.cancelIncomingCall(
-        roomId: roomId,
-        callerId: callerId,
-      );
+      // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
+      // Call cancellation handling disabled
     });
   }
 
@@ -571,14 +562,15 @@ class _MapTopOverlay extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              FilledButton.tonalIcon(
+              ResponsiveButton.filled(
+                context: context,
                 onPressed: onLocateMe,
-                icon: Icon(
-                  Icons.my_location_rounded,
-                  color: colorScheme.primary,
-                  size: 20,
-                ),
-                label: isUpdating
+                icon: isUpdating ? null : Icons.my_location_rounded,
+                backgroundColor: colorScheme.primaryContainer.withOpacity(0.7),
+                foregroundColor: colorScheme.onPrimaryContainer,
+                borderRadius: 16,
+                isFullWidth: false,
+                child: isUpdating
                     ? SizedBox(
                         width: 16,
                         height: 16,
@@ -588,16 +580,6 @@ class _MapTopOverlay extends StatelessWidget {
                         ),
                       )
                     : const Text('Locate'),
-                style: FilledButton.styleFrom(
-                  backgroundColor:
-                      colorScheme.primaryContainer.withOpacity(0.7),
-                  foregroundColor: colorScheme.onPrimaryContainer,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
               ),
             ],
           ),
@@ -635,37 +617,33 @@ class _MapBottomActions extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: FilledButton.icon(
+                  child: ResponsiveButton.filled(
+                    context: context,
                     onPressed: onSendRequest,
-                    icon: const Icon(Icons.send),
-                    label: Text(l10n.sendDelivery),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
+                    icon: Icons.send,
+                    borderRadius: 18,
+                    child: Text(
+                      l10n.sendDelivery,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: FilledButton.icon(
+                  child: ResponsiveButton.filled(
+                    context: context,
                     onPressed: onReceiveRequest,
-                    icon: const Icon(Icons.call_received_rounded),
-                    label: Text(l10n.receiveRequest),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
-                      ),
-                      backgroundColor: colorScheme.primaryContainer,
-                      foregroundColor: colorScheme.onPrimaryContainer,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
+                    icon: Icons.call_received_rounded,
+                    backgroundColor: colorScheme.primaryContainer,
+                    foregroundColor: colorScheme.onPrimaryContainer,
+                    borderRadius: 18,
+                    child: Text(
+                      l10n.receiveRequest,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
@@ -674,11 +652,25 @@ class _MapBottomActions extends StatelessWidget {
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed:
-                    isRefreshingDrivers ? null : () => onDriversRefresh(),
-                icon: isRefreshingDrivers
-                    ? SizedBox(
+              child: OutlinedButton(
+                onPressed: isRefreshingDrivers ? null : () => onDriversRefresh(),
+                style: OutlinedButton.styleFrom(
+                  padding: ResponsiveButton.getPadding(context),
+                  side: BorderSide(color: colorScheme.outlineVariant),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  textStyle: TextStyle(
+                    fontSize: ResponsiveButton.getFontSize(context),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isRefreshingDrivers)
+                      SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
@@ -686,17 +678,21 @@ class _MapBottomActions extends StatelessWidget {
                           color: colorScheme.primary,
                         ),
                       )
-                    : const Icon(Icons.refresh_outlined),
-                label: const Text('Refresh Nearby Drivers'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
-                  ),
-                  side: BorderSide(color: colorScheme.outlineVariant),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                    else
+                      Icon(
+                        Icons.refresh_outlined,
+                        size: ResponsiveButton.getIconSize(context),
+                      ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Refresh Nearby Drivers',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -782,18 +778,16 @@ class _CenteredStatusCard extends StatelessWidget {
               ],
               if (primaryActionLabel != null && onPrimaryAction != null) ...[
                 const SizedBox(height: 24),
-                FilledButton.icon(
+                ResponsiveButton.filled(
+                  context: context,
                   onPressed: onPrimaryAction,
-                  icon: const Icon(Icons.refresh),
-                  label: Text(primaryActionLabel!),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                  icon: Icons.refresh,
+                  borderRadius: 16,
+                  child: Text(
+                    primaryActionLabel!,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],

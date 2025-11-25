@@ -6,7 +6,6 @@ import '../../view_models/auth_view_model.dart';
 import '../../view_models/location_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../services/socket_service.dart';
-import '../../services/zego_call_service.dart';
 import '../auth/suspended_account_screen.dart';
 import 'available_orders_screen.dart';
 import 'active_order_screen.dart';
@@ -117,14 +116,8 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint('   - callerId: $callerId');
       debugPrint('   - Will use this EXACT roomId when accepting call');
       
-      // Handle incoming call
-      ZegoCallService.handleIncomingCall(
-        context: context,
-        orderId: orderId,
-        roomId: roomId,
-        callerId: callerId,
-        callerName: callerName,
-      );
+      // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
+      // Incoming call handling disabled
     });
     
     SocketService.on('call-cancelled', (data) {
@@ -140,11 +133,8 @@ class _HomeScreenState extends State<HomeScreen> {
       
       debugPrint('🚫 Call cancelled: Caller $callerId disconnected');
       
-      // Cancel the incoming call dialog
-      ZegoCallService.cancelIncomingCall(
-        roomId: roomId,
-        callerId: callerId,
-      );
+      // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
+      // Call cancellation handling disabled
     });
   }
 
