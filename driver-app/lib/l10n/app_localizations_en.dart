@@ -397,4 +397,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filter => 'Filter';
+
+  @override
+  String get deliveryType => 'Delivery Type';
+
+  @override
+  String get internalDelivery => 'Internal Delivery';
+
+  @override
+  String get externalDelivery => 'External Delivery';
+
+  @override
+  String get from => 'From';
+
+  @override
+  String get to => 'To';
+
+  @override
+  String get viewMore => 'View More';
+
+  @override
+  String get viewLess => 'View Less';
 }

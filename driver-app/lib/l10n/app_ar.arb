@@ -205,6 +205,13 @@
   "dateTime": "التاريخ والوقت",
   "remainingBalance": "المبلغ المستحق",
   "balanceWarningMessage": "سيتم خصم هذا الرصيد قبل تعليق الحساب",
-  "filter": "تصفية"
+  "filter": "تصفية",
+  "deliveryType": "نوع التوصيل",
+  "internalDelivery": "توصيل داخلي",
+  "externalDelivery": "توصيل خارجي",
+  "from": "من",
+  "to": "إلى",
+  "viewMore": "عرض المزيد",
+  "viewLess": "عرض أقل"
 }
 

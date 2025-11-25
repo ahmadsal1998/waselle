@@ -543,7 +543,7 @@ class _MapTopOverlay extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Current location',
+                      AppLocalizations.of(context)!.currentLocation,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: colorScheme.primary,
                             letterSpacing: 0.3,
@@ -579,7 +579,7 @@ class _MapTopOverlay extends StatelessWidget {
                           color: colorScheme.primary,
                         ),
                       )
-                    : const Text('Locate'),
+                    : Text(AppLocalizations.of(context)!.locate),
               ),
             ],
           ),
@@ -686,7 +686,7 @@ class _MapBottomActions extends StatelessWidget {
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'Refresh Nearby Drivers',
+                        l10n.refreshNearbyDrivers,
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                         textAlign: TextAlign.center,

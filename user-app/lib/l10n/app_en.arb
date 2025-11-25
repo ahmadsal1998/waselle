@@ -605,9 +605,82 @@
   "@deliveredDescription": {
     "description": "Delivered stage description"
   },
+  "pending": "Pending",
+  "@pending": {
+    "description": "Pending order status"
+  },
+  "cancelled": "Cancelled",
+  "@cancelled": {
+    "description": "Cancelled order status"
+  },
   "current": "Current",
   "@current": {
     "description": "Current stage badge text"
+  },
+  "orderType": "Order Type",
+  "@orderType": {
+    "description": "Order type label"
+  },
+  "dropoffLocation": "Dropoff Location",
+  "@dropoffLocation": {
+    "description": "Dropoff location label"
+  },
+  "estimatedTime": "Estimated Time",
+  "@estimatedTime": {
+    "description": "Estimated time label"
+  },
+  "minutes": "{minutes} min",
+  "@minutes": {
+    "description": "Time in minutes",
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "phone": "Phone",
+  "@phone": {
+    "description": "Phone label"
+  },
+  "notes": "Notes",
+  "@notes": {
+    "description": "Notes label"
+  },
+  "refreshNearbyDrivers": "Refresh Nearby Drivers",
+  "@refreshNearbyDrivers": {
+    "description": "Refresh nearby drivers button text"
+  },
+  "currentLocation": "Current Location",
+  "@currentLocation": {
+    "description": "Current location label"
+  },
+  "locate": "Locate",
+  "@locate": {
+    "description": "Locate button text"
+  },
+  "from": "From",
+  "@from": {
+    "description": "From label for pickup location"
+  },
+  "to": "To",
+  "@to": {
+    "description": "To label for dropoff location"
+  },
+  "viewMore": "View More",
+  "@viewMore": {
+    "description": "View more button text"
+  },
+  "viewLess": "View Less",
+  "@viewLess": {
+    "description": "View less button text"
+  },
+  "mapView": "Map View",
+  "@mapView": {
+    "description": "Map view section title"
+  },
+  "driverInformation": "Driver Information",
+  "@driverInformation": {
+    "description": "Driver information section title"
   }
 }
 

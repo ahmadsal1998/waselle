@@ -9,6 +9,7 @@ import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../view_models/order_tracking_view_model.dart';
 import '../../view_models/auth_view_model.dart';
+import '../../view_models/locale_view_model.dart';
 import '../../widgets/responsive_button.dart';
 import 'order_map_view_screen.dart';
 
@@ -53,10 +54,10 @@ class _OrderTrackingView extends StatelessWidget {
         return RefreshIndicator(
           onRefresh: trackingViewModel.refreshOrders,
           child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
             physics: const AlwaysScrollableScrollPhysics(),
             itemCount: orders.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 16),
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final order = orders[index];
               final orderId = order['_id']?.toString();
@@ -131,6 +132,9 @@ class _TrackedOrderCard extends StatefulWidget {
 
 class _TrackedOrderCardState extends State<_TrackedOrderCard> {
   bool _isOrderProgressVisible = false;
+  bool _isOrderDetailsExpanded = false;
+  bool _isMapVisible = true;
+  bool _isDriverInfoVisible = false;
   
   // Watch OrderViewModel to get latest order data
   @override
@@ -168,13 +172,13 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Section
+          // Compact Header Section
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  colorScheme.primaryContainer.withOpacity(0.5),
+                  colorScheme.primaryContainer.withOpacity(0.3),
                   colorScheme.surface,
                 ],
                 begin: Alignment.topLeft,
@@ -184,77 +188,143 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: colorScheme.primary,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     Icons.receipt_long_rounded,
                     color: colorScheme.onPrimary,
-                    size: 24,
+                    size: 20,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Order ${_readableOrderId(latestOrder['_id']?.toString() ?? '')}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.5,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Order ${_readableOrderId(latestOrder['_id']?.toString() ?? '')}',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                              overflow: TextOverflow.ellipsis,
                             ),
+                          ),
+                          Consumer<LocaleViewModel>(
+                            builder: (context, localeViewModel, _) {
+                              final statusText = _getStatusText(status, l10n, localeViewModel.isArabic);
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor(status, colorScheme).withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  statusText,
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        color: _getStatusColor(status, colorScheme),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 11,
+                                      ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                       if (formattedDate != null) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
                           formattedDate,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
+                                fontSize: 11,
                               ),
                         ),
                       ],
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(status, colorScheme).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    status.toUpperCase(),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: _getStatusColor(status, colorScheme),
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
-                  ),
-                ),
               ],
             ),
           ),
 
-          // Map Section
-          GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => OrderMapViewScreen(
-                    order: latestOrder,
-                    state: widget.state,
+          // Map Section (Collapsible) - Directly below order number
+          Column(
+            children: [
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _isMapVisible = !_isMapVisible;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceVariant.withOpacity(0.2),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: colorScheme.outlineVariant.withOpacity(0.2),
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.map_rounded,
+                            size: 18,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            l10n.mapView,
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
+                      ),
+                      Icon(
+                        _isMapVisible
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        color: colorScheme.onSurfaceVariant,
+                        size: 20,
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-            child: Container(
-              height: 280,
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceVariant.withOpacity(0.3),
               ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _isMapVisible
+                    ? GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => OrderMapViewScreen(
+                                order: latestOrder,
+                                state: widget.state,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          height: 200,
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceVariant.withOpacity(0.3),
+                          ),
               child: Stack(
                 children: [
                   ClipRect(
@@ -423,47 +493,74 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
                       ),
                     ),
                   ),
-                ],
+                        ],
+                      ),
+                    ),
+                  )
+                    : const SizedBox.shrink(),
               ),
-            ),
+            ],
+          ),
+
+          // Order Details Panel (Collapsible)
+          _OrderDetailsPanel(
+            order: latestOrder,
+            isExpanded: _isOrderDetailsExpanded,
+            onToggle: () {
+              setState(() {
+                _isOrderDetailsExpanded = !_isOrderDetailsExpanded;
+              });
+            },
           ),
 
           // Order Stages Timeline Toggle Button
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  l10n.orderProgress,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                ResponsiveButton.filled(
-                  context: context,
-                  onPressed: () {
-                    setState(() {
-                      _isOrderProgressVisible = !_isOrderProgressVisible;
-                    });
-                  },
-                  icon: _isOrderProgressVisible
-                      ? Icons.visibility_off_rounded
-                      : Icons.visibility_rounded,
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                  borderRadius: 12,
-                  isFullWidth: false,
-                  child: Text(
-                    _isOrderProgressVisible
-                        ? l10n.hideOrderProgress
-                        : l10n.showOrderProgress,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                    textAlign: TextAlign.center,
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isOrderProgressVisible = !_isOrderProgressVisible;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceVariant.withOpacity(0.2),
+                border: Border(
+                  top: BorderSide(
+                    color: colorScheme.outlineVariant.withOpacity(0.2),
+                  ),
+                  bottom: BorderSide(
+                    color: colorScheme.outlineVariant.withOpacity(0.2),
                   ),
                 ),
-              ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.timeline_rounded,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.orderProgress,
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+                  Icon(
+                    _isOrderProgressVisible
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: colorScheme.onSurfaceVariant,
+                    size: 20,
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -473,7 +570,7 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
             curve: Curves.easeInOut,
             child: _isOrderProgressVisible
                 ? Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                     child: _OrderStageTimeline(
                       currentStatus: status,
                       order: latestOrder,
@@ -483,56 +580,89 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
                 : const SizedBox.shrink(),
           ),
 
-          // Driver Info Section
-          if (latestOrder['driverId'] != null)
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: Column(
-                children: [
-                  _InfoSection(
-                    title: 'Driver Information',
-                    rows: [
-                      _InfoRow(
-                        icon: Icons.person_outline_rounded,
-                        label: 'Name',
-                        value: latestOrder['driverId']['name'],
-                      ),
-                      _InfoRow(
-                        icon: Icons.phone_android_rounded,
-                        label: 'Phone',
-                        value: _formatPhone(latestOrder['driverId']['phoneNumber']),
-                      ),
-                      _InfoRow(
-                        icon: Icons.directions_car_filled_rounded,
-                        label: 'Vehicle',
-                        value: latestOrder['driverId']['vehicleType'] ??
-                            latestOrder['vehicleType'],
-                      ),
-                    ],
+          // Driver Info Section (Collapsible)
+          if (latestOrder['driverId'] != null) ...[
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _isDriverInfoVisible = !_isDriverInfoVisible;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceVariant.withOpacity(0.2),
+                  border: Border(
+                    top: BorderSide(
+                      color: colorScheme.outlineVariant.withOpacity(0.2),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  // Call Button
-                  Consumer<AuthViewModel>(
-                    builder: (context, authViewModel, _) {
-                      final orderId = latestOrder['_id']?.toString();
-                      final user = authViewModel.user;
-                      if (orderId == null || user == null) {
-                        return const SizedBox.shrink();
-                      }
-                      
-                      // Backend returns 'id' field, not '_id' - handle both for compatibility
-                      final userId = (user['id'] ?? user['_id'] ?? '').toString();
-                      final userName = user['name']?.toString() ?? 'User';
-                      
-                      final driverId = latestOrder['driverId']?['_id']?.toString();
-                      
-                      // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.person_rounded,
+                          size: 18,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.driverInformation,
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                    Icon(
+                      _isDriverInfoVisible
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  ],
+                ),
               ),
             ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: _isDriverInfoVisible
+                  ? Container(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                      child: Column(
+                        children: [
+                          _InfoSection(
+                            title: l10n.driverInformation,
+                            rows: [
+                              _InfoRow(
+                                icon: Icons.person_outline_rounded,
+                                label: 'Name',
+                                value: latestOrder['driverId']['name'],
+                              ),
+                              _InfoRow(
+                                icon: Icons.phone_android_rounded,
+                                label: 'Phone',
+                                value: _formatPhone(latestOrder['driverId']['phoneNumber']),
+                              ),
+                              _InfoRow(
+                                icon: Icons.directions_car_filled_rounded,
+                                label: 'Vehicle',
+                                value: latestOrder['driverId']['vehicleType'] ??
+                                    latestOrder['vehicleType'],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
         ],
       ),
     );
@@ -552,6 +682,23 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
         return Colors.red;
       default:
         return colorScheme.primary;
+    }
+  }
+
+  String _getStatusText(String status, AppLocalizations l10n, bool isArabic) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return l10n.pending;
+      case 'accepted':
+        return l10n.orderAccepted;
+      case 'on_the_way':
+        return l10n.onTheWay;
+      case 'delivered':
+        return l10n.delivered;
+      case 'cancelled':
+        return l10n.cancelled;
+      default:
+        return status.toUpperCase();
     }
   }
 }
@@ -806,6 +953,7 @@ class _StageDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final orderId = order['_id']?.toString();
     final formattedDate = _formatDate(order['createdAt']);
     final status = order['status']?.toString().toLowerCase() ?? 'unknown';
@@ -938,7 +1086,7 @@ class _StageDetailSheet extends StatelessWidget {
                 if (order['driverId'] != null) ...[
                   const SizedBox(height: 24),
                   _DetailSection(
-                    title: 'Driver Information',
+                    title: l10n.driverInformation,
                     items: [
                       _DetailItem(
                         label: 'Driver Name',
@@ -1320,6 +1468,307 @@ class _InfoChip extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _OrderDetailsPanel extends StatelessWidget {
+  const _OrderDetailsPanel({
+    required this.order,
+    required this.isExpanded,
+    required this.onToggle,
+  });
+
+  final Map<String, dynamic> order;
+  final bool isExpanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceVariant.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Default view: Delivery Type, From, To
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Delivery Type
+                if (order['deliveryType'] != null)
+                  _buildDetailRow(
+                    context: context,
+                    icon: Icons.local_shipping,
+                    iconColor: Colors.indigo,
+                    label: l10n.deliveryType,
+                    value: order['deliveryType'] == 'internal'
+                        ? l10n.internalDelivery
+                        : l10n.externalDelivery,
+                  ),
+                if (order['deliveryType'] != null) const SizedBox(height: 12),
+                // From (Pickup Location)
+                if (order['pickupLocation'] != null)
+                  _buildDetailRow(
+                    context: context,
+                    icon: Icons.call_made,
+                    iconColor: Colors.blue,
+                    label: l10n.from ?? 'From',
+                    value: _formatLocationShort(order['pickupLocation']),
+                  ),
+                if (order['pickupLocation'] != null) const SizedBox(height: 12),
+                // To (Dropoff Location)
+                if (order['dropoffLocation'] != null)
+                  _buildDetailRow(
+                    context: context,
+                    icon: Icons.call_received,
+                    iconColor: Colors.green,
+                    label: l10n.to ?? 'To',
+                    value: _formatLocationShort(order['dropoffLocation']),
+                  ),
+              ],
+            ),
+          ),
+          // Expand/Collapse Button
+          InkWell(
+            onTap: onToggle,
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(16),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: colorScheme.outlineVariant.withOpacity(0.2),
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    isExpanded
+                        ? (l10n.viewLess ?? 'View Less')
+                        : (l10n.viewMore ?? 'View More'),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: colorScheme.primary,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Expanded details
+          if (isExpanded)
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  children: [
+                    const Divider(),
+                    const SizedBox(height: 12),
+                    // Order Type
+                    if (order['type'] != null) ...[
+                      _buildDetailRow(
+                        context: context,
+                        icon: Icons.category,
+                        iconColor: Colors.purple,
+                        label: l10n.orderType,
+                        value: order['type'] == 'send'
+                            ? l10n.sendRequest
+                            : l10n.receiveRequest,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    // Order Category
+                    if (order['orderCategory'] != null) ...[
+                      _buildDetailRow(
+                        context: context,
+                        icon: Icons.label,
+                        iconColor: Colors.orange,
+                        label: l10n.category,
+                        value: order['orderCategory'].toString(),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    // Vehicle Type
+                    if (order['vehicleType'] != null) ...[
+                      _buildDetailRow(
+                        context: context,
+                        icon: Icons.directions_car,
+                        iconColor: Colors.teal,
+                        label: l10n.vehicle,
+                        value: _getVehicleTypeText(order['vehicleType'].toString(), l10n),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    // Sender Name
+                    if (order['senderName'] != null) ...[
+                      _buildDetailRow(
+                        context: context,
+                        icon: Icons.person,
+                        iconColor: Colors.brown,
+                        label: l10n.senderName,
+                        value: order['senderName'].toString(),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    // Phone
+                    if (order['phone'] != null || order['senderPhoneNumber'] != null) ...[
+                      _buildDetailRow(
+                        context: context,
+                        icon: Icons.phone,
+                        iconColor: Colors.blueGrey,
+                        label: l10n.phone,
+                        value: order['phone']?.toString() ??
+                            order['senderPhoneNumber']?.toString() ??
+                            '--',
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    // Price
+                    if (order['price'] != null) ...[
+                      _buildDetailRow(
+                        context: context,
+                        icon: Icons.attach_money,
+                        iconColor: Colors.green,
+                        label: l10n.price,
+                        value: '₪${order['price']}',
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    // Distance
+                    if (order['distance'] != null) ...[
+                      _buildDetailRow(
+                        context: context,
+                        icon: Icons.straighten,
+                        iconColor: Colors.deepPurple,
+                        label: l10n.distance,
+                        value: l10n.kilometers(order['distance'].toString()),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    // Estimated Time
+                    if (order['estimatedTime'] != null) ...[
+                      _buildDetailRow(
+                        context: context,
+                        icon: Icons.access_time,
+                        iconColor: Colors.amber,
+                        label: l10n.estimatedTime,
+                        value: l10n.minutes(order['estimatedTime'].toString()),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    // Delivery Notes
+                    if (order['deliveryNotes'] != null &&
+                        order['deliveryNotes'].toString().isNotEmpty) ...[
+                      _buildDetailRow(
+                        context: context,
+                        icon: Icons.note,
+                        iconColor: Colors.grey,
+                        label: l10n.notes,
+                        value: order['deliveryNotes'].toString(),
+                        isMultiline: true,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow({
+    required BuildContext context,
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+    bool isMultiline = false,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: iconColor, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                maxLines: isMultiline ? null : 2,
+                overflow: isMultiline ? null : TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatLocationShort(Map<String, dynamic>? location) {
+    if (location == null || location.isEmpty) return 'Not available';
+    if (location['address'] != null &&
+        location['address'].toString().isNotEmpty) {
+      final address = location['address'].toString();
+      // Show first 50 characters if address is long
+      return address.length > 50 ? '${address.substring(0, 50)}...' : address;
+    }
+    final lat = location['lat'];
+    final lng = location['lng'];
+    if (lat == null || lng == null) return 'Not available';
+    final latValue = lat is num ? lat.toDouble() : double.tryParse('$lat');
+    final lngValue = lng is num ? lng.toDouble() : double.tryParse('$lng');
+    if (latValue == null || lngValue == null) return 'Not available';
+    return '${latValue.toStringAsFixed(4)}, ${lngValue.toStringAsFixed(4)}';
+  }
+
+  String _getVehicleTypeText(String vehicleType, AppLocalizations l10n) {
+    switch (vehicleType.toLowerCase()) {
+      case 'bike':
+        return l10n.bike;
+      case 'car':
+        return l10n.car;
+      case 'cargo':
+        return l10n.cargo;
+      default:
+        return vehicleType;
+    }
   }
 }
 

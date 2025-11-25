@@ -397,4 +397,25 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get filter => 'تصفية';
+
+  @override
+  String get deliveryType => 'نوع التوصيل';
+
+  @override
+  String get internalDelivery => 'توصيل داخلي';
+
+  @override
+  String get externalDelivery => 'توصيل خارجي';
+
+  @override
+  String get from => 'من';
+
+  @override
+  String get to => 'إلى';
+
+  @override
+  String get viewMore => 'عرض المزيد';
+
+  @override
+  String get viewLess => 'عرض أقل';
 }

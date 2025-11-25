@@ -454,5 +454,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deliveredDescription => 'Your order has been successfully delivered';
 
   @override
+  String get pending => 'Pending';
+
+  @override
+  String get cancelled => 'Cancelled';
+
+  @override
   String get current => 'Current';
+
+  @override
+  String get dropoffLocation => 'Dropoff Location';
+
+  @override
+  String get estimatedTime => 'Estimated Time';
+
+  @override
+  String minutes(String minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get phone => 'Phone';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
+  String get refreshNearbyDrivers => 'Refresh Nearby Drivers';
+
+  @override
+  String get currentLocation => 'Current Location';
+
+  @override
+  String get locate => 'Locate';
+
+  @override
+  String get from => 'From';
+
+  @override
+  String get to => 'To';
+
+  @override
+  String get viewMore => 'View More';
+
+  @override
+  String get viewLess => 'View Less';
+
+  @override
+  String get mapView => 'Map View';
+
+  @override
+  String get driverInformation => 'Driver Information';
 }

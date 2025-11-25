@@ -826,6 +826,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Filter'**
   String get filter;
+
+  /// Delivery type label
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery Type'**
+  String get deliveryType;
+
+  /// Internal delivery option
+  ///
+  /// In en, this message translates to:
+  /// **'Internal Delivery'**
+  String get internalDelivery;
+
+  /// External delivery option
+  ///
+  /// In en, this message translates to:
+  /// **'External Delivery'**
+  String get externalDelivery;
+
+  /// From label for pickup location
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get from;
+
+  /// To label for dropoff location
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get to;
+
+  /// View more button text
+  ///
+  /// In en, this message translates to:
+  /// **'View More'**
+  String get viewMore;
+
+  /// View less button text
+  ///
+  /// In en, this message translates to:
+  /// **'View Less'**
+  String get viewLess;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

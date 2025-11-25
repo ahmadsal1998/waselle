@@ -749,38 +749,24 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         ? '—' 
         : AddressFormatter.formatReceiverAddress(_order!);
 
+    // Get delivery type (internal/external) or fall back to order type (send/receive)
+    final deliveryTypeRaw = _order!['deliveryType']?.toString().toLowerCase().trim();
+    String deliveryTypeText;
+    if (deliveryTypeRaw == 'internal') {
+      deliveryTypeText = l10n.internalDelivery ?? 'Internal Delivery';
+    } else if (deliveryTypeRaw == 'external') {
+      deliveryTypeText = l10n.externalDelivery ?? 'External Delivery';
+    } else {
+      // Fall back to order type if deliveryType is not available
+      deliveryTypeText = orderType;
+    }
+
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Status
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: orderStatus == 'on_the_way'
-                      ? theme.colorScheme.tertiary.withOpacity(0.15)
-                      : theme.colorScheme.primary.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  _translateOrderStatus(l10n, orderStatus),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: orderStatus == 'on_the_way'
-                        ? theme.colorScheme.tertiary
-                        : theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          
-          // Category, Price, and Date Row
-          const SizedBox(height: 12),
+          // Delivery Type, From, To
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
@@ -791,173 +777,104 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 width: 1,
               ),
             ),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: _buildCompactInfoItem(
-                    theme: theme,
-                    icon: Icons.shopping_bag_rounded,
-                    label: l10n.category,
-                    value: orderCategory,
-                  ),
+                // Delivery Type
+                Row(
+                  children: [
+                    Icon(Icons.local_shipping, size: 18, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.deliveryType ?? 'Delivery Type',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            deliveryTypeText,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: theme.colorScheme.outline.withOpacity(0.2),
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                // From (Pickup)
+                Row(
+                  children: [
+                    Icon(Icons.call_made, size: 18, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.from ?? 'From',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            pickupAddress,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: _buildCompactInfoItem(
-                    theme: theme,
-                    icon: Icons.attach_money_rounded,
-                    label: l10n.price,
-                    value: l10n.nis(orderPrice),
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: theme.colorScheme.outline.withOpacity(0.2),
-                ),
-                Expanded(
-                  child: _buildCompactInfoItem(
-                    theme: theme,
-                    icon: Icons.calendar_today,
-                    label: l10n.created,
-                    value: formattedDate ?? l10n.nA,
-                  ),
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                // To (Dropoff)
+                Row(
+                  children: [
+                    Icon(Icons.call_received, size: 18, color: Colors.green),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.to ?? 'To',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            deliveryAddress,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          
-          // Order Type, Pick-up Location, and Delivery Location Row
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildCompactInfoItem(
-                    theme: theme,
-                    icon: Icons.category_rounded,
-                    label: l10n.type,
-                    value: orderType,
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: theme.colorScheme.outline.withOpacity(0.2),
-                ),
-                Expanded(
-                  child: _buildCompactInfoItem(
-                    theme: theme,
-                    icon: Icons.location_on,
-                    label: l10n.pickup,
-                    value: pickupAddress,
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 40,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: theme.colorScheme.outline.withOpacity(0.2),
-                ),
-                Expanded(
-                  child: _buildCompactInfoItem(
-                    theme: theme,
-                    icon: Icons.flag,
-                    label: l10n.dropoff,
-                    value: deliveryAddress,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Customer name and phone (compact)
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.person_outline, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.6)),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  customerName,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Icon(Icons.phone, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.6)),
-              const SizedBox(width: 6),
-              Text(
-                customerPhone,
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
-          ),
-          
-          // Call Button
-          const SizedBox(height: 12),
-          Consumer<AuthViewModel>(
-            builder: (context, authViewModel, _) {
-              final orderId = _getOrderId(_order!);
-              final user = authViewModel.user;
-              if (orderId == null || user == null) {
-                return const SizedBox.shrink();
-              }
-              
-              // Call functionality removed - ZegoUIKitPrebuiltCall dependency removed
-              return const SizedBox.shrink();
-            },
-          ),
-          
-          // Action button
-          const SizedBox(height: 12),
-          if (orderStatus == 'accepted')
-            ResponsiveButton.elevated(
-              context: context,
-              onPressed: () => _updateStatus('on_the_way'),
-              icon: Icons.directions_car,
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-              child: Text(
-                l10n.startDelivery,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          if (orderStatus == 'on_the_way')
-            ResponsiveButton.elevated(
-              context: context,
-              onPressed: () => _updateStatus('delivered'),
-              icon: Icons.check_circle,
-              backgroundColor: theme.colorScheme.secondary,
-              foregroundColor: theme.colorScheme.onSecondary,
-              child: Text(
-                l10n.markAsDelivered,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                textAlign: TextAlign.center,
-              ),
-            ),
         ],
       ),
     );

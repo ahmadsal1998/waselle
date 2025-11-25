@@ -547,6 +547,34 @@
   "filter": "Filter",
   "@filter": {
     "description": "Filter button label"
+  },
+  "deliveryType": "Delivery Type",
+  "@deliveryType": {
+    "description": "Delivery type label"
+  },
+  "internalDelivery": "Internal Delivery",
+  "@internalDelivery": {
+    "description": "Internal delivery option"
+  },
+  "externalDelivery": "External Delivery",
+  "@externalDelivery": {
+    "description": "External delivery option"
+  },
+  "from": "From",
+  "@from": {
+    "description": "From label for pickup location"
+  },
+  "to": "To",
+  "@to": {
+    "description": "To label for dropoff location"
+  },
+  "viewMore": "View More",
+  "@viewMore": {
+    "description": "View more button text"
+  },
+  "viewLess": "View Less",
+  "@viewLess": {
+    "description": "View less button text"
   }
 }
 

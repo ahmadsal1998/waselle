@@ -551,7 +551,7 @@ abstract class AppLocalizations {
   /// **'Select the order type'**
   String get selectOrderType;
 
-  /// Order type field label
+  /// Order type label
   ///
   /// In en, this message translates to:
   /// **'Order Type'**
@@ -965,11 +965,107 @@ abstract class AppLocalizations {
   /// **'Your order has been successfully delivered'**
   String get deliveredDescription;
 
+  /// Pending order status
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get pending;
+
+  /// Cancelled order status
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get cancelled;
+
   /// Current stage badge text
   ///
   /// In en, this message translates to:
   /// **'Current'**
   String get current;
+
+  /// Dropoff location label
+  ///
+  /// In en, this message translates to:
+  /// **'Dropoff Location'**
+  String get dropoffLocation;
+
+  /// Estimated time label
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated Time'**
+  String get estimatedTime;
+
+  /// Time in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String minutes(String minutes);
+
+  /// Phone label
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get phone;
+
+  /// Notes label
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notes;
+
+  /// Refresh nearby drivers button text
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh Nearby Drivers'**
+  String get refreshNearbyDrivers;
+
+  /// Current location label
+  ///
+  /// In en, this message translates to:
+  /// **'Current Location'**
+  String get currentLocation;
+
+  /// Locate button text
+  ///
+  /// In en, this message translates to:
+  /// **'Locate'**
+  String get locate;
+
+  /// From label for pickup location
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get from;
+
+  /// To label for dropoff location
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get to;
+
+  /// View more button text
+  ///
+  /// In en, this message translates to:
+  /// **'View More'**
+  String get viewMore;
+
+  /// View less button text
+  ///
+  /// In en, this message translates to:
+  /// **'View Less'**
+  String get viewLess;
+
+  /// Map view section title
+  ///
+  /// In en, this message translates to:
+  /// **'Map View'**
+  String get mapView;
+
+  /// Driver information section title
+  ///
+  /// In en, this message translates to:
+  /// **'Driver Information'**
+  String get driverInformation;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -5,6 +5,7 @@ import '../../models/saved_address.dart';
 import '../../services/saved_address_service.dart';
 import '../../view_models/location_view_model.dart';
 import '../../view_models/region_view_model.dart';
+import '../../view_models/locale_view_model.dart';
 
 class SavedAddressesScreen extends StatefulWidget {
   const SavedAddressesScreen({super.key});
@@ -88,7 +89,14 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Saved Addresses'),
+        title: Consumer<LocaleViewModel>(
+          builder: (context, localeViewModel, _) {
+            final title = localeViewModel.isArabic
+                ? 'إضافة عناوين'
+                : 'Saved Addresses';
+            return Text(title);
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

@@ -85,15 +85,22 @@ class _ProfileContent extends StatelessWidget {
               },
             ),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.location_on),
-              title: const Text('Saved Addresses'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const SavedAddressesScreen(),
-                  ),
+            Consumer<LocaleViewModel>(
+              builder: (context, localeViewModel, _) {
+                final title = localeViewModel.isArabic
+                    ? 'إضافة عناوين'
+                    : 'Saved Addresses';
+                return ListTile(
+                  leading: const Icon(Icons.location_on),
+                  title: Text(title),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const SavedAddressesScreen(),
+                      ),
+                    );
+                  },
                 );
               },
             ),

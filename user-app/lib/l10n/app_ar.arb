@@ -117,8 +117,8 @@
   "streetBuildingFloorApartment": "الشارع، المبنى، الطابق، الشقة...",
   "pleaseEnterSenderAddress": "الرجاء إدخال عنوان المرسل",
   "provideDirections": "قدم الاتجاهات، رموز الوصول للمبنى، أو تفاصيل أخرى.",
-  "sendRequestNotesHint": ""مثال: عندي طلب بمخزن الشلبي شارع حيفا وبدي أرسله على المحل بجنين شارع أبو بكر عمارة النفاع." ",
-  "receiveRequestNotesHint": ""مثال: عندي طلب موجود بمخزن الشلبي شارع حيفا وبدّي تجيبه/تحضّره للمحل بجنين شارع أبو بكر."",
+  "sendRequestNotesHint": "مثال: عندي طلب بمخزن الشلبي شارع حيفا وبدي أرسله على المحل بجنين شارع أبو بكر عمارة النفاع.",
+  "receiveRequestNotesHint": "مثال: عندي طلب موجود بمخزن الشلبي شارع حيفا وبدّي تجيبه/تحضّره للمحل بجنين شارع أبو بكر.",
   "pleaseEnterDeliveryNotes": "الرجاء إدخال تفاصيل الطلب",
   "liveCostPreview": "معاينة التكلفة المباشرة",
   "selectVehicleAndEnterAddress": "اختر مركبة وأدخل عنوان الاستلام لرؤية التقدير.",
@@ -180,6 +180,30 @@
   "onTheWayDescription": "السائق في طريقه إلى موقعك",
   "delivered": "تم التسليم",
   "deliveredDescription": "تم تسليم طلبك بنجاح",
-  "current": "الحالي"
+  "pending": "قيد الانتظار",
+  "cancelled": "ملغي",
+  "current": "الحالي",
+  "orderType": "نوع الطلب",
+  "dropoffLocation": "موقع التسليم",
+  "estimatedTime": "الوقت المقدر",
+  "minutes": "{minutes} دقيقة",
+  "@minutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "phone": "الهاتف",
+  "notes": "ملاحظات",
+  "refreshNearbyDrivers": "تحديث السائقين القريبين",
+  "currentLocation": "الموقع الحالي",
+  "locate": "تحديد الموقع",
+  "from": "من",
+  "to": "إلى",
+  "viewMore": "عرض المزيد",
+  "viewLess": "عرض أقل",
+  "mapView": "عرض الخريطة",
+  "driverInformation": "معلومات السائق"
 }
 

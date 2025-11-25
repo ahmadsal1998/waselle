@@ -303,10 +303,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get provideDirections => 'قدم الاتجاهات، رموز الوصول للمبنى، أو تفاصيل أخرى.';
 
   @override
-  String get sendRequestNotesHint => '"مثال: عندي طلب بمخزن الشلبي شارع حيفا وبدي أرسله على المحل بجنين شارع أبو بكر عمارة النفاع." ';
+  String get sendRequestNotesHint => 'مثال: عندي طلب بمخزن الشلبي شارع حيفا وبدي أرسله على المحل بجنين شارع أبو بكر عمارة النفاع.';
 
   @override
-  String get receiveRequestNotesHint => '"مثال: عندي طلب موجود بمخزن الشلبي شارع حيفا وبدّي تجيبه/تحضّره للمحل بجنين شارع أبو بكر."';
+  String get receiveRequestNotesHint => 'مثال: عندي طلب موجود بمخزن الشلبي شارع حيفا وبدّي تجيبه/تحضّره للمحل بجنين شارع أبو بكر.';
 
   @override
   String get pleaseEnterDeliveryNotes => 'الرجاء إدخال تفاصيل الطلب';
@@ -454,5 +454,55 @@ class AppLocalizationsAr extends AppLocalizations {
   String get deliveredDescription => 'تم تسليم طلبك بنجاح';
 
   @override
+  String get pending => 'قيد الانتظار';
+
+  @override
+  String get cancelled => 'ملغي';
+
+  @override
   String get current => 'الحالي';
+
+  @override
+  String get dropoffLocation => 'موقع التسليم';
+
+  @override
+  String get estimatedTime => 'الوقت المقدر';
+
+  @override
+  String minutes(String minutes) {
+    return '$minutes دقيقة';
+  }
+
+  @override
+  String get phone => 'الهاتف';
+
+  @override
+  String get notes => 'ملاحظات';
+
+  @override
+  String get refreshNearbyDrivers => 'تحديث السائقين القريبين';
+
+  @override
+  String get currentLocation => 'الموقع الحالي';
+
+  @override
+  String get locate => 'تحديد الموقع';
+
+  @override
+  String get from => 'من';
+
+  @override
+  String get to => 'إلى';
+
+  @override
+  String get viewMore => 'عرض المزيد';
+
+  @override
+  String get viewLess => 'عرض أقل';
+
+  @override
+  String get mapView => 'عرض الخريطة';
+
+  @override
+  String get driverInformation => 'معلومات السائق';
 }

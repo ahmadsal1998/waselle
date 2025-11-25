@@ -4,6 +4,7 @@ import 'package:delivery_user_app/l10n/app_localizations.dart';
 import 'package:geocoding/geocoding.dart';
 
 import '../../view_models/order_view_model.dart';
+import '../../view_models/locale_view_model.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -75,8 +76,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             itemCount: orders.length,
             itemBuilder: (context, index) {
               final order = orders[index];
-              final status =
-                  order['status']?.toString().toUpperCase() ?? 'UNKNOWN';
+              final statusRaw = order['status']?.toString().toLowerCase() ?? 'unknown';
               final price = order['price']?.toString() ?? '--';
               final createdAt = DateTime.tryParse(order['createdAt'] ?? '');
               final createdText = createdAt != null
@@ -94,91 +94,210 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                child: ExpansionTile(
+                  initiallyExpanded: false,
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            l10n.orderNumber(order['_id']?.toString().substring(0, 6) ?? '---'),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      Expanded(
+                        child: Text(
+                          l10n.orderNumber(order['_id']?.toString().substring(0, 6) ?? '---'),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
-                          Container(
+                        ),
+                      ),
+                      Consumer<LocaleViewModel>(
+                        builder: (context, localeViewModel, _) {
+                          final statusText = _getStatusText(statusRaw, l10n, localeViewModel.isArabic);
+                          return Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              color: _statusColor(status).withOpacity(0.15),
+                              color: _statusColor(statusRaw).withOpacity(0.15),
                             ),
                             child: Text(
-                              status,
+                              statusText,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: _statusColor(status),
+                                color: _statusColor(statusRaw),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          const Icon(Icons.call_made,
-                              color: Colors.blue, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _LocationText(
-                              location: order['pickupLocation'],
-                              addressCache: _addressCache,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(Icons.call_received,
-                              color: Colors.green, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _LocationText(
-                              location: order['dropoffLocation'],
-                              addressCache: _addressCache,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${l10n.price}: \$$price',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            createdText,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
                     ],
                   ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${l10n.price}: ₪$price',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              createdText,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  children: [
+                    _buildOrderDetailRow(
+                      icon: Icons.call_made,
+                      iconColor: Colors.blue,
+                      label: l10n.pickupLocation,
+                      child: _LocationText(
+                        location: order['pickupLocation'],
+                        addressCache: _addressCache,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildOrderDetailRow(
+                      icon: Icons.call_received,
+                      iconColor: Colors.green,
+                      label: l10n.dropoffLocation,
+                      child: _LocationText(
+                        location: order['dropoffLocation'],
+                        addressCache: _addressCache,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    if (order['type'] != null)
+                      _buildOrderDetailRow(
+                        icon: Icons.category,
+                        iconColor: Colors.purple,
+                        label: l10n.orderType,
+                        child: Text(
+                          order['type'] == 'send' 
+                              ? (l10n.sendRequest) 
+                              : (l10n.receiveRequest),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    if (order['orderCategory'] != null) ...[
+                      const SizedBox(height: 8),
+                      _buildOrderDetailRow(
+                        icon: Icons.label,
+                        iconColor: Colors.orange,
+                        label: l10n.category,
+                        child: Text(
+                          order['orderCategory'].toString(),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                    if (order['vehicleType'] != null) ...[
+                      const SizedBox(height: 8),
+                      _buildOrderDetailRow(
+                        icon: Icons.directions_car,
+                        iconColor: Colors.teal,
+                        label: l10n.vehicle,
+                        child: Text(
+                          _getVehicleTypeText(order['vehicleType'].toString(), l10n),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                    if (order['deliveryType'] != null) ...[
+                      const SizedBox(height: 8),
+                      _buildOrderDetailRow(
+                        icon: Icons.local_shipping,
+                        iconColor: Colors.indigo,
+                        label: l10n.deliveryType,
+                        child: Text(
+                          order['deliveryType'] == 'internal'
+                              ? l10n.internalDelivery
+                              : l10n.externalDelivery,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                    if (order['senderName'] != null) ...[
+                      const SizedBox(height: 8),
+                      _buildOrderDetailRow(
+                        icon: Icons.person,
+                        iconColor: Colors.brown,
+                        label: l10n.senderName,
+                        child: Text(
+                          order['senderName'].toString(),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                    if (order['phone'] != null || order['senderPhoneNumber'] != null) ...[
+                      const SizedBox(height: 8),
+                      _buildOrderDetailRow(
+                        icon: Icons.phone,
+                        iconColor: Colors.blueGrey,
+                        label: l10n.phone,
+                        child: Text(
+                          order['phone']?.toString() ?? 
+                          order['senderPhoneNumber']?.toString() ?? 
+                          '--',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                    if (order['distance'] != null) ...[
+                      const SizedBox(height: 8),
+                      _buildOrderDetailRow(
+                        icon: Icons.straighten,
+                        iconColor: Colors.deepPurple,
+                        label: l10n.distance,
+                        child: Text(
+                          l10n.kilometers(order['distance'].toString()),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                    if (order['estimatedTime'] != null) ...[
+                      const SizedBox(height: 8),
+                      _buildOrderDetailRow(
+                        icon: Icons.access_time,
+                        iconColor: Colors.amber,
+                        label: l10n.estimatedTime,
+                        child: Text(
+                          l10n.minutes(order['estimatedTime'].toString()),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                    if (order['deliveryNotes'] != null && order['deliveryNotes'].toString().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _buildOrderDetailRow(
+                        icon: Icons.note,
+                        iconColor: Colors.grey,
+                        label: l10n.notes,
+                        child: Text(
+                          order['deliveryNotes'].toString(),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               );
             },
@@ -202,6 +321,68 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       default:
         return Colors.grey;
     }
+  }
+
+  String _getStatusText(String status, AppLocalizations l10n, bool isArabic) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return l10n.pending;
+      case 'accepted':
+        return l10n.orderAccepted;
+      case 'on_the_way':
+        return l10n.onTheWay;
+      case 'delivered':
+        return l10n.delivered;
+      case 'cancelled':
+        return l10n.cancelled;
+      default:
+        return status.toUpperCase();
+    }
+  }
+
+  String _getVehicleTypeText(String vehicleType, AppLocalizations l10n) {
+    switch (vehicleType.toLowerCase()) {
+      case 'bike':
+        return l10n.bike;
+      case 'car':
+        return l10n.car;
+      case 'cargo':
+        return l10n.cargo;
+      default:
+        return vehicleType;
+    }
+  }
+
+  Widget _buildOrderDetailRow({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required Widget child,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: iconColor, size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              child,
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
 }
