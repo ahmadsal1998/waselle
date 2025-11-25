@@ -1,6 +1,9 @@
 import { admin } from '../utils/firebase';
 import User from '../models/User';
 import { getOrderStatusMessage, getNotificationMessages } from '../utils/notificationMessages';
+import Settings from '../models/Settings';
+import City from '../models/City';
+import { findCityForLocation, calculateDistance } from '../utils/distance';
 
 export interface NotificationPayload {
   title: string;
@@ -156,6 +159,172 @@ export const sendDriverOrderStatusNotification = async (
       ...(orderData && { orderData: JSON.stringify(orderData) }),
     },
   });
+};
+
+/**
+ * Send new order notification to all relevant drivers
+ * Drivers are filtered by vehicle type, availability, location, and radius
+ */
+export const sendNewOrderNotificationToDrivers = async (
+  orderId: string,
+  vehicleType: 'car' | 'bike' | 'cargo',
+  deliveryType: 'internal' | 'external',
+  customerLocation: { lat: number; lng: number },
+  orderData?: any
+): Promise<{ notified: number; skipped: number }> => {
+  try {
+    // Find all available drivers with matching vehicle type
+    const drivers = await User.find({
+      role: 'driver',
+      vehicleType: vehicleType,
+      isAvailable: true,
+      isActive: true, // Only active drivers
+      location: { $exists: true, $ne: null },
+      fcmToken: { $exists: true, $ne: null }, // Only drivers with FCM tokens
+    }).lean();
+
+    if (drivers.length === 0) {
+      console.log(`No available drivers found for vehicle type ${vehicleType}`);
+      return { notified: 0, skipped: 0 };
+    }
+
+    // Get settings for radius configuration
+    const settings = await Settings.getSettings();
+
+    // Get all active cities with service centers configured
+    const citiesWithServiceCenters = await City.find({
+      isActive: true,
+      'serviceCenter.center.lat': { $exists: true, $ne: null },
+      'serviceCenter.center.lng': { $exists: true, $ne: null },
+    }).lean();
+
+    // Determine radius based on delivery type and city/global settings
+    let internalRadiusKm: number;
+    let externalMinRadiusKm: number;
+    let externalMaxRadiusKm: number;
+
+    if (citiesWithServiceCenters.length > 0) {
+      const cityServiceCenter = findCityForLocation(
+        customerLocation,
+        citiesWithServiceCenters as any
+      );
+
+      if (cityServiceCenter) {
+        // Use city-specific radius
+        internalRadiusKm = cityServiceCenter.internalOrderRadiusKm;
+        externalMinRadiusKm = cityServiceCenter.externalOrderMinRadiusKm;
+        externalMaxRadiusKm = cityServiceCenter.externalOrderMaxRadiusKm;
+      } else {
+        // Use global settings
+        internalRadiusKm = settings.internalOrderRadiusKm;
+        externalMinRadiusKm = settings.externalOrderMinRadiusKm;
+        externalMaxRadiusKm = settings.externalOrderMaxRadiusKm;
+      }
+    } else {
+      // Use global settings
+      internalRadiusKm = settings.internalOrderRadiusKm;
+      externalMinRadiusKm = settings.externalOrderMinRadiusKm;
+      externalMaxRadiusKm = settings.externalOrderMaxRadiusKm;
+    }
+
+    // Filter drivers by distance and delivery type
+    const relevantDrivers = drivers
+      .map((driver) => {
+        if (!driver.location) return null;
+
+        const distance = calculateDistance(driver.location, customerLocation);
+
+        // Apply radius logic based on delivery type
+        let isWithinRadius: boolean;
+        if (deliveryType === 'internal') {
+          isWithinRadius = distance <= internalRadiusKm;
+        } else {
+          isWithinRadius =
+            distance >= externalMinRadiusKm && distance <= externalMaxRadiusKm;
+        }
+
+        if (isWithinRadius) {
+          return {
+            driverId: driver._id.toString(),
+            distance,
+          };
+        }
+
+        return null;
+      })
+      .filter((driver) => driver !== null) as Array<{
+      driverId: string;
+      distance: number;
+    }>;
+
+    if (relevantDrivers.length === 0) {
+      console.log(
+        `No drivers found within radius for order ${orderId} (vehicleType: ${vehicleType}, deliveryType: ${deliveryType})`
+      );
+      return { notified: 0, skipped: drivers.length };
+    }
+
+    // Get notification messages (will use each driver's language preference)
+    const messages = {
+      ar: {
+        title: 'طلب جديد متاح',
+        body: 'تم وضع طلب توصيل جديد. اضغط لعرض الطلبات المتاحة.',
+      },
+      en: {
+        title: 'New Order Available',
+        body: 'A new delivery order has been placed. Tap to view.',
+      },
+    };
+
+    // Send notifications to all relevant drivers
+    let notified = 0;
+    let skipped = 0;
+
+    await Promise.all(
+      relevantDrivers.map(async (driverInfo) => {
+        try {
+          const driver = await User.findById(driverInfo.driverId);
+          if (!driver || !driver.fcmToken) {
+            skipped++;
+            return;
+          }
+
+          const language = (driver.preferredLanguage || 'ar') as 'ar' | 'en';
+          const message = messages[language];
+
+          await sendNotificationToUser(driver._id.toString(), {
+            title: message.title,
+            body: message.body,
+            data: {
+              type: 'new_order',
+              orderId: orderId,
+              ...(orderData && { orderData: JSON.stringify(orderData) }),
+            },
+          });
+
+          notified++;
+        } catch (error: any) {
+          console.error(
+            `Error sending notification to driver ${driverInfo.driverId}:`,
+            error.message
+          );
+          skipped++;
+        }
+      })
+    );
+
+    console.log(
+      `✅ New order notification sent: ${notified} drivers notified, ${skipped} skipped for order ${orderId}`
+    );
+
+    return { notified, skipped };
+  } catch (error: any) {
+    console.error(
+      `❌ Error sending new order notifications:`,
+      error.message
+    );
+    return { notified: 0, skipped: 0 };
+  }
 };
 
 

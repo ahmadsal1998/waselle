@@ -13,6 +13,7 @@ import {
 import {
   sendOrderStatusNotification,
   sendDriverOrderStatusNotification,
+  sendNewOrderNotificationToDrivers,
 } from '../services/notificationService';
 import OrderCategory from '../models/OrderCategory';
 import Settings from '../models/Settings';
@@ -300,6 +301,34 @@ export const createOrder = async (
         'pending',
         orderData
       );
+    }
+
+    // Send push notification to relevant drivers about new order
+    // Determine customer location based on order type
+    let customerLocation: { lat: number; lng: number } | null = null;
+    if (type === 'send' && pickupLocation.lat && pickupLocation.lng) {
+      customerLocation = {
+        lat: typeof pickupLocation.lat === 'number' ? pickupLocation.lat : parseFloat(pickupLocation.lat),
+        lng: typeof pickupLocation.lng === 'number' ? pickupLocation.lng : parseFloat(pickupLocation.lng),
+      };
+    } else if (type === 'receive' && dropoffLocation.lat && dropoffLocation.lng) {
+      customerLocation = {
+        lat: typeof dropoffLocation.lat === 'number' ? dropoffLocation.lat : parseFloat(dropoffLocation.lat),
+        lng: typeof dropoffLocation.lng === 'number' ? dropoffLocation.lng : parseFloat(dropoffLocation.lng),
+      };
+    }
+
+    if (customerLocation) {
+      // Send notifications asynchronously (don't block response)
+      sendNewOrderNotificationToDrivers(
+        order._id.toString(),
+        vehicleType as 'bike' | 'car' | 'cargo',
+        deliveryType as 'internal' | 'external',
+        customerLocation,
+        orderData
+      ).catch((error) => {
+        console.error('Error sending new order notifications to drivers:', error);
+      });
     }
 
     res.status(201).json({
@@ -1187,6 +1216,34 @@ export const verifyOTPAndCreateOrder = async (
 
     emitNewOrder(orderData);
 
+    // Send push notification to relevant drivers about new order
+    // Determine customer location based on order type
+    let customerLocation: { lat: number; lng: number } | null = null;
+    if (type === 'send' && pickupLocation.lat && pickupLocation.lng) {
+      customerLocation = {
+        lat: typeof pickupLocation.lat === 'number' ? pickupLocation.lat : parseFloat(pickupLocation.lat),
+        lng: typeof pickupLocation.lng === 'number' ? pickupLocation.lng : parseFloat(pickupLocation.lng),
+      };
+    } else if (type === 'receive' && dropoffLocation.lat && dropoffLocation.lng) {
+      customerLocation = {
+        lat: typeof dropoffLocation.lat === 'number' ? dropoffLocation.lat : parseFloat(dropoffLocation.lat),
+        lng: typeof dropoffLocation.lng === 'number' ? dropoffLocation.lng : parseFloat(dropoffLocation.lng),
+      };
+    }
+
+    if (customerLocation) {
+      // Send notifications asynchronously (don't block response)
+      sendNewOrderNotificationToDrivers(
+        order._id.toString(),
+        vehicleType as 'bike' | 'car' | 'cargo',
+        deliveryType as 'internal' | 'external',
+        customerLocation,
+        orderData
+      ).catch((error) => {
+        console.error('Error sending new order notifications to drivers:', error);
+      });
+    }
+
     // Generate JWT token for the user
     const token = generateToken({
       userId: user._id.toString(),
@@ -1460,6 +1517,34 @@ export const createOrderWithFirebaseToken = async (
     const orderData = order.toObject();
 
     emitNewOrder(orderData);
+
+    // Send push notification to relevant drivers about new order
+    // Determine customer location based on order type
+    let customerLocation: { lat: number; lng: number } | null = null;
+    if (type === 'send' && pickupLocation.lat && pickupLocation.lng) {
+      customerLocation = {
+        lat: typeof pickupLocation.lat === 'number' ? pickupLocation.lat : parseFloat(pickupLocation.lat),
+        lng: typeof pickupLocation.lng === 'number' ? pickupLocation.lng : parseFloat(pickupLocation.lng),
+      };
+    } else if (type === 'receive' && dropoffLocation.lat && dropoffLocation.lng) {
+      customerLocation = {
+        lat: typeof dropoffLocation.lat === 'number' ? dropoffLocation.lat : parseFloat(dropoffLocation.lat),
+        lng: typeof dropoffLocation.lng === 'number' ? dropoffLocation.lng : parseFloat(dropoffLocation.lng),
+      };
+    }
+
+    if (customerLocation) {
+      // Send notifications asynchronously (don't block response)
+      sendNewOrderNotificationToDrivers(
+        order._id.toString(),
+        vehicleType as 'bike' | 'car' | 'cargo',
+        deliveryType as 'internal' | 'external',
+        customerLocation,
+        orderData
+      ).catch((error) => {
+        console.error('Error sending new order notifications to drivers:', error);
+      });
+    }
 
     // Generate JWT token for the user
     const token = generateToken({

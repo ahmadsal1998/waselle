@@ -150,7 +150,8 @@ class FCMService {
         RemoteMessage? initialMessage = await _firebaseMessaging.getInitialMessage();
         if (initialMessage != null) {
           debugPrint('📱 App opened from notification (terminated state)');
-          // Wait a bit for app to initialize
+          debugPrint('   Data: ${initialMessage.data}');
+          // Wait a bit for app to initialize, then handle notification
           Future.delayed(const Duration(seconds: 1), () {
             _handleNotificationTap(initialMessage);
           });
@@ -215,6 +216,10 @@ class FCMService {
     // Handle incoming call notification
     if (data['type'] == 'incoming_call') {
       _handleIncomingCallNotification(data);
+    } else if (data['type'] == 'new_order') {
+      // New order notification - navigate to Available Orders screen
+      debugPrint('📦 New order foreground notification - navigating to Available Orders');
+      _navigateToAvailableOrders();
     }
   }
 
@@ -228,6 +233,10 @@ class FCMService {
     // Handle incoming call notification
     if (data['type'] == 'incoming_call') {
       _handleIncomingCallNotification(data);
+    } else if (data['type'] == 'new_order') {
+      // New order notification - navigate to Available Orders screen
+      debugPrint('📦 New order notification tapped - navigating to Available Orders');
+      _navigateToAvailableOrders();
     } else if (data['type'] == 'order_status_update' && data['orderId'] != null) {
       // Store order ID for navigation
       _storePendingNavigation(data['orderId']);
@@ -243,7 +252,11 @@ class FCMService {
         final data = Map<String, dynamic>.from(
           Uri.splitQueryString(payload),
         );
-        if (data['orderId'] != null) {
+        if (data['type'] == 'new_order') {
+          // New order notification - navigate to Available Orders screen
+          debugPrint('📦 New order local notification tapped - navigating to Available Orders');
+          _navigateToAvailableOrders();
+        } else if (data['orderId'] != null) {
           _storePendingNavigation(data['orderId']!);
         }
       } catch (e) {
@@ -284,8 +297,17 @@ class FCMService {
 
     // Create payload string from data
     String? payload;
-    if (data != null && data['orderId'] != null) {
-      payload = 'orderId=${data['orderId']}';
+    if (data != null) {
+      final payloadParts = <String>[];
+      if (data['type'] != null) {
+        payloadParts.add('type=${data['type']}');
+      }
+      if (data['orderId'] != null) {
+        payloadParts.add('orderId=${data['orderId']}');
+      }
+      if (payloadParts.isNotEmpty) {
+        payload = payloadParts.join('&');
+      }
     }
 
     await _localNotifications.show(
@@ -349,6 +371,33 @@ class FCMService {
       debugPrint('💾 Stored pending order navigation: $orderId');
     } catch (e) {
       debugPrint('❌ Error storing pending navigation: $e');
+    }
+  }
+
+  /// Navigate to Available Orders screen
+  void _navigateToAvailableOrders() {
+    try {
+      // Store flag to navigate to Available Orders screen
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setBool('navigate_to_available_orders', true);
+        debugPrint('💾 Set flag to navigate to Available Orders screen');
+      });
+
+      // Try to navigate immediately if app is already running
+      final context = GlobalNavigatorKey.navigatorKey.currentContext;
+      if (context != null) {
+        // Navigate to home screen with Available Orders tab (index 0)
+        // The HomeScreen will check the flag and ensure it's on the Available Orders tab
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/home',
+          (route) => false,
+        );
+        debugPrint('✅ Navigated to Available Orders screen');
+      } else {
+        debugPrint('⚠️ No context available, flag set for navigation on app start');
+      }
+    } catch (e) {
+      debugPrint('❌ Error navigating to Available Orders: $e');
     }
   }
 
@@ -693,8 +742,15 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     
     // Create payload string from data
     String? payload;
+    final payloadParts = <String>[];
+    if (message.data['type'] != null) {
+      payloadParts.add('type=${message.data['type']}');
+    }
     if (message.data['orderId'] != null) {
-      payload = 'orderId=${message.data['orderId']}';
+      payloadParts.add('orderId=${message.data['orderId']}');
+    }
+    if (payloadParts.isNotEmpty) {
+      payload = payloadParts.join('&');
     }
     
     await localNotifications.show(
@@ -709,7 +765,17 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
   
   // Store notification data for when app opens
-  if (message.data['type'] == 'order_status_update' && message.data['orderId'] != null) {
+  if (message.data['type'] == 'new_order') {
+    try {
+      // Note: SharedPreferences requires WidgetsFlutterBinding.ensureInitialized()
+      // which is already done in main.dart before Firebase initialization
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('navigate_to_available_orders', true);
+      debugPrint('✅ Stored flag to navigate to Available Orders on app start');
+    } catch (e) {
+      debugPrint('❌ Error storing navigation flag: $e');
+    }
+  } else if (message.data['type'] == 'order_status_update' && message.data['orderId'] != null) {
     try {
       // Note: SharedPreferences requires WidgetsFlutterBinding.ensureInitialized()
       // which is already done in main.dart before Firebase initialization

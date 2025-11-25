@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../view_models/auth_view_model.dart';
@@ -84,6 +85,32 @@ class _HomeScreenState extends State<HomeScreen> {
     await orderViewModel.fetchMyOrders();
     // Fetch available orders to populate the list initially
     await orderViewModel.fetchAvailableOrders();
+    
+    // Check if we need to navigate to Available Orders screen (from notification)
+    _checkPendingNavigation();
+  }
+  
+  /// Check for pending navigation from notification
+  Future<void> _checkPendingNavigation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final shouldNavigate = prefs.getBool('navigate_to_available_orders') ?? false;
+      
+      if (shouldNavigate) {
+        // Clear the flag
+        await prefs.remove('navigate_to_available_orders');
+        
+        // Navigate to Available Orders screen (index 0)
+        if (mounted) {
+          setState(() {
+            _currentIndex = 0;
+          });
+          debugPrint('✅ Navigated to Available Orders screen from notification');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error checking pending navigation: $e');
+    }
   }
   
   void _checkSuspensionStatus() {
