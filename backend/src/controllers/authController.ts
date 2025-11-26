@@ -713,3 +713,84 @@ export const verifyPhoneOTP = async (req: Request, res: Response): Promise<void>
     res.status(500).json({ message: error.message || 'OTP verification failed' });
   }
 };
+
+/**
+ * Delete user account with OTP verification
+ * Requires authentication and OTP verification before deletion
+ */
+export const deleteAccount = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    const { phoneNumber, otp } = req.body;
+
+    if (!phoneNumber || typeof phoneNumber !== 'string') {
+      res.status(400).json({ message: 'Phone number is required' });
+      return;
+    }
+
+    if (!otp || typeof otp !== 'string' || otp.length !== 6) {
+      res.status(400).json({ message: 'A valid 6-digit OTP is required' });
+      return;
+    }
+
+    // Normalize phone number
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    if (!normalizedPhone) {
+      res.status(400).json({ message: 'Invalid phone number format' });
+      return;
+    }
+
+    // Find user by ID (from authenticated token) and phone number
+    const user = await User.findById(req.user.userId);
+    
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    // Verify phone number matches user's phone
+    const userPhoneNormalized = user.phone ? normalizePhoneNumber(user.phone) : null;
+    if (!userPhoneNormalized || userPhoneNormalized !== normalizedPhone) {
+      res.status(400).json({ message: 'Phone number does not match your account' });
+      return;
+    }
+
+    // Check if OTP exists
+    if (!user.otpCode) {
+      res.status(400).json({ message: 'No OTP found. Please request a new OTP.' });
+      return;
+    }
+
+    // Verify OTP
+    if (user.otpCode !== otp) {
+      res.status(400).json({ message: 'Invalid OTP' });
+      return;
+    }
+
+    // Check if OTP expired
+    if (user.otpExpires && new Date() > user.otpExpires) {
+      res.status(400).json({ message: 'OTP expired. Please request a new OTP.' });
+      return;
+    }
+
+    // OTP verified successfully - delete the user account
+    await User.findByIdAndDelete(user._id);
+
+    console.log(`✅ Account deleted successfully for user: ${user._id} (${normalizedPhone})`);
+
+    res.status(200).json({
+      message: 'Account deleted successfully',
+      success: true,
+    });
+  } catch (error: any) {
+    console.error('Error in deleteAccount:', error);
+    res.status(500).json({ message: error.message || 'Failed to delete account' });
+  }
+};

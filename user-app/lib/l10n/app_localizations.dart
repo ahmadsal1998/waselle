@@ -1282,6 +1282,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not available'**
   String get notAvailable;
+
+  /// Initializing status title
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing'**
+  String get initializing;
+
+  /// Initializing status subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Hang tight while we find couriers around you.'**
+  String get initializingSubtitle;
+
+  /// Location disabled error title
+  ///
+  /// In en, this message translates to:
+  /// **'Location Disabled'**
+  String get locationDisabled;
+
+  /// Location disabled error subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'We could not access your location. Please enable location services.'**
+  String get locationDisabledSubtitle;
+
+  /// Try again button text
+  ///
+  /// In en, this message translates to:
+  /// **'Try Again'**
+  String get tryAgain;
+
+  /// Location not found title
+  ///
+  /// In en, this message translates to:
+  /// **'Location Not Found'**
+  String get locationNotFound;
+
+  /// Location not found subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the button below to refresh your location and explore drivers nearby.'**
+  String get locationNotFoundSubtitle;
+
+  /// Get location button text
+  ///
+  /// In en, this message translates to:
+  /// **'Get Location'**
+  String get getLocation;
+
+  /// Unknown location text
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown location'**
+  String get unknownLocation;
+
+  /// Delete account button text
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccount;
+
+  /// Delete account confirmation dialog message
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your account?'**
+  String get confirmDeleteAccount;
+
+  /// Delete account warning message
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone. All your account data will be permanently deleted.'**
+  String get deleteAccountWarning;
+
+  /// Delete account OTP verification title
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Your Phone'**
+  String get deleteAccountOtpTitle;
+
+  /// Delete account OTP message
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a verification code to\n{phoneNumber}\n\nPlease enter the code to confirm account deletion.'**
+  String deleteAccountOtpMessage(String phoneNumber);
+
+  /// OTP sent success message
+  ///
+  /// In en, this message translates to:
+  /// **'OTP sent successfully'**
+  String get otpSentSuccessfully;
+
+  /// Resend OTP button text
+  ///
+  /// In en, this message translates to:
+  /// **'Resend OTP'**
+  String get resendOtp;
+
+  /// Resend OTP countdown message
+  ///
+  /// In en, this message translates to:
+  /// **'Resend OTP in {seconds}s'**
+  String resendOtpIn(int seconds);
+
+  /// Account deleted success message
+  ///
+  /// In en, this message translates to:
+  /// **'Account deleted successfully'**
+  String get accountDeletedSuccessfully;
+
+  /// Delete account error message
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete account'**
+  String get failedToDeleteAccount;
+
+  /// Failed to send OTP error message
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send OTP. Please try again.'**
+  String get failedToSendOtp;
+
+  /// Confirm button text
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

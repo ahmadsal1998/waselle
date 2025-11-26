@@ -615,4 +615,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notAvailable => 'Not available';
+
+  @override
+  String get initializing => 'Initializing';
+
+  @override
+  String get initializingSubtitle => 'Hang tight while we find couriers around you.';
+
+  @override
+  String get locationDisabled => 'Location Disabled';
+
+  @override
+  String get locationDisabledSubtitle => 'We could not access your location. Please enable location services.';
+
+  @override
+  String get tryAgain => 'Try Again';
+
+  @override
+  String get locationNotFound => 'Location Not Found';
+
+  @override
+  String get locationNotFoundSubtitle => 'Tap the button below to refresh your location and explore drivers nearby.';
+
+  @override
+  String get getLocation => 'Get Location';
+
+  @override
+  String get unknownLocation => 'Unknown location';
+
+  @override
+  String get deleteAccount => 'Delete Account';
+
+  @override
+  String get confirmDeleteAccount => 'Are you sure you want to delete your account?';
+
+  @override
+  String get deleteAccountWarning => 'This action cannot be undone. All your account data will be permanently deleted.';
+
+  @override
+  String get deleteAccountOtpTitle => 'Verify Your Phone';
+
+  @override
+  String deleteAccountOtpMessage(String phoneNumber) {
+    return 'We sent a verification code to\n$phoneNumber\n\nPlease enter the code to confirm account deletion.';
+  }
+
+  @override
+  String get otpSentSuccessfully => 'OTP sent successfully';
+
+  @override
+  String get resendOtp => 'Resend OTP';
+
+  @override
+  String resendOtpIn(int seconds) {
+    return 'Resend OTP in ${seconds}s';
+  }
+
+  @override
+  String get accountDeletedSuccessfully => 'Account deleted successfully';
+
+  @override
+  String get failedToDeleteAccount => 'Failed to delete account';
+
+  @override
+  String get failedToSendOtp => 'Failed to send OTP. Please try again.';
+
+  @override
+  String get confirm => 'Confirm';
 }

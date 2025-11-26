@@ -212,7 +212,8 @@ class _ProfileContentState extends State<_ProfileContent> {
 
     // Get user's phone number
     final user = authViewModel.user;
-    final phoneNumber = user?['phoneNumber'] as String?;
+    // Backend returns 'phone', but check both for compatibility
+    final phoneNumber = (user?['phone'] ?? user?['phoneNumber']) as String?;
     
     if (phoneNumber == null || phoneNumber.isEmpty) {
       if (context.mounted) {

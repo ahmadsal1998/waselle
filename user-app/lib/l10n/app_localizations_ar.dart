@@ -615,4 +615,71 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get notAvailable => 'غير متاح';
+
+  @override
+  String get initializing => 'جاري التهيئة';
+
+  @override
+  String get initializingSubtitle => 'جاري البحث عن السائقين القريبين منك';
+
+  @override
+  String get locationDisabled => 'الموقع معطل';
+
+  @override
+  String get locationDisabledSubtitle => 'تعذر الوصول إلى موقعك. يرجى تفعيل خدمات الموقع';
+
+  @override
+  String get tryAgain => 'إعادة المحاولة';
+
+  @override
+  String get locationNotFound => 'الموقع غير موجود';
+
+  @override
+  String get locationNotFoundSubtitle => 'اضغط على الزر أدناه لتحديث موقعك واستكشاف السائقين القريبين';
+
+  @override
+  String get getLocation => 'الحصول على الموقع';
+
+  @override
+  String get unknownLocation => 'موقع غير معروف';
+
+  @override
+  String get deleteAccount => 'حذف الحساب';
+
+  @override
+  String get confirmDeleteAccount => 'هل أنت متأكد من حذف حسابك؟';
+
+  @override
+  String get deleteAccountWarning => 'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بيانات حسابك بشكل دائم.';
+
+  @override
+  String get deleteAccountOtpTitle => 'التحقق من هاتفك';
+
+  @override
+  String deleteAccountOtpMessage(String phoneNumber) {
+    return 'أرسلنا رمز التحقق إلى\n$phoneNumber\n\nالرجاء إدخال الرمز لتأكيد حذف الحساب.';
+  }
+
+  @override
+  String get otpSentSuccessfully => 'تم إرسال رمز التحقق بنجاح';
+
+  @override
+  String get resendOtp => 'إعادة إرسال رمز التحقق';
+
+  @override
+  String resendOtpIn(int seconds) {
+    return 'إعادة إرسال رمز التحقق خلال $seconds ثانية';
+  }
+
+  @override
+  String get accountDeletedSuccessfully => 'تم حذف الحساب بنجاح';
+
+  @override
+  String get failedToDeleteAccount => 'فشل حذف الحساب';
+
+  @override
+  String get failedToSendOtp => 'فشل إرسال رمز التحقق. الرجاء المحاولة مرة أخرى.';
+
+  @override
+  String get confirm => 'تأكيد';
 }
