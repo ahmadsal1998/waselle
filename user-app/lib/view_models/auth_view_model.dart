@@ -228,6 +228,53 @@ class AuthViewModel with ChangeNotifier {
     notifyListeners();
   }
 
+  // Delete account with OTP verification
+  Future<bool> deleteAccount({
+    required String phoneNumber,
+    required String otp,
+  }) async {
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Normalize phone number before deletion
+      String? normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber);
+      if (normalizedPhone == null) {
+        _errorMessage = 'Invalid phone number format';
+        return false;
+      }
+
+      // Call backend API to delete account
+      final response = await ApiService.deleteAccount(
+        phoneNumber: normalizedPhone,
+        otp: otp,
+      );
+
+      if (response['message'] != null || response['success'] == true) {
+        // Clear all local data
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
+        
+        // Clear auth state
+        _isAuthenticated = false;
+        _user = null;
+        _errorMessage = null;
+        
+        // Disconnect socket
+        SocketService.disconnect();
+        
+        notifyListeners();
+        return true;
+      }
+      
+      _errorMessage = response['message'] ?? 'Failed to delete account. Please try again.';
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    }
+  }
+
   // Method to set authenticated state (used after OTP verification)
   Future<void> setAuthenticated({
     required String token,

@@ -412,9 +412,11 @@ class _LocationTextState extends State<_LocationText> {
   }
 
   Future<void> _loadLocationName() async {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (widget.location == null) {
       setState(() {
-        _displayText = 'Unknown location';
+        _displayText = l10n.unknownLocation;
         _isLoading = false;
       });
       return;
@@ -425,7 +427,7 @@ class _LocationTextState extends State<_LocationText> {
     
     if (latValue == null || lngValue == null) {
       setState(() {
-        _displayText = 'Unknown location';
+        _displayText = l10n.unknownLocation;
         _isLoading = false;
       });
       return;
@@ -440,7 +442,7 @@ class _LocationTextState extends State<_LocationText> {
 
     if (lat == null || lng == null) {
       setState(() {
-        _displayText = 'Unknown location';
+        _displayText = l10n.unknownLocation;
         _isLoading = false;
       });
       return;

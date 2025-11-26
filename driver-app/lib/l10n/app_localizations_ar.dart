@@ -430,4 +430,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get unableToOpenPrivacyPolicy => 'تعذر فتح سياسة الخصوصية. يرجى التحقق من اتصال الإنترنت.';
+
+  @override
+  String get termsOfService => 'شروط الخدمة';
+
+  @override
+  String get termsOfServiceTitle => 'شروط الخدمة';
+
+  @override
+  String get termsOfServiceUrl => 'https://www.wassle.ps/terms-of-service';
+
+  @override
+  String get unableToOpenTermsOfService => 'تعذر فتح شروط الخدمة. يرجى التحقق من اتصال الإنترنت.';
 }
