@@ -318,7 +318,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                 onTap: () async {
                   await authViewModel.logout();
                   SocketService.disconnect();
-                  if (!showAppBar) {
+                  if (!widget.showAppBar) {
                     // When embedded, ensure outer listeners (e.g. AuthWrapper) react to logout.
                     return;
                   }
