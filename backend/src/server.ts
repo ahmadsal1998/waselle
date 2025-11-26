@@ -17,6 +17,7 @@ import orderCategoryRoutes from './routes/orderCategoryRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import zegoRoutes from './routes/zegoRoutes';
+import privacyPolicyRoutes from './routes/privacyPolicyRoutes';
 import { initializeSocket } from './services/socketService';
 
 // Initialize Firebase Admin SDK
@@ -82,6 +83,7 @@ app.use('/api/order-categories', orderCategoryRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/zego', zegoRoutes);
+app.use('/api/privacy-policy', privacyPolicyRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

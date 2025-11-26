@@ -11,6 +11,7 @@ import {
   Menu,
   X,
   DollarSign,
+  Shield,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -29,6 +30,7 @@ const navItems: NavItem[] = [
   { path: '/dashboard/cities', label: 'Cities & Villages', icon: MapPin },
   { path: '/dashboard/order-categories', label: 'Order Categories', icon: FolderTree },
   { path: '/dashboard/map', label: 'Map View', icon: Map },
+  { path: '/dashboard/privacy-policy', label: 'Privacy Policy', icon: Shield },
   { path: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 

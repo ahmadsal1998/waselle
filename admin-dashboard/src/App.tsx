@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from '@/pages/Landing';
+import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Users from '@/pages/Users';
@@ -11,6 +12,7 @@ import Settings from '@/pages/Settings';
 import Cities from '@/pages/Cities';
 import OrderCategories from '@/pages/OrderCategories';
 import DriverBalance from '@/pages/DriverBalance';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import Layout from '@/components/layout/Layout';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { LanguageProvider } from '@/store/language/LanguageContext';
@@ -41,6 +43,7 @@ function App() {
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/login" element={<Login />} />
             <Route
               path="/dashboard"
@@ -60,6 +63,7 @@ function App() {
               <Route path="cities" element={<Cities />} />
               <Route path="order-categories" element={<OrderCategories />} />
               <Route path="driver-balance" element={<DriverBalance />} />
+              <Route path="privacy-policy" element={<PrivacyPolicy />} />
             </Route>
           </Routes>
         </Router>

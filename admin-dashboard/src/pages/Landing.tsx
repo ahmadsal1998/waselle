@@ -193,7 +193,7 @@ const Landing = () => {
   const iosAppUrl = 'https://apps.apple.com/app/your-app-id';
   const androidAppUrl = 'https://play.google.com/store/apps/details?id=your.app.id';
   const officialWebsiteUrl = 'https://www.yourwebsite.com';
-  const privacyPolicyUrl = 'https://www.yourwebsite.com/privacy-policy';
+  const privacyPolicyUrl = '/privacy-policy';
   const termsUrl = 'https://www.yourwebsite.com/terms';
 
   // Navigation items
@@ -425,7 +425,7 @@ const Landing = () => {
             <h2 
               className="text-center text-3xl sm:text-4xl md:text-5xl font-bold mb-4 px-2 mx-auto w-full"
               style={{
-                background: language === 'ar' 
+                backgroundImage: language === 'ar' 
                   ? 'linear-gradient(to left, #9333ea, #2563eb)' 
                   : 'linear-gradient(to right, #9333ea, #2563eb)',
                 WebkitBackgroundClip: 'text',
