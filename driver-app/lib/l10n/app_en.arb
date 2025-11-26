@@ -591,6 +591,22 @@
   "unableToOpenPrivacyPolicy": "Unable to open Privacy Policy. Please check your internet connection.",
   "@unableToOpenPrivacyPolicy": {
     "description": "Error message when Privacy Policy URL cannot be opened"
+  },
+  "termsOfService": "Terms of Service",
+  "@termsOfService": {
+    "description": "Terms of Service menu item"
+  },
+  "termsOfServiceTitle": "Terms of Service",
+  "@termsOfServiceTitle": {
+    "description": "Terms of Service screen title"
+  },
+  "termsOfServiceUrl": "https://www.wassle.ps/terms-of-service",
+  "@termsOfServiceUrl": {
+    "description": "Terms of Service URL"
+  },
+  "unableToOpenTermsOfService": "Unable to open Terms of Service. Please check your internet connection.",
+  "@unableToOpenTermsOfService": {
+    "description": "Error message when Terms of Service URL cannot be opened"
   }
 }
 

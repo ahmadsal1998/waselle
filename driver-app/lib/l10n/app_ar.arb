@@ -216,6 +216,10 @@
   "privacyPolicy": "سياسة الخصوصية",
   "privacyPolicyTitle": "سياسة الخصوصية",
   "privacyPolicyUrl": "https://www.wassle.ps/privacy-policy",
-  "unableToOpenPrivacyPolicy": "تعذر فتح سياسة الخصوصية. يرجى التحقق من اتصال الإنترنت."
+  "unableToOpenPrivacyPolicy": "تعذر فتح سياسة الخصوصية. يرجى التحقق من اتصال الإنترنت.",
+  "termsOfService": "شروط الخدمة",
+  "termsOfServiceTitle": "شروط الخدمة",
+  "termsOfServiceUrl": "https://www.wassle.ps/terms-of-service",
+  "unableToOpenTermsOfService": "تعذر فتح شروط الخدمة. يرجى التحقق من اتصال الإنترنت."
 }
 

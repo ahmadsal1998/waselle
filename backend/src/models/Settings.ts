@@ -24,6 +24,8 @@ export interface ISettings extends Document {
   otpMessageTemplate?: string; // Custom OTP SMS message template (supports ${otp} placeholder) - Default/English
   otpMessageTemplateAr?: string; // Arabic OTP SMS message template (supports ${otp} placeholder)
   otpMessageLanguage?: 'en' | 'ar'; // Default language for OTP messages ('en' or 'ar')
+  privacyPolicyUrl?: string; // Privacy Policy URL
+  termsOfServiceUrl?: string; // Terms of Service URL
   createdAt: Date;
   updatedAt: Date;
 }
@@ -143,6 +145,20 @@ const SettingsSchema: Schema = new Schema(
       default: 'en', // Default to English
       // Language preference for OTP messages
     },
+    privacyPolicyUrl: {
+      type: String,
+      required: false,
+      trim: true,
+      default: 'https://www.wassle.ps/privacy-policy',
+      // Privacy Policy URL - can be updated from admin dashboard
+    },
+    termsOfServiceUrl: {
+      type: String,
+      required: false,
+      trim: true,
+      default: 'https://www.wassle.ps/terms-of-service',
+      // Terms of Service URL - can be updated from admin dashboard
+    },
   },
   {
     timestamps: true,
@@ -169,6 +185,8 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
       otpMessageTemplate: 'Your OTP code is: ${otp}. This code will expire in 10 minutes.',
       otpMessageTemplateAr: 'رمز التحقق الخاص بك هو: ${otp}. هذا الرمز صالح لمدة 10 دقائق فقط.',
       otpMessageLanguage: 'en',
+      privacyPolicyUrl: 'https://www.wassle.ps/privacy-policy',
+      termsOfServiceUrl: 'https://www.wassle.ps/terms-of-service',
     });
     return settings;
   } else {
@@ -226,6 +244,14 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
     // Set default OTP message language if not set
     if (!settings.otpMessageLanguage) {
       settings.otpMessageLanguage = 'en';
+    }
+    // Set default privacy policy URL if not set
+    if (!settings.privacyPolicyUrl) {
+      settings.privacyPolicyUrl = 'https://www.wassle.ps/privacy-policy';
+    }
+    // Set default terms of service URL if not set
+    if (!settings.termsOfServiceUrl) {
+      settings.termsOfServiceUrl = 'https://www.wassle.ps/terms-of-service';
     }
     await settings.save();
   }

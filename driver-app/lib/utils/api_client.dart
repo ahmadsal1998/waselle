@@ -181,6 +181,30 @@ class ApiClient {
       }
     }
   }
+
+  /// Get legal URLs (Privacy Policy and Terms of Service)
+  static Future<Map<String, String>> getLegalUrls() async {
+    try {
+      final response = await get('/settings/legal-urls');
+      if (response is Map<String, dynamic>) {
+        return {
+          'privacyPolicyUrl': response['privacyPolicyUrl'] as String? ?? 'https://www.wassle.ps/privacy-policy',
+          'termsOfServiceUrl': response['termsOfServiceUrl'] as String? ?? 'https://www.wassle.ps/terms-of-service',
+        };
+      }
+      // Return default URLs if response format is unexpected
+      return {
+        'privacyPolicyUrl': 'https://www.wassle.ps/privacy-policy',
+        'termsOfServiceUrl': 'https://www.wassle.ps/terms-of-service',
+      };
+    } catch (e) {
+      // Return default URLs if API fails
+      return {
+        'privacyPolicyUrl': 'https://www.wassle.ps/privacy-policy',
+        'termsOfServiceUrl': 'https://www.wassle.ps/terms-of-service',
+      };
+    }
+  }
 }
 
 class ApiException implements Exception {

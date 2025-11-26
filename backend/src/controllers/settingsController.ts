@@ -44,6 +44,8 @@ export const updateSettings = async (
       otpMessageTemplate,
       otpMessageTemplateAr,
       otpMessageLanguage,
+      privacyPolicyUrl,
+      termsOfServiceUrl,
     } = req.body;
 
     // Validate internalOrderRadiusKm
@@ -304,6 +306,46 @@ export const updateSettings = async (
       settings.otpMessageLanguage = otpMessageLanguage;
     }
 
+    // Update privacy policy URL if provided
+    if (privacyPolicyUrl !== undefined) {
+      if (typeof privacyPolicyUrl !== 'string') {
+        res.status(400).json({
+          message: 'privacyPolicyUrl must be a string',
+        });
+        return;
+      }
+      // Validate URL format
+      try {
+        new URL(privacyPolicyUrl.trim());
+        settings.privacyPolicyUrl = privacyPolicyUrl.trim();
+      } catch {
+        res.status(400).json({
+          message: 'privacyPolicyUrl must be a valid URL',
+        });
+        return;
+      }
+    }
+
+    // Update terms of service URL if provided
+    if (termsOfServiceUrl !== undefined) {
+      if (typeof termsOfServiceUrl !== 'string') {
+        res.status(400).json({
+          message: 'termsOfServiceUrl must be a string',
+        });
+        return;
+      }
+      // Validate URL format
+      try {
+        new URL(termsOfServiceUrl.trim());
+        settings.termsOfServiceUrl = termsOfServiceUrl.trim();
+      } catch {
+        res.status(400).json({
+          message: 'termsOfServiceUrl must be a valid URL',
+        });
+        return;
+      }
+    }
+
     await settings.save();
 
     // If commission percentage or max allowed balance changed, check all drivers
@@ -356,6 +398,24 @@ export const getVehicleTypes = async (
   } catch (error: any) {
     res.status(500).json({
       message: error.message || 'Failed to get vehicle types',
+    });
+  }
+};
+
+// Public endpoint to get legal URLs (privacy policy and terms of service)
+export const getLegalUrls = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const settings = await Settings.getSettings();
+    res.status(200).json({
+      privacyPolicyUrl: settings.privacyPolicyUrl || 'https://www.wassle.ps/privacy-policy',
+      termsOfServiceUrl: settings.termsOfServiceUrl || 'https://www.wassle.ps/terms-of-service',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      message: error.message || 'Failed to get legal URLs',
     });
   }
 };

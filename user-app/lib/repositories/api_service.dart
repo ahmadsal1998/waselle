@@ -933,4 +933,34 @@ class ApiService {
     }
   }
 
+  /// Get legal URLs (Privacy Policy and Terms of Service)
+  static Future<Map<String, String>> getLegalUrls() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/settings/legal-urls'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = _parseResponse(response);
+        return {
+          'privacyPolicyUrl': data['privacyPolicyUrl'] as String? ?? 'https://www.wassle.ps/privacy-policy',
+          'termsOfServiceUrl': data['termsOfServiceUrl'] as String? ?? 'https://www.wassle.ps/terms-of-service',
+        };
+      } else {
+        // Return default URLs if API fails
+        return {
+          'privacyPolicyUrl': 'https://www.wassle.ps/privacy-policy',
+          'termsOfServiceUrl': 'https://www.wassle.ps/terms-of-service',
+        };
+      }
+    } catch (e) {
+      // Return default URLs if API fails
+      return {
+        'privacyPolicyUrl': 'https://www.wassle.ps/privacy-policy',
+        'termsOfServiceUrl': 'https://www.wassle.ps/terms-of-service',
+      };
+    }
+  }
+
 }

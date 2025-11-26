@@ -12,6 +12,7 @@ import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../services/socket_service.dart';
 import '../../services/cloudinary_service.dart';
+import '../../utils/api_client.dart';
 import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -24,6 +25,36 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   bool _isUploadingPicture = false;
+  String? _privacyPolicyUrl;
+  String? _termsOfServiceUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLegalUrls();
+  }
+
+  Future<void> _loadLegalUrls() async {
+    try {
+      final urls = await ApiClient.getLegalUrls();
+      if (mounted) {
+        setState(() {
+          _privacyPolicyUrl = urls['privacyPolicyUrl'];
+          _termsOfServiceUrl = urls['termsOfServiceUrl'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading legal URLs: $e');
+      // Fallback to default URLs from localization
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        setState(() {
+          _privacyPolicyUrl = l10n.privacyPolicyUrl;
+          _termsOfServiceUrl = l10n.termsOfServiceUrl ?? 'https://www.wassle.ps/terms-of-service';
+        });
+      }
+    }
+  }
 
   Future<void> _pickAndUploadImage() async {
     if (_isUploadingPicture) return;
@@ -157,7 +188,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _openPrivacyPolicy(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final url = Uri.parse(l10n.privacyPolicyUrl);
+    final urlString = _privacyPolicyUrl ?? l10n.privacyPolicyUrl;
+    final url = Uri.parse(urlString);
     
     try {
       if (await canLaunchUrl(url)) {
@@ -183,6 +215,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
       debugPrint('Error opening Privacy Policy URL: $e');
+    }
+  }
+
+  Future<void> _openTermsOfService(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final urlString = _termsOfServiceUrl ?? l10n.termsOfServiceUrl ?? 'https://www.wassle.ps/terms-of-service';
+    final url = Uri.parse(urlString);
+    
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.unableToOpenTermsOfService ?? 'Unable to open Terms of Service. Please check your internet connection.'),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
+        debugPrint('Error: Unable to launch Terms of Service URL: ${url.toString()}');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.unableToOpenTermsOfService ?? 'Unable to open Terms of Service. Please check your internet connection.'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+      debugPrint('Error opening Terms of Service URL: $e');
     }
   }
 
@@ -481,6 +545,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: l10n.privacyPolicy,
                     subtitle: 'View our Privacy Policy',
                     onTap: () => _openPrivacyPolicy(context),
+                  ),
+                  const SizedBox(height: 12),
+                  _ModernProfileTile(
+                    icon: Icons.description_outlined,
+                    title: l10n.termsOfService,
+                    subtitle: 'View our Terms of Service',
+                    onTap: () => _openTermsOfService(context),
                   ),
                   const SizedBox(height: 24),
                   if (isLoggedIn)

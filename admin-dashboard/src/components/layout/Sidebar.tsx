@@ -12,6 +12,7 @@ import {
   X,
   DollarSign,
   Shield,
+  FileText,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -31,6 +32,7 @@ const navItems: NavItem[] = [
   { path: '/dashboard/order-categories', label: 'Order Categories', icon: FolderTree },
   { path: '/dashboard/map', label: 'Map View', icon: Map },
   { path: '/dashboard/privacy-policy', label: 'Privacy Policy', icon: Shield },
+  { path: '/dashboard/terms-of-service', label: 'Terms of Service', icon: FileText },
   { path: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 

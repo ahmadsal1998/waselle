@@ -25,6 +25,8 @@ export interface Settings {
   otpMessageTemplate?: string;
   otpMessageTemplateAr?: string;
   otpMessageLanguage?: 'en' | 'ar';
+  privacyPolicyUrl?: string;
+  termsOfServiceUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 }

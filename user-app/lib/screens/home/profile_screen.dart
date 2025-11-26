@@ -6,6 +6,7 @@ import '../../view_models/auth_view_model.dart';
 import '../../view_models/locale_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../services/socket_service.dart';
+import '../../repositories/api_service.dart';
 import 'saved_addresses_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -32,14 +33,54 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-class _ProfileContent extends StatelessWidget {
+class _ProfileContent extends StatefulWidget {
   final bool showAppBar;
 
   const _ProfileContent({required this.showAppBar});
 
+  @override
+  State<_ProfileContent> createState() => _ProfileContentState();
+}
+
+class _ProfileContentState extends State<_ProfileContent> {
+  String? _privacyPolicyUrl;
+  String? _termsOfServiceUrl;
+  bool _isLoadingUrls = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLegalUrls();
+  }
+
+  Future<void> _loadLegalUrls() async {
+    try {
+      final urls = await ApiService.getLegalUrls();
+      if (mounted) {
+        setState(() {
+          _privacyPolicyUrl = urls['privacyPolicyUrl'];
+          _termsOfServiceUrl = urls['termsOfServiceUrl'];
+          _isLoadingUrls = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading legal URLs: $e');
+      // Fallback to default URLs from localization
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        setState(() {
+          _privacyPolicyUrl = l10n.privacyPolicyUrl;
+          _termsOfServiceUrl = l10n.termsOfServiceUrl;
+          _isLoadingUrls = false;
+        });
+      }
+    }
+  }
+
   Future<void> _openPrivacyPolicy(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final url = Uri.parse(l10n.privacyPolicyUrl);
+    final urlString = _privacyPolicyUrl ?? l10n.privacyPolicyUrl;
+    final url = Uri.parse(urlString);
     
     try {
       if (await canLaunchUrl(url)) {
@@ -65,6 +106,38 @@ class _ProfileContent extends StatelessWidget {
         );
       }
       debugPrint('Error opening Privacy Policy URL: $e');
+    }
+  }
+
+  Future<void> _openTermsOfService(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final urlString = _termsOfServiceUrl ?? l10n.termsOfServiceUrl;
+    final url = Uri.parse(urlString);
+    
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.unableToOpenTermsOfService),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        debugPrint('Error: Unable to launch Terms of Service URL: ${url.toString()}');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.unableToOpenTermsOfService),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      debugPrint('Error opening Terms of Service URL: $e');
     }
   }
 
@@ -221,6 +294,13 @@ class _ProfileContent extends StatelessWidget {
               title: Text(l10n.privacyPolicy),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _openPrivacyPolicy(context),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: Text(l10n.termsOfService),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _openTermsOfService(context),
             ),
             const Divider(),
             ListTile(

@@ -22,6 +22,8 @@ const Settings = () => {
     'رمز التحقق الخاص بك هو: ${otp}. هذا الرمز صالح لمدة 10 دقائق فقط.'
   );
   const [otpMessageLanguage, setOtpMessageLanguage] = useState<'en' | 'ar'>('en');
+  const [privacyPolicyUrl, setPrivacyPolicyUrl] = useState<string>('https://www.wassle.ps/privacy-policy');
+  const [termsOfServiceUrl, setTermsOfServiceUrl] = useState<string>('https://www.wassle.ps/terms-of-service');
   const [vehicleTypes, setVehicleTypes] = useState<{
     bike: { enabled: boolean; basePrice: number };
     car: { enabled: boolean; basePrice: number };
@@ -69,6 +71,12 @@ const Settings = () => {
       }
       if (data.otpMessageLanguage !== undefined) {
         setOtpMessageLanguage(data.otpMessageLanguage);
+      }
+      if (data.privacyPolicyUrl !== undefined) {
+        setPrivacyPolicyUrl(data.privacyPolicyUrl);
+      }
+      if (data.termsOfServiceUrl !== undefined) {
+        setTermsOfServiceUrl(data.termsOfServiceUrl);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load settings');
@@ -167,6 +175,8 @@ const Settings = () => {
         otpMessageTemplate: otpMessageTemplate.trim(),
         otpMessageTemplateAr: otpMessageTemplateAr.trim(),
         otpMessageLanguage: otpMessageLanguage,
+        privacyPolicyUrl: privacyPolicyUrl.trim(),
+        termsOfServiceUrl: termsOfServiceUrl.trim(),
       });
       setSettings(updated);
       setSuccess('Settings saved successfully!');
@@ -635,6 +645,61 @@ const Settings = () => {
                   {settings.otpMessageTemplateAr.replace(/\$\{otp\}/g, '123456')}
                 </p>
               </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="card p-6">
+        <h2 className="text-xl font-semibold mb-4 text-slate-900">Legal URLs</h2>
+        <div className="space-y-6">
+          <div>
+            <label
+              htmlFor="privacyPolicyUrl"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
+              Privacy Policy URL
+            </label>
+            <p className="text-sm text-slate-600 mb-3">
+              The URL where your Privacy Policy is hosted. This will be used in the User and Driver apps.
+            </p>
+            <input
+              type="url"
+              id="privacyPolicyUrl"
+              value={privacyPolicyUrl}
+              onChange={(e) => setPrivacyPolicyUrl(e.target.value)}
+              className="input w-full"
+              placeholder="https://www.wassle.ps/privacy-policy"
+            />
+            {settings && settings.privacyPolicyUrl && (
+              <p className="mt-2 text-xs text-slate-500">
+                Current URL: <a href={settings.privacyPolicyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{settings.privacyPolicyUrl}</a>
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="termsOfServiceUrl"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
+              Terms of Service URL
+            </label>
+            <p className="text-sm text-slate-600 mb-3">
+              The URL where your Terms of Service is hosted. This will be used in the User and Driver apps.
+            </p>
+            <input
+              type="url"
+              id="termsOfServiceUrl"
+              value={termsOfServiceUrl}
+              onChange={(e) => setTermsOfServiceUrl(e.target.value)}
+              className="input w-full"
+              placeholder="https://www.wassle.ps/terms-of-service"
+            />
+            {settings && settings.termsOfServiceUrl && (
+              <p className="mt-2 text-xs text-slate-500">
+                Current URL: <a href={settings.termsOfServiceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{settings.termsOfServiceUrl}</a>
+              </p>
             )}
           </div>
         </div>

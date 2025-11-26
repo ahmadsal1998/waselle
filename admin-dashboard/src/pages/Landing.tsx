@@ -213,8 +213,33 @@ const Landing = () => {
   const iosAppUrl = 'https://apps.apple.com/app/your-app-id';
   const androidAppUrl = 'https://play.google.com/store/apps/details?id=your.app.id';
   const officialWebsiteUrl = baseUrl;
-  const privacyPolicyUrl = `${baseUrl}/privacy-policy`;
-  const termsUrl = `${baseUrl}/terms`;
+  
+  // Legal URLs - will be fetched from backend
+  const [privacyPolicyUrl, setPrivacyPolicyUrl] = useState<string>(`${baseUrl}/privacy-policy`);
+  const [termsUrl, setTermsUrl] = useState<string>(`${baseUrl}/terms-of-service`);
+
+  // Fetch legal URLs from backend
+  useEffect(() => {
+    const fetchLegalUrls = async () => {
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${API_BASE_URL}/settings/legal-urls`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.privacyPolicyUrl) {
+            setPrivacyPolicyUrl(data.privacyPolicyUrl);
+          }
+          if (data.termsOfServiceUrl) {
+            setTermsUrl(data.termsOfServiceUrl);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fetch legal URLs from backend, using defaults:', error);
+        // Keep default URLs if fetch fails
+      }
+    };
+    fetchLegalUrls();
+  }, []);
 
   // Navigation items
   const navItems = [

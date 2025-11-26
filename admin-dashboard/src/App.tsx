@@ -13,6 +13,8 @@ import Cities from '@/pages/Cities';
 import OrderCategories from '@/pages/OrderCategories';
 import DriverBalance from '@/pages/DriverBalance';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import TermsOfService from '@/pages/TermsOfService';
+import TermsOfServicePage from '@/pages/TermsOfServicePage';
 import Layout from '@/components/layout/Layout';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { LanguageProvider } from '@/store/language/LanguageContext';
@@ -44,6 +46,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
             <Route path="/login" element={<Login />} />
             <Route
               path="/dashboard"
@@ -64,6 +67,7 @@ function App() {
               <Route path="order-categories" element={<OrderCategories />} />
               <Route path="driver-balance" element={<DriverBalance />} />
               <Route path="privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="terms-of-service" element={<TermsOfService />} />
             </Route>
           </Routes>
         </Router>
