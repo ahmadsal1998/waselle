@@ -50,7 +50,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final l10n = AppLocalizations.of(context)!;
         setState(() {
           _privacyPolicyUrl = l10n.privacyPolicyUrl;
-          _termsOfServiceUrl = l10n.termsOfServiceUrl ?? 'https://www.wassle.ps/terms-of-service';
+          _termsOfServiceUrl = l10n.termsOfServiceUrl;
         });
       }
     }
@@ -220,7 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _openTermsOfService(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final urlString = _termsOfServiceUrl ?? l10n.termsOfServiceUrl ?? 'https://www.wassle.ps/terms-of-service';
+    final urlString = _termsOfServiceUrl ?? l10n.termsOfServiceUrl;
     final url = Uri.parse(urlString);
     
     try {
@@ -230,7 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(l10n.unableToOpenTermsOfService ?? 'Unable to open Terms of Service. Please check your internet connection.'),
+              content: Text(l10n.unableToOpenTermsOfService),
               backgroundColor: AppTheme.errorColor,
             ),
           );
@@ -241,7 +241,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.unableToOpenTermsOfService ?? 'Unable to open Terms of Service. Please check your internet connection.'),
+            content: Text(l10n.unableToOpenTermsOfService),
             backgroundColor: AppTheme.errorColor,
           ),
         );
