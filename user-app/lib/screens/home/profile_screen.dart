@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:delivery_user_app/l10n/app_localizations.dart';
 import '../../view_models/auth_view_model.dart';
 import '../../view_models/locale_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../services/socket_service.dart';
 import 'saved_addresses_screen.dart';
-import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   final bool showAppBar;
@@ -36,6 +36,37 @@ class _ProfileContent extends StatelessWidget {
   final bool showAppBar;
 
   const _ProfileContent({required this.showAppBar});
+
+  Future<void> _openPrivacyPolicy(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final url = Uri.parse(l10n.privacyPolicyUrl);
+    
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.unableToOpenPrivacyPolicy),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        debugPrint('Error: Unable to launch Privacy Policy URL: ${url.toString()}');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.unableToOpenPrivacyPolicy),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      debugPrint('Error opening Privacy Policy URL: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -189,14 +220,7 @@ class _ProfileContent extends StatelessWidget {
               leading: const Icon(Icons.privacy_tip_outlined),
               title: Text(l10n.privacyPolicy),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PrivacyPolicyScreen(),
-                  ),
-                );
-              },
+              onTap: () => _openPrivacyPolicy(context),
             ),
             const Divider(),
             ListTile(

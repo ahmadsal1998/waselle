@@ -581,7 +581,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get privacyPolicyTitle => 'Privacy Policy';
 
   @override
-  String get privacyPolicyUrl => 'https://www.yourcompany.com/privacy-policy';
+  String get privacyPolicyUrl => 'https://www.wassle.ps/privacy-policy';
 
   @override
   String get unableToOpenPrivacyPolicy => 'Unable to open Privacy Policy. Please check your internet connection.';

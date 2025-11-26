@@ -584,7 +584,7 @@
   "@privacyPolicyTitle": {
     "description": "Privacy Policy screen title"
   },
-  "privacyPolicyUrl": "https://www.yourcompany.com/privacy-policy",
+  "privacyPolicyUrl": "https://www.wassle.ps/privacy-policy",
   "@privacyPolicyUrl": {
     "description": "Privacy Policy URL"
   },

@@ -426,7 +426,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get privacyPolicyTitle => 'سياسة الخصوصية';
 
   @override
-  String get privacyPolicyUrl => 'https://www.yourcompany.com/privacy-policy';
+  String get privacyPolicyUrl => 'https://www.wassle.ps/privacy-policy';
 
   @override
   String get unableToOpenPrivacyPolicy => 'تعذر فتح سياسة الخصوصية. يرجى التحقق من اتصال الإنترنت.';

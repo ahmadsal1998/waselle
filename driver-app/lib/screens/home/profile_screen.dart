@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../view_models/auth_view_model.dart';
@@ -12,7 +13,6 @@ import '../../view_models/order_view_model.dart';
 import '../../services/socket_service.dart';
 import '../../services/cloudinary_service.dart';
 import 'settings_screen.dart';
-import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -152,6 +152,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
           duration: const Duration(seconds: 4),
         ),
       );
+    }
+  }
+
+  Future<void> _openPrivacyPolicy(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final url = Uri.parse(l10n.privacyPolicyUrl);
+    
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.unableToOpenPrivacyPolicy),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
+        debugPrint('Error: Unable to launch Privacy Policy URL: ${url.toString()}');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.unableToOpenPrivacyPolicy),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+      debugPrint('Error opening Privacy Policy URL: $e');
     }
   }
 
@@ -449,14 +480,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.privacy_tip_outlined,
                     title: l10n.privacyPolicy,
                     subtitle: 'View our Privacy Policy',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PrivacyPolicyScreen(),
-                        ),
-                      );
-                    },
+                    onTap: () => _openPrivacyPolicy(context),
                   ),
                   const SizedBox(height: 24),
                   if (isLoggedIn)

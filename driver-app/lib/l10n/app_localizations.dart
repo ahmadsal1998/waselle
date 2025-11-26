@@ -884,7 +884,7 @@ abstract class AppLocalizations {
   /// Privacy Policy URL
   ///
   /// In en, this message translates to:
-  /// **'https://www.yourcompany.com/privacy-policy'**
+  /// **'https://www.wassle.ps/privacy-policy'**
   String get privacyPolicyUrl;
 
   /// Error message when Privacy Policy URL cannot be opened
