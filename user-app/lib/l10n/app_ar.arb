@@ -43,6 +43,7 @@
   "noUserData": "لا توجد بيانات المستخدم",
   "unknown": "غير معروف",
   "mapStyle": "نمط الخريطة",
+  "selectMapStyle": "اختر نمط الخريطة",
   "mapStyleValue": "نمط الخريطة: {style}",
   "@mapStyleValue": {
     "placeholders": {
@@ -241,6 +242,11 @@
   "termsOfService": "شروط الخدمة",
   "termsOfServiceTitle": "شروط الخدمة",
   "termsOfServiceUrl": "https://www.wassle.ps/terms-of-service",
-  "unableToOpenTermsOfService": "تعذر فتح شروط الخدمة. يرجى التحقق من اتصال الإنترنت."
+  "unableToOpenTermsOfService": "تعذر فتح شروط الخدمة. يرجى التحقق من اتصال الإنترنت.",
+  "manageSavedAddresses": "إدارة عناوينك المحفوظة",
+  "readPrivacyPolicy": "اقرأ سياسة الخصوصية الخاصة بنا",
+  "readTermsOfService": "اقرأ شروط الخدمة الخاصة بنا",
+  "legal": "قانوني",
+  "notAvailable": "غير متاح"
 }
 

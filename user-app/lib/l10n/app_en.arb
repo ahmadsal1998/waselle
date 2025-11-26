@@ -149,6 +149,10 @@
   "@mapStyle": {
     "description": "Map style section title"
   },
+  "selectMapStyle": "Select Map Style",
+  "@selectMapStyle": {
+    "description": "Map style selection dialog title"
+  },
   "mapStyleValue": "Map style: {style}",
   "@mapStyleValue": {
     "description": "Map style display text",
@@ -806,6 +810,26 @@
   "unableToOpenTermsOfService": "Unable to open Terms of Service. Please check your internet connection.",
   "@unableToOpenTermsOfService": {
     "description": "Error message when Terms of Service URL cannot be opened"
+  },
+  "manageSavedAddresses": "Manage your saved addresses",
+  "@manageSavedAddresses": {
+    "description": "Subtitle for saved addresses tile"
+  },
+  "readPrivacyPolicy": "Read our privacy policy",
+  "@readPrivacyPolicy": {
+    "description": "Subtitle for privacy policy tile"
+  },
+  "readTermsOfService": "Read our terms of service",
+  "@readTermsOfService": {
+    "description": "Subtitle for terms of service tile"
+  },
+  "legal": "Legal",
+  "@legal": {
+    "description": "Legal section title"
+  },
+  "notAvailable": "Not available",
+  "@notAvailable": {
+    "description": "Not available text for missing user data"
   }
 }
 

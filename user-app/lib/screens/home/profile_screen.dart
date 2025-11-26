@@ -159,8 +159,8 @@ class _ProfileContentState extends State<_ProfileContent> {
         // Create default placeholder values when user is not logged in
         final displayUser = user ?? {
           'name': l10n.unknown,
-          'email': 'Not available',
-          'phone': 'Not available',
+          'email': l10n.notAvailable,
+          'phone': l10n.notAvailable,
         };
 
         return Container(
@@ -171,7 +171,7 @@ class _ProfileContentState extends State<_ProfileContent> {
               // Profile Header Section
               _ProfileHeader(
                 userName: displayUser['name'] ?? l10n.unknown,
-                userEmail: displayUser['email'] ?? 'Not available',
+                userEmail: displayUser['email'] ?? l10n.notAvailable,
                 isLoggedIn: isLoggedIn,
               ),
               
@@ -190,7 +190,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                         icon: Icons.location_on_rounded,
                         iconColor: AppTheme.secondaryColor,
                         title: title,
-                        subtitle: 'Manage your saved addresses',
+                        subtitle: l10n.manageSavedAddresses,
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -244,13 +244,13 @@ class _ProfileContentState extends State<_ProfileContent> {
               
               // Legal Section
               _SectionCard(
-                title: 'Legal',
+                title: l10n.legal,
                 children: [
                   _ModernProfileTile(
                     icon: Icons.privacy_tip_rounded,
                     iconColor: AppTheme.textSecondary,
                     title: l10n.privacyPolicy,
-                    subtitle: 'Read our privacy policy',
+                    subtitle: l10n.readPrivacyPolicy,
                     onTap: () => _openPrivacyPolicy(context),
                   ),
                   const SizedBox(height: 8),
@@ -258,7 +258,7 @@ class _ProfileContentState extends State<_ProfileContent> {
                     icon: Icons.description_rounded,
                     iconColor: AppTheme.textSecondary,
                     title: l10n.termsOfService,
-                    subtitle: 'Read our terms of service',
+                    subtitle: l10n.readTermsOfService,
                     onTap: () => _openTermsOfService(context),
                   ),
                 ],
@@ -346,6 +346,7 @@ class _ProfileContentState extends State<_ProfileContent> {
     BuildContext context,
     MapStyleViewModel mapStyleViewModel,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -369,7 +370,7 @@ class _ProfileContentState extends State<_ProfileContent> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Text(
-                  'Select Map Style',
+                  l10n.selectMapStyle,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -470,14 +471,21 @@ class _ProfileHeader extends StatelessWidget {
           
           const SizedBox(height: 8),
           
-          // User Email
-          Text(
-            userEmail,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withOpacity(0.9),
-              fontStyle: isLoggedIn ? FontStyle.normal : FontStyle.italic,
-            ),
-            textAlign: TextAlign.center,
+          // User Email - Only show if logged in or if email is not the "not available" placeholder
+          Builder(
+            builder: (context) {
+              final l10n = AppLocalizations.of(context)!;
+              final shouldShowEmail = isLoggedIn || (userEmail != l10n.notAvailable && userEmail.isNotEmpty);
+              if (!shouldShowEmail) return const SizedBox.shrink();
+              return Text(
+                userEmail,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white.withOpacity(0.9),
+                  fontStyle: isLoggedIn ? FontStyle.normal : FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              );
+            },
           ),
         ],
       ),
