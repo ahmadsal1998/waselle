@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../view_models/map_style_view_model.dart';
+import 'privacy_policy_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -34,7 +35,7 @@ class SettingsScreen extends StatelessWidget {
                 (style) => RadioListTile<String>(
                   value: style.id,
                   groupValue: selectedId,
-                  activeColor: Colors.green,
+                  activeColor: Theme.of(context).colorScheme.primary,
                   title: Text(style.name),
                   subtitle: style.attribution != null
                       ? Text(
@@ -48,6 +49,21 @@ class SettingsScreen extends StatelessWidget {
                     }
                   },
                 ),
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined),
+                title: Text(l10n.privacyPolicy),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacyPolicyScreen(),
+                    ),
+                  );
+                },
               ),
             ],
           );

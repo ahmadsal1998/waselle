@@ -9,7 +9,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appTitle => 'تطبيق سائق التوصيل';
+  String get appTitle => 'Wassle Driver';
 
   @override
   String get driverLogin => 'تسجيل دخول السائق';
@@ -418,4 +418,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get viewLess => 'عرض أقل';
+
+  @override
+  String get privacyPolicy => 'سياسة الخصوصية';
+
+  @override
+  String get privacyPolicyTitle => 'سياسة الخصوصية';
+
+  @override
+  String get privacyPolicyUrl => 'https://www.yourcompany.com/privacy-policy';
+
+  @override
+  String get unableToOpenPrivacyPolicy => 'تعذر فتح سياسة الخصوصية. يرجى التحقق من اتصال الإنترنت.';
 }

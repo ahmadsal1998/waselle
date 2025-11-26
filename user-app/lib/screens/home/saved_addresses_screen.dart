@@ -34,22 +34,23 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
   }
 
   Future<void> _deleteAddress(SavedAddress address) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Address'),
-        content: Text('Are you sure you want to delete "${address.label}"?'),
+        title: Text(l10n.deleteAddress),
+        content: Text(l10n.confirmDeleteAddress(address.label)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -59,12 +60,12 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
       final success = await SavedAddressService.deleteAddress(address.id);
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Address deleted successfully')),
+          SnackBar(content: Text(l10n.addressDeletedSuccessfully)),
         );
         _loadAddresses();
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete address')),
+          SnackBar(content: Text(l10n.failedToDeleteAddress)),
         );
       }
     }
@@ -89,14 +90,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Consumer<LocaleViewModel>(
-          builder: (context, localeViewModel, _) {
-            final title = localeViewModel.isArabic
-                ? 'إضافة عناوين'
-                : 'Saved Addresses';
-            return Text(title);
-          },
-        ),
+        title: Text(l10n.savedAddresses),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -111,7 +105,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                 _loadAddresses();
               }
             },
-            tooltip: 'Add Address',
+            tooltip: l10n.addAddress,
           ),
         ],
       ),
@@ -126,7 +120,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                     itemCount: _addresses.length,
                     itemBuilder: (context, index) {
                       final address = _addresses[index];
-                      return _buildAddressCard(context, address, theme);
+                      return _buildAddressCard(context, address, theme, l10n);
                     },
                   ),
                 ),
@@ -151,14 +145,14 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No Saved Addresses',
+              l10n.noSavedAddresses,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Add addresses to quickly select them when placing orders',
+              l10n.addAddressesToQuicklySelect,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -178,7 +172,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                 }
               },
               icon: const Icon(Icons.add),
-              label: const Text('Add Address'),
+              label: Text(l10n.addAddress),
             ),
           ],
         ),
@@ -190,6 +184,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
     BuildContext context,
     SavedAddress address,
     ThemeData theme,
+    AppLocalizations l10n,
   ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -232,12 +227,12 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
             IconButton(
               icon: const Icon(Icons.edit),
               onPressed: () => _editAddress(address),
-              tooltip: 'Edit',
+              tooltip: l10n.edit,
             ),
             IconButton(
               icon: const Icon(Icons.delete),
               onPressed: () => _deleteAddress(address),
-              tooltip: 'Delete',
+              tooltip: l10n.delete,
               color: theme.colorScheme.error,
             ),
           ],
@@ -302,6 +297,7 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
       return;
     }
 
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isSaving = true);
 
     try {
@@ -317,8 +313,8 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
         if (position == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Please enable location services'),
+              SnackBar(
+                content: Text(l10n.pleaseEnableLocationServices),
               ),
             );
           }
@@ -336,8 +332,8 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
         if (position == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Please enable location services to save address'),
+              SnackBar(
+                content: Text(l10n.pleaseEnableLocationToSave),
               ),
             );
           }
@@ -370,7 +366,7 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
         Navigator.of(context).pop(address);
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save address')),
+          SnackBar(content: Text(l10n.failedToSaveAddress)),
         );
       }
     } catch (e) {
@@ -395,7 +391,7 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.address == null ? 'Add Address' : 'Edit Address'),
+        title: Text(widget.address == null ? l10n.addAddress : l10n.editAddress),
       ),
       body: Form(
         key: _formKey,
@@ -404,14 +400,14 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
           children: [
             TextFormField(
               controller: _labelController,
-              decoration: const InputDecoration(
-                labelText: 'Label (e.g., Home, Work)',
-                prefixIcon: Icon(Icons.label_outline),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.addressLabel,
+                prefixIcon: const Icon(Icons.label_outline),
+                border: const OutlineInputBorder(),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a label';
+                  return l10n.pleaseEnterLabel;
                 }
                 return null;
               },
@@ -420,9 +416,9 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
             Consumer<LocationViewModel>(
               builder: (context, location, _) {
                 return SwitchListTile(
-                  title: const Text('Use Current Location'),
+                  title: Text(l10n.useCurrentLocation),
                   subtitle: Text(
-                    location.currentAddress ?? 'Getting location...',
+                    location.currentAddress ?? l10n.gettingLocation,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -437,10 +433,10 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _selectedCityId,
-                decoration: const InputDecoration(
-                  labelText: 'City',
-                  prefixIcon: Icon(Icons.location_city),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.city,
+                  prefixIcon: const Icon(Icons.location_city),
+                  border: const OutlineInputBorder(),
                 ),
                 items: regionProvider.activeCities.map((city) {
                   return DropdownMenuItem<String>(
@@ -462,10 +458,10 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: _selectedVillageId,
-                  decoration: const InputDecoration(
-                    labelText: 'Village/Area',
-                    prefixIcon: Icon(Icons.home_work),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.villageArea,
+                    prefixIcon: const Icon(Icons.home_work),
+                    border: const OutlineInputBorder(),
                   ),
                   items: regionProvider
                       .activeVillagesForCity(_selectedCityId!)
@@ -484,11 +480,11 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _streetDetailsController,
-              decoration: const InputDecoration(
-                labelText: 'Street Address Details',
-                hintText: 'Street, Building, Floor, Apartment',
-                prefixIcon: Icon(Icons.location_on_outlined),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.streetAddressDetails,
+                hintText: l10n.streetBuildingFloorApartment,
+                prefixIcon: const Icon(Icons.location_on_outlined),
+                border: const OutlineInputBorder(),
               ),
               maxLines: 2,
             ),
@@ -504,7 +500,7 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(widget.address == null ? 'Save Address' : 'Update Address'),
+                  : Text(widget.address == null ? l10n.saveAddress : l10n.updateAddress),
             ),
           ],
         ),

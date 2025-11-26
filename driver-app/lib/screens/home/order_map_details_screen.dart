@@ -77,7 +77,7 @@ class OrderMapDetailsScreen extends StatelessWidget {
                     final subdomains = mapStyleViewModel.getSubdomains();
                     return TileLayer(
                       urlTemplate: mapStyleViewModel.getUrlTemplate(),
-                      userAgentPackageName: 'com.delivery.driverapp',
+                      userAgentPackageName: 'com.wassle.driverapp',
                       maxZoom: mapStyleViewModel.getMaxZoom().toDouble(),
                       subdomains: subdomains ?? const ['a', 'b', 'c'],
                       retinaMode: mapStyleViewModel.useRetinaTiles()
@@ -154,7 +154,7 @@ class OrderMapDetailsScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.green,
+                              color: theme.colorScheme.primary,
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: Colors.white,
@@ -171,7 +171,7 @@ class OrderMapDetailsScreen extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.green,
+                              color: theme.colorScheme.primary,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Text(
@@ -256,7 +256,11 @@ class OrderMapDetailsScreen extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.flag, color: Colors.green, size: 24),
+                    Icon(
+                      Icons.flag,
+                      color: theme.colorScheme.primary,
+                      size: 24,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

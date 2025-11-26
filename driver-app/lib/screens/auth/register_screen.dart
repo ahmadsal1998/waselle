@@ -57,7 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Registration successful! Please login.'),
-          backgroundColor: Colors.green,
+          backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
       Navigator.of(context).pushReplacement(
@@ -182,7 +182,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ResponsiveButton.elevated(
                   context: context,
                   onPressed: _isLoading ? null : _handleRegister,
-                  backgroundColor: Colors.green,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   child: _isLoading
                       ? const SizedBox(

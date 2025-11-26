@@ -342,7 +342,7 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
                     children: [
                       TileLayer(
                         urlTemplate: widget.mapStyleProvider.getUrlTemplate(),
-                        userAgentPackageName: 'com.delivery.userapp',
+                        userAgentPackageName: 'com.wassle.userapp',
                         maxZoom: widget.mapStyleProvider.getMaxZoom().toDouble(),
                         subdomains: widget.mapStyleProvider.getSubdomains() ??
                             const ['a', 'b', 'c'],

@@ -1,4 +1,4 @@
-package com.example.delivery_driver_app
+package com.wassle.driverapp
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

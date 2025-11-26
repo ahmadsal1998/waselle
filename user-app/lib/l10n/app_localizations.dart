@@ -98,7 +98,7 @@ abstract class AppLocalizations {
   /// The title of the application
   ///
   /// In en, this message translates to:
-  /// **'Delivery User App'**
+  /// **'Wassle'**
   String get appTitle;
 
   /// Login screen welcome message
@@ -1066,6 +1066,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Driver Information'**
   String get driverInformation;
+
+  /// Saved addresses screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Addresses'**
+  String get savedAddresses;
+
+  /// Add address button text
+  ///
+  /// In en, this message translates to:
+  /// **'Add Address'**
+  String get addAddress;
+
+  /// Edit address screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Address'**
+  String get editAddress;
+
+  /// Address label field placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Label (e.g., Home, Work)'**
+  String get addressLabel;
+
+  /// Address label validation error
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a label'**
+  String get pleaseEnterLabel;
+
+  /// Use current location toggle label
+  ///
+  /// In en, this message translates to:
+  /// **'Use Current Location'**
+  String get useCurrentLocation;
+
+  /// Getting location status message
+  ///
+  /// In en, this message translates to:
+  /// **'Getting location...'**
+  String get gettingLocation;
+
+  /// Village/Area field label
+  ///
+  /// In en, this message translates to:
+  /// **'Village/Area'**
+  String get villageArea;
+
+  /// Save address button text
+  ///
+  /// In en, this message translates to:
+  /// **'Save Address'**
+  String get saveAddress;
+
+  /// Update address button text
+  ///
+  /// In en, this message translates to:
+  /// **'Update Address'**
+  String get updateAddress;
+
+  /// Location services error message
+  ///
+  /// In en, this message translates to:
+  /// **'Please enable location services'**
+  String get pleaseEnableLocationServices;
+
+  /// Location services error for saving address
+  ///
+  /// In en, this message translates to:
+  /// **'Please enable location services to save address'**
+  String get pleaseEnableLocationToSave;
+
+  /// Save address error message
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save address'**
+  String get failedToSaveAddress;
+
+  /// Delete address dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Address'**
+  String get deleteAddress;
+
+  /// Delete address confirmation message
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{label}\"?'**
+  String confirmDeleteAddress(String label);
+
+  /// Cancel button text
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// Delete button text
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// Address deleted success message
+  ///
+  /// In en, this message translates to:
+  /// **'Address deleted successfully'**
+  String get addressDeletedSuccessfully;
+
+  /// Delete address error message
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete address'**
+  String get failedToDeleteAddress;
+
+  /// Empty state title for saved addresses
+  ///
+  /// In en, this message translates to:
+  /// **'No Saved Addresses'**
+  String get noSavedAddresses;
+
+  /// Empty state description for saved addresses
+  ///
+  /// In en, this message translates to:
+  /// **'Add addresses to quickly select them when placing orders'**
+  String get addAddressesToQuicklySelect;
+
+  /// Edit button tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// Privacy Policy menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicy;
+
+  /// Privacy Policy screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicyTitle;
+
+  /// Privacy Policy URL
+  ///
+  /// In en, this message translates to:
+  /// **'https://www.yourcompany.com/privacy-policy'**
+  String get privacyPolicyUrl;
+
+  /// Error message when Privacy Policy URL cannot be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to open Privacy Policy. Please check your internet connection.'**
+  String get unableToOpenPrivacyPolicy;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

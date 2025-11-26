@@ -570,7 +570,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                               Icon(
                                 Icons.flag_rounded,
                                 size: 14,
-                                color: Colors.green[600],
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 4),
                               Text(

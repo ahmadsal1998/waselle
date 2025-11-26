@@ -455,7 +455,7 @@ class _MapTileLayer extends StatelessWidget {
         final subdomains = mapStyleProvider.getSubdomains();
         return TileLayer(
           urlTemplate: mapStyleProvider.getUrlTemplate(),
-          userAgentPackageName: 'com.delivery.userapp',
+          userAgentPackageName: 'com.wassle.userapp',
           maxZoom: mapStyleProvider.getMaxZoom().toDouble(),
           subdomains: subdomains ?? const ['a', 'b', 'c'],
           retinaMode: mapStyleProvider.useRetinaTiles()

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Landing from '@/pages/Landing';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Users from '@/pages/Users';
@@ -12,6 +13,7 @@ import OrderCategories from '@/pages/OrderCategories';
 import DriverBalance from '@/pages/DriverBalance';
 import Layout from '@/components/layout/Layout';
 import { AuthProvider, useAuth } from '@/store/auth';
+import { LanguageProvider } from '@/store/language/LanguageContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -34,32 +36,35 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="users" element={<Users />} />
-            <Route path="drivers" element={<Drivers />} />
-            <Route path="orders" element={<Orders />} />
-            <Route path="orders/:orderId" element={<OrderDetails />} />
-            <Route path="map" element={<MapView />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="cities" element={<Cities />} />
-            <Route path="order-categories" element={<OrderCategories />} />
-            <Route path="driver-balance" element={<DriverBalance />} />
-          </Route>
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="users" element={<Users />} />
+              <Route path="drivers" element={<Drivers />} />
+              <Route path="orders" element={<Orders />} />
+              <Route path="orders/:orderId" element={<OrderDetails />} />
+              <Route path="map" element={<MapView />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="cities" element={<Cities />} />
+              <Route path="order-categories" element={<OrderCategories />} />
+              <Route path="driver-balance" element={<DriverBalance />} />
+            </Route>
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 

@@ -85,7 +85,11 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 60),
-                const Icon(Icons.local_shipping, size: 80, color: Colors.green),
+                Icon(
+                  Icons.local_shipping,
+                  size: 80,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(height: 24),
                 Text(
                   l10n.driverLogin,
@@ -137,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ResponsiveButton.elevated(
                   context: context,
                   onPressed: _isLoading ? null : _handleLogin,
-                  backgroundColor: Colors.green,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   child: _isLoading
                       ? const SizedBox(

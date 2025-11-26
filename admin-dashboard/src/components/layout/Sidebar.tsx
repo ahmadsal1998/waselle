@@ -21,15 +21,15 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/users', label: 'Users', icon: Users },
-  { path: '/drivers', label: 'Drivers', icon: Truck },
-  { path: '/driver-balance', label: 'Driver Balance', icon: DollarSign },
-  { path: '/orders', label: 'Orders', icon: Package },
-  { path: '/cities', label: 'Cities & Villages', icon: MapPin },
-  { path: '/order-categories', label: 'Order Categories', icon: FolderTree },
-  { path: '/map', label: 'Map View', icon: Map },
-  { path: '/settings', label: 'Settings', icon: Settings },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/dashboard/users', label: 'Users', icon: Users },
+  { path: '/dashboard/drivers', label: 'Drivers', icon: Truck },
+  { path: '/dashboard/driver-balance', label: 'Driver Balance', icon: DollarSign },
+  { path: '/dashboard/orders', label: 'Orders', icon: Package },
+  { path: '/dashboard/cities', label: 'Cities & Villages', icon: MapPin },
+  { path: '/dashboard/order-categories', label: 'Order Categories', icon: FolderTree },
+  { path: '/dashboard/map', label: 'Map View', icon: Map },
+  { path: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
 interface SidebarProps {
@@ -67,8 +67,8 @@ const Sidebar = ({ isOpen, onToggle, isMobile, isCollapsed: externalCollapsed, o
   }, [isMobile]);
 
   const isActive = (path: string) => {
-    if (path === '/') {
-      return location.pathname === '/';
+    if (path === '/dashboard') {
+      return location.pathname === '/dashboard';
     }
     return location.pathname.startsWith(path);
   };

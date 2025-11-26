@@ -1,6 +1,6 @@
 {
-    "name": "delivery_driver_app",
-    "short_name": "delivery_driver_app",
+    "name": "Wassle Driver",
+    "short_name": "Wassle Driver",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

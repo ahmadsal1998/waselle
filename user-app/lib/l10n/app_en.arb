@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Delivery User App",
+  "appTitle": "Wassle",
   "@appTitle": {
     "description": "The title of the application"
   },
@@ -681,6 +681,115 @@
   "driverInformation": "Driver Information",
   "@driverInformation": {
     "description": "Driver information section title"
+  },
+  "savedAddresses": "Saved Addresses",
+  "@savedAddresses": {
+    "description": "Saved addresses screen title"
+  },
+  "addAddress": "Add Address",
+  "@addAddress": {
+    "description": "Add address button text"
+  },
+  "editAddress": "Edit Address",
+  "@editAddress": {
+    "description": "Edit address screen title"
+  },
+  "addressLabel": "Label (e.g., Home, Work)",
+  "@addressLabel": {
+    "description": "Address label field placeholder"
+  },
+  "pleaseEnterLabel": "Please enter a label",
+  "@pleaseEnterLabel": {
+    "description": "Address label validation error"
+  },
+  "useCurrentLocation": "Use Current Location",
+  "@useCurrentLocation": {
+    "description": "Use current location toggle label"
+  },
+  "gettingLocation": "Getting location...",
+  "@gettingLocation": {
+    "description": "Getting location status message"
+  },
+  "villageArea": "Village/Area",
+  "@villageArea": {
+    "description": "Village/Area field label"
+  },
+  "saveAddress": "Save Address",
+  "@saveAddress": {
+    "description": "Save address button text"
+  },
+  "updateAddress": "Update Address",
+  "@updateAddress": {
+    "description": "Update address button text"
+  },
+  "pleaseEnableLocationServices": "Please enable location services",
+  "@pleaseEnableLocationServices": {
+    "description": "Location services error message"
+  },
+  "pleaseEnableLocationToSave": "Please enable location services to save address",
+  "@pleaseEnableLocationToSave": {
+    "description": "Location services error for saving address"
+  },
+  "failedToSaveAddress": "Failed to save address",
+  "@failedToSaveAddress": {
+    "description": "Save address error message"
+  },
+  "deleteAddress": "Delete Address",
+  "@deleteAddress": {
+    "description": "Delete address dialog title"
+  },
+  "confirmDeleteAddress": "Are you sure you want to delete \"{label}\"?",
+  "@confirmDeleteAddress": {
+    "description": "Delete address confirmation message",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button text"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete button text"
+  },
+  "addressDeletedSuccessfully": "Address deleted successfully",
+  "@addressDeletedSuccessfully": {
+    "description": "Address deleted success message"
+  },
+  "failedToDeleteAddress": "Failed to delete address",
+  "@failedToDeleteAddress": {
+    "description": "Delete address error message"
+  },
+  "noSavedAddresses": "No Saved Addresses",
+  "@noSavedAddresses": {
+    "description": "Empty state title for saved addresses"
+  },
+  "addAddressesToQuicklySelect": "Add addresses to quickly select them when placing orders",
+  "@addAddressesToQuicklySelect": {
+    "description": "Empty state description for saved addresses"
+  },
+  "edit": "Edit",
+  "@edit": {
+    "description": "Edit button tooltip"
+  },
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": {
+    "description": "Privacy Policy menu item"
+  },
+  "privacyPolicyTitle": "Privacy Policy",
+  "@privacyPolicyTitle": {
+    "description": "Privacy Policy screen title"
+  },
+  "privacyPolicyUrl": "https://www.yourcompany.com/privacy-policy",
+  "@privacyPolicyUrl": {
+    "description": "Privacy Policy URL"
+  },
+  "unableToOpenPrivacyPolicy": "Unable to open Privacy Policy. Please check your internet connection.",
+  "@unableToOpenPrivacyPolicy": {
+    "description": "Error message when Privacy Policy URL cannot be opened"
   }
 }
 

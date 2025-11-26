@@ -1,5 +1,5 @@
 name: delivery_user_app
-description: Delivery System - Customer App
+description: Wassle - Customer App
 publish_to: 'none'
 version: 1.0.1+2
 
@@ -27,6 +27,7 @@ dependencies:
   firebase_messaging: ^15.1.3
   flutter_local_notifications: ^17.2.2
   permission_handler: ^12.0.1
+  url_launcher: ^6.2.2
 
 dev_dependencies:
   flutter_test:

@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Delivery Driver App';
+  String get appTitle => 'Wassle Driver';
 
   @override
   String get driverLogin => 'Driver Login';
@@ -418,4 +418,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewLess => 'View Less';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String get privacyPolicyTitle => 'Privacy Policy';
+
+  @override
+  String get privacyPolicyUrl => 'https://www.yourcompany.com/privacy-policy';
+
+  @override
+  String get unableToOpenPrivacyPolicy => 'Unable to open Privacy Policy. Please check your internet connection.';
 }

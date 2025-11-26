@@ -12,6 +12,7 @@ import '../../view_models/order_view_model.dart';
 import '../../services/socket_service.dart';
 import '../../services/cloudinary_service.dart';
 import 'settings_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -112,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.profilePictureUpdated),
-            backgroundColor: Colors.green,
+            backgroundColor: AppTheme.primaryColor,
           ),
         );
       } else {
@@ -440,6 +441,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           );
                         },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _ModernProfileTile(
+                    icon: Icons.privacy_tip_outlined,
+                    title: l10n.privacyPolicy,
+                    subtitle: 'View our Privacy Policy',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PrivacyPolicyScreen(),
+                        ),
                       );
                     },
                   ),

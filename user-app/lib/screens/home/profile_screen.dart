@@ -6,6 +6,7 @@ import '../../view_models/locale_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../services/socket_service.dart';
 import 'saved_addresses_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   final bool showAppBar;
@@ -183,6 +184,21 @@ class _ProfileContent extends StatelessWidget {
                 );
               },
             ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: Text(l10n.privacyPolicy),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PrivacyPolicyScreen(),
+                  ),
+                );
+              },
+            ),
+            const Divider(),
             ListTile(
               leading: const Icon(Icons.settings),
               title: Text(l10n.settings),

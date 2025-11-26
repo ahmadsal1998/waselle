@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   // Modern Color Palette
-  static const Color primaryColor = Color(0xFF10B981); // Modern green
-  static const Color primaryDark = Color(0xFF059669);
-  static const Color primaryLight = Color(0xFF34D399);
+  static const Color primaryColor = Color(0xFF2563EB); // Modern blue
+  static const Color primaryLight = Color(0xFF3B82F6);
+  static const Color primaryDark = Color(0xFF1E40AF);
   
-  static const Color secondaryColor = Color(0xFF3B82F6); // Modern blue
+  static const Color secondaryColor = Color(0xFF10B981); // Modern green
   static const Color accentColor = Color(0xFF8B5CF6); // Modern purple
   
   static const Color errorColor = Color(0xFFEF4444);
@@ -32,7 +32,7 @@ class AppTheme {
   );
   
   static const LinearGradient secondaryGradient = LinearGradient(
-    colors: [secondaryColor, Color(0xFF2563EB)],
+    colors: [secondaryColor, Color(0xFF059669)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

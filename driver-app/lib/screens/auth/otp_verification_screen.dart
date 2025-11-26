@@ -67,7 +67,11 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.phone, size: 80, color: Colors.green),
+              Icon(
+                Icons.phone,
+                size: 80,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(height: 24),
               Text(
                 l10n.verifyYourPhone,
@@ -96,7 +100,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
               ResponsiveButton.elevated(
                 context: context,
                 onPressed: _isLoading ? null : _verifyOTP,
-                backgroundColor: Colors.green,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 child: _isLoading
                     ? const SizedBox(

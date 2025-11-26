@@ -423,7 +423,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   final subdomains = mapStyleViewModel.getSubdomains();
                   return TileLayer(
                     urlTemplate: mapStyleViewModel.getUrlTemplate(),
-                    userAgentPackageName: 'com.delivery.driverapp',
+                    userAgentPackageName: 'com.wassle.driverapp',
                     maxZoom: mapStyleViewModel.getMaxZoom().toDouble(),
                     subdomains: subdomains ?? const ['a', 'b', 'c'],
                     retinaMode: mapStyleViewModel.useRetinaTiles()
@@ -846,7 +846,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 // To (Dropoff)
                 Row(
                   children: [
-                    Icon(Icons.call_received, size: 18, color: Colors.green),
+                    Icon(
+                      Icons.call_received,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(

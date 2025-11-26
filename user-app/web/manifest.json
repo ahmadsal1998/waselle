@@ -1,6 +1,6 @@
 {
-    "name": "delivery_user_app",
-    "short_name": "delivery_user_app",
+    "name": "Wassle",
+    "short_name": "Wassle",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

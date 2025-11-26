@@ -1,6 +1,6 @@
 {
   "@@locale": "ar",
-  "appTitle": "تطبيق المستخدم للتوصيل",
+  "appTitle": "Wassle",
   "welcomeBack": "مرحباً بعودتك",
   "signInToContinue": "سجل الدخول للمتابعة",
   "email": "البريد الإلكتروني",
@@ -204,6 +204,39 @@
   "viewMore": "عرض المزيد",
   "viewLess": "عرض أقل",
   "mapView": "عرض الخريطة",
-  "driverInformation": "معلومات السائق"
+  "driverInformation": "معلومات السائق",
+  "savedAddresses": "العناوين المحفوظة",
+  "addAddress": "إضافة عنوان",
+  "editAddress": "تعديل العنوان",
+  "addressLabel": "التسمية (مثل: المنزل، العمل)",
+  "pleaseEnterLabel": "الرجاء إدخال تسمية",
+  "useCurrentLocation": "استخدام الموقع الحالي",
+  "gettingLocation": "جاري الحصول على الموقع...",
+  "villageArea": "القرية/المنطقة",
+  "saveAddress": "حفظ العنوان",
+  "updateAddress": "تحديث العنوان",
+  "pleaseEnableLocationServices": "الرجاء تفعيل خدمات الموقع",
+  "pleaseEnableLocationToSave": "الرجاء تفعيل خدمات الموقع لحفظ العنوان",
+  "failedToSaveAddress": "فشل حفظ العنوان",
+  "deleteAddress": "حذف العنوان",
+  "confirmDeleteAddress": "هل أنت متأكد من حذف \"{label}\"?",
+  "@confirmDeleteAddress": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "cancel": "إلغاء",
+  "delete": "حذف",
+  "addressDeletedSuccessfully": "تم حذف العنوان بنجاح",
+  "failedToDeleteAddress": "فشل حذف العنوان",
+  "noSavedAddresses": "لا توجد عناوين محفوظة",
+  "addAddressesToQuicklySelect": "أضف عناوين للاختيار السريع عند تقديم الطلبات",
+  "edit": "تعديل",
+  "privacyPolicy": "سياسة الخصوصية",
+  "privacyPolicyTitle": "سياسة الخصوصية",
+  "privacyPolicyUrl": "https://www.yourcompany.com/privacy-policy",
+  "unableToOpenPrivacyPolicy": "تعذر فتح سياسة الخصوصية. يرجى التحقق من اتصال الإنترنت."
 }
 

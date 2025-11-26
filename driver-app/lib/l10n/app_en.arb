@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Delivery Driver App",
+  "appTitle": "Wassle Driver",
   "@appTitle": {
     "description": "The title of the application"
   },
@@ -575,6 +575,22 @@
   "viewLess": "View Less",
   "@viewLess": {
     "description": "View less button text"
+  },
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": {
+    "description": "Privacy Policy menu item"
+  },
+  "privacyPolicyTitle": "Privacy Policy",
+  "@privacyPolicyTitle": {
+    "description": "Privacy Policy screen title"
+  },
+  "privacyPolicyUrl": "https://www.yourcompany.com/privacy-policy",
+  "@privacyPolicyUrl": {
+    "description": "Privacy Policy URL"
+  },
+  "unableToOpenPrivacyPolicy": "Unable to open Privacy Policy. Please check your internet connection.",
+  "@unableToOpenPrivacyPolicy": {
+    "description": "Error message when Privacy Policy URL cannot be opened"
   }
 }
 

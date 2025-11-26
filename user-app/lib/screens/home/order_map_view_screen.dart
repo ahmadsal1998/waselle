@@ -98,7 +98,7 @@ class OrderMapViewScreen extends StatelessWidget {
             children: [
               TileLayer(
                 urlTemplate: mapStyleProvider.getUrlTemplate(),
-                userAgentPackageName: 'com.delivery.userapp',
+                userAgentPackageName: 'com.wassle.userapp',
                 maxZoom: mapStyleProvider.getMaxZoom().toDouble(),
                 subdomains: mapStyleProvider.getSubdomains() ??
                     const ['a', 'b', 'c'],

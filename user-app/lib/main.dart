@@ -175,7 +175,7 @@ class MyApp extends StatelessWidget {
       child: Consumer<LocaleViewModel>(
         builder: (context, localeViewModel, _) {
           return MaterialApp(
-            title: 'Delivery User App',
+            title: 'Wassle',
             debugShowCheckedModeBanner: false,
             locale: localeViewModel.locale,
             supportedLocales: const [

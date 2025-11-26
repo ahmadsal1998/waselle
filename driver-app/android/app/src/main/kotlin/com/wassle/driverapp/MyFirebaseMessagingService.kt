@@ -1,4 +1,4 @@
-package com.example.delivery_driver_app
+package com.wassle.driverapp
 
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService

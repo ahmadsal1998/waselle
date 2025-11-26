@@ -1,4 +1,4 @@
-package com.delivery.userapp
+package com.wassle.userapp
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

@@ -82,7 +82,7 @@ class MyApp extends StatelessWidget {
       child: Consumer<LocaleViewModel>(
         builder: (context, localeViewModel, _) {
           return MaterialApp(
-            title: 'Delivery Driver App',
+            title: 'Wassle Driver',
             debugShowCheckedModeBanner: false,
             locale: localeViewModel.locale,
             supportedLocales: const [

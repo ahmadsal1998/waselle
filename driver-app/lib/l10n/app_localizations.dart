@@ -98,7 +98,7 @@ abstract class AppLocalizations {
   /// The title of the application
   ///
   /// In en, this message translates to:
-  /// **'Delivery Driver App'**
+  /// **'Wassle Driver'**
   String get appTitle;
 
   /// Login screen title
@@ -868,6 +868,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View Less'**
   String get viewLess;
+
+  /// Privacy Policy menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicy;
+
+  /// Privacy Policy screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicyTitle;
+
+  /// Privacy Policy URL
+  ///
+  /// In en, this message translates to:
+  /// **'https://www.yourcompany.com/privacy-policy'**
+  String get privacyPolicyUrl;
+
+  /// Error message when Privacy Policy URL cannot be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to open Privacy Policy. Please check your internet connection.'**
+  String get unableToOpenPrivacyPolicy;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

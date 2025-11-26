@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Delivery User App';
+  String get appTitle => 'Wassle';
 
   @override
   String get welcomeBack => 'Welcome Back';
@@ -505,4 +505,84 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get driverInformation => 'Driver Information';
+
+  @override
+  String get savedAddresses => 'Saved Addresses';
+
+  @override
+  String get addAddress => 'Add Address';
+
+  @override
+  String get editAddress => 'Edit Address';
+
+  @override
+  String get addressLabel => 'Label (e.g., Home, Work)';
+
+  @override
+  String get pleaseEnterLabel => 'Please enter a label';
+
+  @override
+  String get useCurrentLocation => 'Use Current Location';
+
+  @override
+  String get gettingLocation => 'Getting location...';
+
+  @override
+  String get villageArea => 'Village/Area';
+
+  @override
+  String get saveAddress => 'Save Address';
+
+  @override
+  String get updateAddress => 'Update Address';
+
+  @override
+  String get pleaseEnableLocationServices => 'Please enable location services';
+
+  @override
+  String get pleaseEnableLocationToSave => 'Please enable location services to save address';
+
+  @override
+  String get failedToSaveAddress => 'Failed to save address';
+
+  @override
+  String get deleteAddress => 'Delete Address';
+
+  @override
+  String confirmDeleteAddress(String label) {
+    return 'Are you sure you want to delete \"$label\"?';
+  }
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get addressDeletedSuccessfully => 'Address deleted successfully';
+
+  @override
+  String get failedToDeleteAddress => 'Failed to delete address';
+
+  @override
+  String get noSavedAddresses => 'No Saved Addresses';
+
+  @override
+  String get addAddressesToQuicklySelect => 'Add addresses to quickly select them when placing orders';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String get privacyPolicyTitle => 'Privacy Policy';
+
+  @override
+  String get privacyPolicyUrl => 'https://www.yourcompany.com/privacy-policy';
+
+  @override
+  String get unableToOpenPrivacyPolicy => 'Unable to open Privacy Policy. Please check your internet connection.';
 }

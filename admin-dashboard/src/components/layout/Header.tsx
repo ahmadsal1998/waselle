@@ -9,25 +9,26 @@ interface HeaderProps {
 
 const getBreadcrumbs = (pathname: string): string[] => {
   const pathMap: Record<string, string> = {
-    '/': 'Dashboard',
-    '/users': 'Users',
-    '/drivers': 'Drivers',
-    '/orders': 'Orders',
-    '/cities': 'Cities & Villages',
-    '/order-categories': 'Order Categories',
-    '/map': 'Map View',
-    '/settings': 'Settings',
+    '/dashboard': 'Dashboard',
+    '/dashboard/users': 'Users',
+    '/dashboard/drivers': 'Drivers',
+    '/dashboard/driver-balance': 'Driver Balance',
+    '/dashboard/orders': 'Orders',
+    '/dashboard/cities': 'Cities & Villages',
+    '/dashboard/order-categories': 'Order Categories',
+    '/dashboard/map': 'Map View',
+    '/dashboard/settings': 'Settings',
   };
 
   const paths = pathname.split('/').filter(Boolean);
   const breadcrumbs = ['Admin'];
 
-  if (pathname === '/') {
+  if (pathname === '/dashboard') {
     breadcrumbs.push('Dashboard');
   } else {
     paths.forEach((path, index) => {
       const fullPath = '/' + paths.slice(0, index + 1).join('/');
-      const label = pathMap[fullPath] || path.charAt(0).toUpperCase() + path.slice(1);
+      const label = pathMap[fullPath] || path.charAt(0).toUpperCase() + path.slice(1).replace(/-/g, ' ');
       breadcrumbs.push(label);
     });
   }

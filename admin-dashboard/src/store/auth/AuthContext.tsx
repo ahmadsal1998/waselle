@@ -66,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = () => {
     localStorage.removeItem('admin_token');
+    sessionStorage.removeItem('unlockLogin'); // Clear login unlock key on logout
     setUser(null);
     setIsAuthenticated(false);
   };

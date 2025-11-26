@@ -1,6 +1,6 @@
 {
   "@@locale": "ar",
-  "appTitle": "تطبيق سائق التوصيل",
+  "appTitle": "Wassle Driver",
   "driverLogin": "تسجيل دخول السائق",
   "signInToStart": "سجل الدخول لبدء قبول الطلبات",
   "email": "البريد الإلكتروني",
@@ -212,6 +212,10 @@
   "from": "من",
   "to": "إلى",
   "viewMore": "عرض المزيد",
-  "viewLess": "عرض أقل"
+  "viewLess": "عرض أقل",
+  "privacyPolicy": "سياسة الخصوصية",
+  "privacyPolicyTitle": "سياسة الخصوصية",
+  "privacyPolicyUrl": "https://www.yourcompany.com/privacy-policy",
+  "unableToOpenPrivacyPolicy": "تعذر فتح سياسة الخصوصية. يرجى التحقق من اتصال الإنترنت."
 }
 

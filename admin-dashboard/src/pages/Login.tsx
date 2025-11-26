@@ -11,10 +11,18 @@ const Login = () => {
   const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
+  // Protect login page - redirect if access not allowed
+  useEffect(() => {
+    const unlockLogin = sessionStorage.getItem('unlockLogin');
+    if (unlockLogin !== 'true') {
+      window.location.href = '/'; // Redirect to landing page
+    }
+  }, []);
+
   // Redirect if already authenticated
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      navigate('/');
+      navigate('/dashboard');
     }
   }, [isAuthenticated, isLoading, navigate]);
 
@@ -37,7 +45,7 @@ const Login = () => {
 
     try {
       await login(email, password);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

@@ -1,3 +1,4 @@
 <resources>
+    <string name="app_name">Wassle</string>
     <string name="default_notification_channel_id">incoming_calls</string>
 </resources>

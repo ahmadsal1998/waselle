@@ -9,7 +9,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appTitle => 'تطبيق المستخدم للتوصيل';
+  String get appTitle => 'Wassle';
 
   @override
   String get welcomeBack => 'مرحباً بعودتك';
@@ -505,4 +505,84 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get driverInformation => 'معلومات السائق';
+
+  @override
+  String get savedAddresses => 'العناوين المحفوظة';
+
+  @override
+  String get addAddress => 'إضافة عنوان';
+
+  @override
+  String get editAddress => 'تعديل العنوان';
+
+  @override
+  String get addressLabel => 'التسمية (مثل: المنزل، العمل)';
+
+  @override
+  String get pleaseEnterLabel => 'الرجاء إدخال تسمية';
+
+  @override
+  String get useCurrentLocation => 'استخدام الموقع الحالي';
+
+  @override
+  String get gettingLocation => 'جاري الحصول على الموقع...';
+
+  @override
+  String get villageArea => 'القرية/المنطقة';
+
+  @override
+  String get saveAddress => 'حفظ العنوان';
+
+  @override
+  String get updateAddress => 'تحديث العنوان';
+
+  @override
+  String get pleaseEnableLocationServices => 'الرجاء تفعيل خدمات الموقع';
+
+  @override
+  String get pleaseEnableLocationToSave => 'الرجاء تفعيل خدمات الموقع لحفظ العنوان';
+
+  @override
+  String get failedToSaveAddress => 'فشل حفظ العنوان';
+
+  @override
+  String get deleteAddress => 'حذف العنوان';
+
+  @override
+  String confirmDeleteAddress(String label) {
+    return 'هل أنت متأكد من حذف \"$label\"?';
+  }
+
+  @override
+  String get cancel => 'إلغاء';
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get addressDeletedSuccessfully => 'تم حذف العنوان بنجاح';
+
+  @override
+  String get failedToDeleteAddress => 'فشل حذف العنوان';
+
+  @override
+  String get noSavedAddresses => 'لا توجد عناوين محفوظة';
+
+  @override
+  String get addAddressesToQuicklySelect => 'أضف عناوين للاختيار السريع عند تقديم الطلبات';
+
+  @override
+  String get edit => 'تعديل';
+
+  @override
+  String get privacyPolicy => 'سياسة الخصوصية';
+
+  @override
+  String get privacyPolicyTitle => 'سياسة الخصوصية';
+
+  @override
+  String get privacyPolicyUrl => 'https://www.yourcompany.com/privacy-policy';
+
+  @override
+  String get unableToOpenPrivacyPolicy => 'تعذر فتح سياسة الخصوصية. يرجى التحقق من اتصال الإنترنت.';
 }
