@@ -189,12 +189,32 @@ const Landing = () => {
     setOpenFaq(openFaq === id ? null : id);
   };
 
+  // Get current domain dynamically for production URLs
+  // This ensures URLs work correctly on any deployment domain (e.g., wassle.ps, vercel.app, etc.)
+  const getBaseUrl = () => {
+    // Use environment variable if set (useful for custom domains)
+    // Set VITE_BASE_URL=https://www.wassle.ps in Vercel environment variables if needed
+    const envBaseUrl = import.meta.env.VITE_BASE_URL;
+    if (envBaseUrl) {
+      return envBaseUrl.endsWith('/') ? envBaseUrl.slice(0, -1) : envBaseUrl;
+    }
+    // Fallback to current window origin (automatically uses deployment domain)
+    // This will be https://www.wassle.ps in production, or localhost:3000 in development
+    if (typeof window !== 'undefined') {
+      return window.location.origin;
+    }
+    // Default fallback (shouldn't happen in browser environment)
+    return 'https://www.wassle.ps';
+  };
+
+  const baseUrl = getBaseUrl();
+
   // App download links
   const iosAppUrl = 'https://apps.apple.com/app/your-app-id';
   const androidAppUrl = 'https://play.google.com/store/apps/details?id=your.app.id';
-  const officialWebsiteUrl = 'https://www.yourwebsite.com';
-  const privacyPolicyUrl = '/privacy-policy';
-  const termsUrl = 'https://www.yourwebsite.com/terms';
+  const officialWebsiteUrl = baseUrl;
+  const privacyPolicyUrl = `${baseUrl}/privacy-policy`;
+  const termsUrl = `${baseUrl}/terms`;
 
   // Navigation items
   const navItems = [
