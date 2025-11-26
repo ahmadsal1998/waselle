@@ -680,7 +680,7 @@ const Settings = () => {
               otpMessageTemplate.trim().length < 10 ||
               otpMessageTemplate.length > 500 ||
               !otpMessageTemplate.includes('${otp}') ||
-              (otpMessageTemplateAr && (
+              !!(otpMessageTemplateAr && (
                 otpMessageTemplateAr.trim().length < 10 ||
                 otpMessageTemplateAr.length > 500 ||
                 !otpMessageTemplateAr.includes('${otp}')

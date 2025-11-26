@@ -66,7 +66,6 @@ const normalizeCustomer = (customer: ApiUser): Customer & { location?: { lat: nu
       location = {
         lat: customer.location.lat,
         lng: customer.location.lng,
-        address: customer.location.address,
       };
     }
   }
@@ -230,7 +229,7 @@ export const useMapData = () => {
             setUserLocation([position.coords.latitude, position.coords.longitude]);
           }
         },
-        (error) => {
+        (_error) => {
           // Silently handle geolocation errors - these are expected in many scenarios
           // (e.g., user denied permission, location unavailable, etc.)
           // No need to log or handle - just use default location from settings
