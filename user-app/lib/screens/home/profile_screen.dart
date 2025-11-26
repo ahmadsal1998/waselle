@@ -8,6 +8,7 @@ import '../../view_models/map_style_view_model.dart';
 import '../../services/socket_service.dart';
 import '../../repositories/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/delete_account_otp_dialog.dart';
 import 'saved_addresses_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -145,6 +146,108 @@ class _ProfileContentState extends State<_ProfileContent> {
     }
   }
 
+  Future<void> _handleDeleteAccount(
+    BuildContext context,
+    AuthViewModel authViewModel,
+    AppLocalizations l10n,
+  ) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            l10n.deleteAccount,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 64,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.confirmDeleteAccount,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.deleteAccountWarning,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(l10n.confirm),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    // Get user's phone number
+    final user = authViewModel.user;
+    final phoneNumber = user?['phoneNumber'] as String?;
+    
+    if (phoneNumber == null || phoneNumber.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.failedToDeleteAccount),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show OTP verification dialog
+    final deleted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => DeleteAccountOTPDialog(
+        phoneNumber: phoneNumber,
+      ),
+    );
+
+    if (deleted == true && context.mounted) {
+      // Account deleted successfully - navigate to home
+      // The AuthViewModel already cleared all data and logged out
+      if (!widget.showAppBar) {
+        return;
+      }
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/',
+        (route) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -181,23 +284,16 @@ class _ProfileContentState extends State<_ProfileContent> {
               _SectionCard(
                 title: null,
                 children: [
-                  Consumer<LocaleViewModel>(
-                    builder: (context, localeViewModel, _) {
-                      final title = localeViewModel.isArabic
-                          ? 'إضافة عناوين'
-                          : 'Saved Addresses';
-                      return _ModernProfileTile(
-                        icon: Icons.location_on_rounded,
-                        iconColor: AppTheme.secondaryColor,
-                        title: title,
-                        subtitle: l10n.manageSavedAddresses,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const SavedAddressesScreen(),
-                            ),
-                          );
-                        },
+                  _ModernProfileTile(
+                    icon: Icons.location_on_rounded,
+                    iconColor: AppTheme.secondaryColor,
+                    title: l10n.savedAddresses,
+                    subtitle: l10n.manageSavedAddresses,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const SavedAddressesScreen(),
+                        ),
                       );
                     },
                   ),
@@ -285,6 +381,18 @@ class _ProfileContentState extends State<_ProfileContent> {
                         );
                       }
                     },
+                  ),
+                ),
+              
+              const SizedBox(height: 16),
+              
+              // Delete Account Button
+              if (isLoggedIn)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _DeleteAccountButton(
+                    label: l10n.deleteAccount,
+                    onTap: () => _handleDeleteAccount(context, authViewModel, l10n),
                   ),
                 ),
               
@@ -727,6 +835,57 @@ class _LogoutButton extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: AppTheme.errorColor,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Delete Account Button Widget
+class _DeleteAccountButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _DeleteAccountButton({
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.red.withOpacity(0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.delete_forever_rounded,
+                color: Colors.red,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red,
                     ),
               ),
             ],

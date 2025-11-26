@@ -119,6 +119,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mapStyle => 'Map Style';
 
   @override
+  String get selectMapStyle => 'Select Map Style';
+
+  @override
   String mapStyleValue(String style) {
     return 'Map style: $style';
   }
@@ -585,4 +588,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unableToOpenPrivacyPolicy => 'Unable to open Privacy Policy. Please check your internet connection.';
+
+  @override
+  String get termsOfService => 'Terms of Service';
+
+  @override
+  String get termsOfServiceTitle => 'Terms of Service';
+
+  @override
+  String get termsOfServiceUrl => 'https://www.wassle.ps/terms-of-service';
+
+  @override
+  String get unableToOpenTermsOfService => 'Unable to open Terms of Service. Please check your internet connection.';
+
+  @override
+  String get manageSavedAddresses => 'Manage your saved addresses';
+
+  @override
+  String get readPrivacyPolicy => 'Read our privacy policy';
+
+  @override
+  String get readTermsOfService => 'Read our terms of service';
+
+  @override
+  String get legal => 'Legal';
+
+  @override
+  String get notAvailable => 'Not available';
 }

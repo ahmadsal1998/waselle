@@ -261,11 +261,13 @@ class _MapTab extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (viewModel.isInitialLoading) {
-      return const _CenteredStatusCard(
+      return _CenteredStatusCard(
         icon: Icons.explore,
-        title: 'Initializing',
-        subtitle: 'Hang tight while we find couriers around you.',
+        title: l10n.initializing,
+        subtitle: l10n.initializingSubtitle,
         showLoader: true,
       );
     }
@@ -273,10 +275,9 @@ class _MapTab extends StatelessWidget {
     if (viewModel.hasBlockingLocationError) {
       return _CenteredStatusCard(
         icon: Icons.location_off_rounded,
-        title: 'Location Disabled',
-        subtitle: viewModel.locationErrorMessage ??
-            'We could not access your location. Please enable location services.',
-        primaryActionLabel: 'Try Again',
+        title: l10n.locationDisabled,
+        subtitle: viewModel.locationErrorMessage ?? l10n.locationDisabledSubtitle,
+        primaryActionLabel: l10n.tryAgain,
         onPrimaryAction: viewModel.retryLocation,
       );
     }
@@ -284,10 +285,9 @@ class _MapTab extends StatelessWidget {
     if (viewModel.showNoLocationState) {
       return _CenteredStatusCard(
         icon: Icons.my_location,
-        title: 'Location Not Found',
-        subtitle:
-            'Tap the button below to refresh your location and explore drivers nearby.',
-        primaryActionLabel: 'Get Location',
+        title: l10n.locationNotFound,
+        subtitle: l10n.locationNotFoundSubtitle,
+        primaryActionLabel: l10n.getLocation,
         onPrimaryAction: viewModel.retryLocation,
       );
     }
@@ -704,7 +704,7 @@ class _MapBottomActions extends StatelessWidget {
 }
 
 class _CenteredStatusCard extends StatelessWidget {
-  const _CenteredStatusCard({
+  _CenteredStatusCard({
     required this.icon,
     required this.title,
     required this.subtitle,

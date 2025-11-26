@@ -247,6 +247,41 @@
   "readPrivacyPolicy": "اقرأ سياسة الخصوصية الخاصة بنا",
   "readTermsOfService": "اقرأ شروط الخدمة الخاصة بنا",
   "legal": "قانوني",
-  "notAvailable": "غير متاح"
+  "notAvailable": "غير متاح",
+  "initializing": "جاري التهيئة",
+  "initializingSubtitle": "جاري البحث عن السائقين القريبين منك",
+  "locationDisabled": "الموقع معطل",
+  "locationDisabledSubtitle": "تعذر الوصول إلى موقعك. يرجى تفعيل خدمات الموقع",
+  "tryAgain": "إعادة المحاولة",
+  "locationNotFound": "الموقع غير موجود",
+  "locationNotFoundSubtitle": "اضغط على الزر أدناه لتحديث موقعك واستكشاف السائقين القريبين",
+  "getLocation": "الحصول على الموقع",
+  "unknownLocation": "موقع غير معروف",
+  "deleteAccount": "حذف الحساب",
+  "confirmDeleteAccount": "هل أنت متأكد من حذف حسابك؟",
+  "deleteAccountWarning": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بيانات حسابك بشكل دائم.",
+  "deleteAccountOtpTitle": "التحقق من هاتفك",
+  "deleteAccountOtpMessage": "أرسلنا رمز التحقق إلى\n{phoneNumber}\n\nالرجاء إدخال الرمز لتأكيد حذف الحساب.",
+  "@deleteAccountOtpMessage": {
+    "placeholders": {
+      "phoneNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "otpSentSuccessfully": "تم إرسال رمز التحقق بنجاح",
+  "resendOtp": "إعادة إرسال رمز التحقق",
+  "resendOtpIn": "إعادة إرسال رمز التحقق خلال {seconds} ثانية",
+  "@resendOtpIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "accountDeletedSuccessfully": "تم حذف الحساب بنجاح",
+  "failedToDeleteAccount": "فشل حذف الحساب",
+  "failedToSendOtp": "فشل إرسال رمز التحقق. الرجاء المحاولة مرة أخرى.",
+  "confirm": "تأكيد"
 }
 

@@ -119,6 +119,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get mapStyle => 'نمط الخريطة';
 
   @override
+  String get selectMapStyle => 'اختر نمط الخريطة';
+
+  @override
   String mapStyleValue(String style) {
     return 'نمط الخريطة: $style';
   }
@@ -585,4 +588,31 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get unableToOpenPrivacyPolicy => 'تعذر فتح سياسة الخصوصية. يرجى التحقق من اتصال الإنترنت.';
+
+  @override
+  String get termsOfService => 'شروط الخدمة';
+
+  @override
+  String get termsOfServiceTitle => 'شروط الخدمة';
+
+  @override
+  String get termsOfServiceUrl => 'https://www.wassle.ps/terms-of-service';
+
+  @override
+  String get unableToOpenTermsOfService => 'تعذر فتح شروط الخدمة. يرجى التحقق من اتصال الإنترنت.';
+
+  @override
+  String get manageSavedAddresses => 'إدارة عناوينك المحفوظة';
+
+  @override
+  String get readPrivacyPolicy => 'اقرأ سياسة الخصوصية الخاصة بنا';
+
+  @override
+  String get readTermsOfService => 'اقرأ شروط الخدمة الخاصة بنا';
+
+  @override
+  String get legal => 'قانوني';
+
+  @override
+  String get notAvailable => 'غير متاح';
 }

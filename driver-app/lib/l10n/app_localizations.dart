@@ -892,6 +892,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to open Privacy Policy. Please check your internet connection.'**
   String get unableToOpenPrivacyPolicy;
+
+  /// Terms of Service menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get termsOfService;
+
+  /// Terms of Service screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get termsOfServiceTitle;
+
+  /// Terms of Service URL
+  ///
+  /// In en, this message translates to:
+  /// **'https://www.wassle.ps/terms-of-service'**
+  String get termsOfServiceUrl;
+
+  /// Error message when Terms of Service URL cannot be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to open Terms of Service. Please check your internet connection.'**
+  String get unableToOpenTermsOfService;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

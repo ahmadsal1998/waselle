@@ -311,6 +311,12 @@ abstract class AppLocalizations {
   /// **'Map Style'**
   String get mapStyle;
 
+  /// Map style selection dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Select Map Style'**
+  String get selectMapStyle;
+
   /// Map style display text
   ///
   /// In en, this message translates to:
@@ -1222,6 +1228,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to open Privacy Policy. Please check your internet connection.'**
   String get unableToOpenPrivacyPolicy;
+
+  /// Terms of Service menu item
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get termsOfService;
+
+  /// Terms of Service screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get termsOfServiceTitle;
+
+  /// Terms of Service URL
+  ///
+  /// In en, this message translates to:
+  /// **'https://www.wassle.ps/terms-of-service'**
+  String get termsOfServiceUrl;
+
+  /// Error message when Terms of Service URL cannot be opened
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to open Terms of Service. Please check your internet connection.'**
+  String get unableToOpenTermsOfService;
+
+  /// Subtitle for saved addresses tile
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your saved addresses'**
+  String get manageSavedAddresses;
+
+  /// Subtitle for privacy policy tile
+  ///
+  /// In en, this message translates to:
+  /// **'Read our privacy policy'**
+  String get readPrivacyPolicy;
+
+  /// Subtitle for terms of service tile
+  ///
+  /// In en, this message translates to:
+  /// **'Read our terms of service'**
+  String get readTermsOfService;
+
+  /// Legal section title
+  ///
+  /// In en, this message translates to:
+  /// **'Legal'**
+  String get legal;
+
+  /// Not available text for missing user data
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get notAvailable;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

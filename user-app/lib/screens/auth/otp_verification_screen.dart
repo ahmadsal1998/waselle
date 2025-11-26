@@ -76,7 +76,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'We sent a verification code to\n${widget.phoneNumber}',
+                l10n.otpSentMessage(widget.phoneNumber),
                 style: const TextStyle(fontSize: 16, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
