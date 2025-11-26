@@ -36,19 +36,19 @@ const PrivacyPolicyPage = () => {
       // Add timestamp to prevent caching
       const url = `${API_BASE_URL}/privacy-policy?_t=${Date.now()}`;
       
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log('Fetching privacy policy from:', url);
       }
       
       const { data } = await axios.get<{ privacyPolicy: PrivacyPolicy }>(url);
       
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log('Privacy policy data received:', data);
       }
       
       if (data && data.privacyPolicy) {
         setPrivacyPolicy(data.privacyPolicy);
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
           console.log('Privacy policy content length:', data.privacyPolicy.content?.length);
           console.log('Privacy policy Arabic content length:', data.privacyPolicy.contentAr?.length);
         }
@@ -114,8 +114,8 @@ const PrivacyPolicyPage = () => {
     displayContent = privacyPolicy!.content;
   }
   
-  // Debug logging (remove in production)
-  if (process.env.NODE_ENV === 'development') {
+  // Debug logging (only in development)
+  if (import.meta.env.DEV) {
     console.log('Current language:', language);
     console.log('Privacy policy state:', privacyPolicy);
     console.log('Has English content:', hasEnglishContent);
