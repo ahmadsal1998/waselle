@@ -7,6 +7,7 @@ import '../../view_models/locale_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../services/socket_service.dart';
 import '../../repositories/api_service.dart';
+import '../../theme/app_theme.dart';
 import 'saved_addresses_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -27,7 +28,10 @@ class ProfileScreen extends StatelessWidget {
 
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.profile)),
+      appBar: AppBar(
+        title: Text(l10n.profile),
+        elevation: 0,
+      ),
       body: content,
     );
   }
@@ -90,7 +94,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.unableToOpenPrivacyPolicy),
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.errorColor,
             ),
           );
         }
@@ -101,7 +105,7 @@ class _ProfileContentState extends State<_ProfileContent> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.unableToOpenPrivacyPolicy),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
           ),
         );
       }
@@ -122,7 +126,7 @@ class _ProfileContentState extends State<_ProfileContent> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.unableToOpenTermsOfService),
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.errorColor,
             ),
           );
         }
@@ -133,7 +137,7 @@ class _ProfileContentState extends State<_ProfileContent> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.unableToOpenTermsOfService),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
           ),
         );
       }
@@ -144,6 +148,8 @@ class _ProfileContentState extends State<_ProfileContent> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     
     return Consumer<AuthViewModel>(
       builder: (context, authViewModel, _) {
@@ -157,183 +163,578 @@ class _ProfileContentState extends State<_ProfileContent> {
           'phone': 'Not available',
         };
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const CircleAvatar(
-              radius: 50,
-              child: Icon(Icons.person, size: 50),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              displayUser['name'] ?? l10n.unknown,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              displayUser['email'] ?? 'Not available',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontStyle: isLoggedIn ? FontStyle.normal : FontStyle.italic,
+        return Container(
+          color: colorScheme.background,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              // Profile Header Section
+              _ProfileHeader(
+                userName: displayUser['name'] ?? l10n.unknown,
+                userEmail: displayUser['email'] ?? 'Not available',
+                isLoggedIn: isLoggedIn,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: Text(l10n.orderHistory),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                // Navigate to order history
-              },
-            ),
-            const Divider(),
-            Consumer<LocaleViewModel>(
-              builder: (context, localeViewModel, _) {
-                final title = localeViewModel.isArabic
-                    ? 'إضافة عناوين'
-                    : 'Saved Addresses';
-                return ListTile(
-                  leading: const Icon(Icons.location_on),
-                  title: Text(title),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const SavedAddressesScreen(),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-            const Divider(),
-            Consumer<LocaleViewModel>(
-              builder: (context, localeViewModel, _) {
-                return ListTile(
-                  leading: const Icon(Icons.language),
-                  title: Text(l10n.language),
-                  subtitle: Text(
-                    localeViewModel.isArabic ? l10n.arabic : l10n.english,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              
+              const SizedBox(height: 24),
+              
+              // Quick Actions Section
+              _SectionCard(
+                title: null,
+                children: [
+                  _ModernProfileTile(
+                    icon: Icons.history_rounded,
+                    iconColor: AppTheme.primaryColor,
+                    title: l10n.orderHistory,
+                    subtitle: 'View your past orders',
+                    onTap: () {
+                      // Navigate to order history
+                    },
                   ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text(l10n.selectLanguage),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              RadioListTile<Locale>(
-                                title: Text(l10n.english),
-                                value: const Locale('en'),
-                                groupValue: localeViewModel.locale,
-                                onChanged: (Locale? value) {
-                                  if (value != null) {
-                                    localeViewModel.setLocale(value);
-                                    Navigator.of(context).pop();
-                                  }
-                                },
-                              ),
-                              RadioListTile<Locale>(
-                                title: Text(l10n.arabic),
-                                value: const Locale('ar'),
-                                groupValue: localeViewModel.locale,
-                                onChanged: (Locale? value) {
-                                  if (value != null) {
-                                    localeViewModel.setLocale(value);
-                                    Navigator.of(context).pop();
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
+                  const SizedBox(height: 8),
+                  Consumer<LocaleViewModel>(
+                    builder: (context, localeViewModel, _) {
+                      final title = localeViewModel.isArabic
+                          ? 'إضافة عناوين'
+                          : 'Saved Addresses';
+                      return _ModernProfileTile(
+                        icon: Icons.location_on_rounded,
+                        iconColor: AppTheme.secondaryColor,
+                        title: title,
+                        subtitle: 'Manage your saved addresses',
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const SavedAddressesScreen(),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Settings Section
+              _SectionCard(
+                title: l10n.settings,
+                children: [
+                  Consumer<LocaleViewModel>(
+                    builder: (context, localeViewModel, _) {
+                      return _ModernProfileTile(
+                        icon: Icons.language_rounded,
+                        iconColor: AppTheme.primaryColor,
+                        title: l10n.language,
+                        subtitle: localeViewModel.isArabic ? l10n.arabic : l10n.english,
+                        onTap: () {
+                          _showLanguageDialog(context, localeViewModel, l10n);
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Consumer<MapStyleViewModel>(
+                    builder: (context, mapStyleViewModel, _) {
+                      return _ModernProfileTile(
+                        icon: Icons.map_rounded,
+                        iconColor: AppTheme.secondaryColor,
+                        title: l10n.mapStyle,
+                        subtitle: mapStyleViewModel.currentStyle.name,
+                        onTap: () {
+                          _showMapStyleBottomSheet(context, mapStyleViewModel);
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Legal Section
+              _SectionCard(
+                title: 'Legal',
+                children: [
+                  _ModernProfileTile(
+                    icon: Icons.privacy_tip_rounded,
+                    iconColor: AppTheme.textSecondary,
+                    title: l10n.privacyPolicy,
+                    subtitle: 'Read our privacy policy',
+                    onTap: () => _openPrivacyPolicy(context),
+                  ),
+                  const SizedBox(height: 8),
+                  _ModernProfileTile(
+                    icon: Icons.description_rounded,
+                    iconColor: AppTheme.textSecondary,
+                    title: l10n.termsOfService,
+                    subtitle: 'Read our terms of service',
+                    onTap: () => _openTermsOfService(context),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Logout Button
+              if (isLoggedIn)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _LogoutButton(
+                    label: l10n.logout,
+                    onTap: () async {
+                      await authViewModel.logout();
+                      SocketService.disconnect();
+                      if (!widget.showAppBar) {
+                        return;
+                      }
+                      if (context.mounted) {
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/',
+                          (route) => false,
                         );
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-            Consumer<MapStyleViewModel>(
-              builder: (context, mapStyleViewModel, _) {
-                return ExpansionTile(
-                  leading: const Icon(Icons.map),
-                  title: Text(l10n.mapStyle),
-                  subtitle: Text(
-                    mapStyleViewModel.currentStyle.name,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      }
+                    },
                   ),
-                  children: mapStyleViewModel.availableStyles.map((style) {
-                    final isSelected =
-                        mapStyleViewModel.currentStyle.id == style.id;
-                    return ListTile(
-                      title: Text(style.name),
-                      leading: Icon(
-                        isSelected
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
-                        color: isSelected ? Colors.blue : null,
-                      ),
-                      onTap: () {
-                        mapStyleViewModel.setStyle(style.id);
-                      },
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.privacy_tip_outlined),
-              title: Text(l10n.privacyPolicy),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _openPrivacyPolicy(context),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: Text(l10n.termsOfService),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _openTermsOfService(context),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: Text(l10n.settings),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                // Navigate to settings
-              },
-            ),
-            if (isLoggedIn)
-              ListTile(
-                leading: const Icon(Icons.logout),
-                title: Text(l10n.logout),
-                onTap: () async {
-                  await authViewModel.logout();
-                  SocketService.disconnect();
-                  if (!widget.showAppBar) {
-                    // When embedded, ensure outer listeners (e.g. AuthWrapper) react to logout.
-                    return;
-                  }
-
-                  if (context.mounted) {
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      '/',
-                      (route) => false,
-                    );
-                  }
-                },
-              ),
-          ],
+                ),
+              
+              const SizedBox(height: 32),
+            ],
+          ),
         );
       },
+    );
+  }
+
+  void _showLanguageDialog(
+    BuildContext context,
+    LocaleViewModel localeViewModel,
+    AppLocalizations l10n,
+  ) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            l10n.selectLanguage,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _LanguageOption(
+                title: l10n.english,
+                isSelected: localeViewModel.locale == const Locale('en'),
+                onTap: () {
+                  localeViewModel.setLocale(const Locale('en'));
+                  Navigator.of(context).pop();
+                },
+              ),
+              const SizedBox(height: 12),
+              _LanguageOption(
+                title: l10n.arabic,
+                isSelected: localeViewModel.locale == const Locale('ar'),
+                onTap: () {
+                  localeViewModel.setLocale(const Locale('ar'));
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMapStyleBottomSheet(
+    BuildContext context,
+    MapStyleViewModel mapStyleViewModel,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppTheme.textTertiary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  'Select Map Style',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...mapStyleViewModel.availableStyles.map((style) {
+                final isSelected = mapStyleViewModel.currentStyle.id == style.id;
+                return ListTile(
+                  leading: Icon(
+                    isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                    color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
+                  ),
+                  title: Text(style.name),
+                  onTap: () {
+                    mapStyleViewModel.setStyle(style.id);
+                    Navigator.of(context).pop();
+                  },
+                );
+              }).toList(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Profile Header Widget
+class _ProfileHeader extends StatelessWidget {
+  final String userName;
+  final String userEmail;
+  final bool isLoggedIn;
+
+  const _ProfileHeader({
+    required this.userName,
+    required this.userEmail,
+    required this.isLoggedIn,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primaryColor,
+            AppTheme.primaryLight,
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 48, 24, 32),
+      child: Column(
+        children: [
+          // Avatar
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white,
+                width: 4,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 50,
+              backgroundColor: Colors.white,
+              child: Icon(
+                Icons.person,
+                size: 50,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // User Name
+          Text(
+            userName,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          
+          const SizedBox(height: 8),
+          
+          // User Email
+          Text(
+            userEmail,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withOpacity(0.9),
+              fontStyle: isLoggedIn ? FontStyle.normal : FontStyle.italic,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Section Card Widget
+class _SectionCard extends StatelessWidget {
+  final String? title;
+  final List<Widget> children;
+
+  const _SectionCard({
+    this.title,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Text(
+                title!,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+              ),
+            ),
+            const Divider(height: 1),
+          ],
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, title != null ? 8 : 16, 16, 16),
+            child: Column(children: children),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Modern Profile Tile Widget
+class _ModernProfileTile extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ModernProfileTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          child: Row(
+            children: [
+              // Icon Container
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: 24,
+                ),
+              ),
+              
+              const SizedBox(width: 16),
+              
+              // Text Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Chevron Icon
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppTheme.textTertiary,
+                size: 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Language Option Widget
+class _LanguageOption extends StatelessWidget {
+  final String title;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _LanguageOption({
+    required this.title,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppTheme.primaryColor.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? AppTheme.primaryColor
+                  : AppTheme.borderColor,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : AppTheme.textPrimary,
+                  ),
+                ),
+              ),
+              if (isSelected)
+                Icon(
+                  Icons.check_circle,
+                  color: AppTheme.primaryColor,
+                  size: 24,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Logout Button Widget
+class _LogoutButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _LogoutButton({
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          decoration: BoxDecoration(
+            color: AppTheme.errorColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppTheme.errorColor.withOpacity(0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.logout_rounded,
+                color: AppTheme.errorColor,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.errorColor,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
