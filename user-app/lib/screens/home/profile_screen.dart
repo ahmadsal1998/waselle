@@ -9,6 +9,7 @@ import '../../services/socket_service.dart';
 import '../../repositories/api_service.dart';
 import '../../theme/app_theme.dart';
 import 'saved_addresses_screen.dart';
+import 'order_history_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   final bool showAppBar;
@@ -187,7 +188,11 @@ class _ProfileContentState extends State<_ProfileContent> {
                     title: l10n.orderHistory,
                     subtitle: 'View your past orders',
                     onTap: () {
-                      // Navigate to order history
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const OrderHistoryScreen(),
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(height: 8),
