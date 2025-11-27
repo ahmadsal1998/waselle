@@ -24,7 +24,11 @@ class OrderViewModel with ChangeNotifier {
   List<Map<String, dynamic>> get myOrders => _myOrders;
   Map<String, dynamic>? get activeOrder => _activeOrder;
   List<Map<String, dynamic>> get activeOrders => _myOrders
-      .where((order) => ['accepted', 'on_the_way'].contains(order['status']))
+      .where((order) {
+        final status = (order['status'] ?? '').toString().toLowerCase();
+        // Exclude price_rejected - those should appear in Available Orders instead
+        return ['pending', 'accepted', 'on_the_way'].contains(status);
+      })
       .toList();
   String? get driverVehicleType => _driverVehicleType;
 
@@ -205,11 +209,11 @@ class OrderViewModel with ChangeNotifier {
       (existing) => _getOrderId(existing) == orderId,
     );
     if (index == -1) {
-      // Only add if order is still pending (hasn't been accepted)
-      final status = order['status'];
-      if (status == null || status == 'pending') {
+      // Add if order is pending or price_rejected
+      final status = (order['status'] ?? '').toString().toLowerCase();
+      if (status == 'pending' || status.isEmpty || status == 'price_rejected') {
         _availableOrders.insert(0, Map<String, dynamic>.from(order));
-        debugPrint('OrderViewModel: Added new order to list: $orderId');
+        debugPrint('OrderViewModel: Added new order to list: $orderId (status: $status)');
       }
     } else {
       // Update existing order
@@ -245,16 +249,19 @@ class OrderViewModel with ChangeNotifier {
     final orderId = _getOrderId(updatedOrder);
     if (orderId == null) return;
     
-    final status = updatedOrder['status'];
+    final status = (updatedOrder['status'] ?? '').toString().toLowerCase();
     final shouldInclude = _shouldIncludeOrder(updatedOrder);
     
-    // Remove from available orders if status is no longer pending
-    if (status != null && status != 'pending') {
+    // Handle available orders: include pending and price_rejected
+    final shouldBeInAvailable = status == 'pending' || status.isEmpty || status == 'price_rejected';
+    
+    if (!shouldBeInAvailable) {
+      // Remove from available orders if status is no longer pending or price_rejected
       _availableOrders.removeWhere(
         (order) => _getOrderId(order) == orderId,
       );
     } else {
-      // Update or add to available orders if still pending
+      // Update or add to available orders if still pending or price_rejected
       final index = _availableOrders.indexWhere(
         (order) => _getOrderId(order) == orderId,
       );
@@ -273,6 +280,9 @@ class OrderViewModel with ChangeNotifier {
     );
     if (myIndex != -1) {
       _myOrders[myIndex] = Map<String, dynamic>.from(updatedOrder);
+    } else if (status == 'price_rejected' || status == 'accepted' || status == 'on_the_way') {
+      // Add to myOrders if it's an order assigned to this driver
+      _myOrders.add(Map<String, dynamic>.from(updatedOrder));
     }
   }
 
@@ -326,12 +336,21 @@ class OrderViewModel with ChangeNotifier {
         
         debugPrint('OrderViewModel: Total orders in map: ${ordersMap.length}');
         
-        // Convert back to list and filter out non-pending orders
-        // (orders that have been accepted by other drivers)
-        final pendingOrders = ordersMap.values
+        // Convert back to list and filter to include:
+        // 1. Pending orders (no driver assigned)
+        // 2. Price_rejected orders (assigned to this driver, so they can propose new price)
+        final availableOrdersList = ordersMap.values
             .where((order) {
-              final status = order['status'];
-              final isPending = status == null || status == 'pending';
+              final status = (order['status'] ?? '').toString().toLowerCase();
+              final isPending = status == 'pending' || status.isEmpty;
+              final isPriceRejected = status == 'price_rejected';
+              
+              if (isPriceRejected) {
+                // Only include price_rejected orders if they belong to this driver
+                // We'll add them from _myOrders below
+                return false;
+              }
+              
               if (!isPending) {
                 debugPrint('OrderViewModel: Filtering out order with status: $status');
               }
@@ -339,8 +358,12 @@ class OrderViewModel with ChangeNotifier {
             })
             .toList();
         
-        debugPrint('OrderViewModel: Final pending orders: ${pendingOrders.length}');
-        _availableOrders = pendingOrders;
+        _availableOrders = availableOrdersList;
+        
+        // Sync price_rejected orders from myOrders to availableOrders
+        _syncPriceRejectedToAvailable();
+        
+        debugPrint('OrderViewModel: Final available orders: ${_availableOrders.length}');
         notifyListeners();
       } else {
         debugPrint('OrderViewModel: No orders key in response');
@@ -363,15 +386,69 @@ class OrderViewModel with ChangeNotifier {
       if (response['orders'] != null) {
         _myOrders = List<Map<String, dynamic>>.from(response['orders']);
         _activeOrder = _myOrders.firstWhere(
-          (order) => ['accepted', 'on_the_way'].contains(order['status']),
+          (order) {
+            final status = (order['status'] ?? '').toString().toLowerCase();
+            // Exclude price_rejected - those should appear in Available Orders instead
+            return ['pending', 'accepted', 'on_the_way'].contains(status);
+          },
           orElse: () => {},
         );
         if (_activeOrder!.isEmpty) _activeOrder = null;
+        
+        // Sync price_rejected orders to availableOrders
+        _syncPriceRejectedToAvailable();
+        
         notifyListeners();
       }
     } catch (e) {
       debugPrint('Error fetching my orders: $e');
     }
+  }
+
+  /// Sync price_rejected orders from myOrders to availableOrders
+  void _syncPriceRejectedToAvailable() {
+    final priceRejectedOrders = _myOrders
+        .where((order) {
+          final status = (order['status'] ?? '').toString().toLowerCase();
+          return status == 'price_rejected';
+        })
+        .where(_shouldIncludeOrder)
+        .toList();
+    
+    // Add or update price_rejected orders in availableOrders
+    for (final order in priceRejectedOrders) {
+      final orderId = _getOrderId(order);
+      if (orderId == null) continue;
+      
+      final index = _availableOrders.indexWhere(
+        (o) => _getOrderId(o) == orderId,
+      );
+      
+      if (index != -1) {
+        // Update existing order
+        _availableOrders[index] = Map<String, dynamic>.from(order);
+      } else {
+        // Add new price_rejected order
+        _availableOrders.insert(0, Map<String, dynamic>.from(order));
+        debugPrint('OrderViewModel: Synced price_rejected order to available: $orderId');
+      }
+    }
+    
+    // Remove price_rejected orders that are no longer in myOrders
+    _availableOrders.removeWhere((order) {
+      final status = (order['status'] ?? '').toString().toLowerCase();
+      if (status == 'price_rejected') {
+        final orderId = _getOrderId(order);
+        final existsInMyOrders = _myOrders.any(
+          (o) => _getOrderId(o) == orderId,
+        );
+        if (!existsInMyOrders) {
+          debugPrint('OrderViewModel: Removed price_rejected order from available (no longer in myOrders): $orderId');
+          return true;
+        }
+      }
+      return false;
+    });
   }
 
   Future<bool> acceptOrder(String orderId) async {

@@ -45,6 +45,7 @@
   "price": "السعر",
   "distance": "المسافة",
   "accept": "قبول",
+  "proposeNewPrice": "اقتراح سعر جديد",
   "orderAcceptedSuccessfully": "تم قبول الطلب بنجاح!",
   "failedToAcceptOrder": "فشل قبول الطلب",
   "noActiveOrder": "لا يوجد طلب نشط",
@@ -265,6 +266,21 @@
   "proposedPrice": "السعر المقترح",
   "finalPrice": "السعر النهائي",
   "priceStatusPending": "في انتظار اقتراح السعر",
-  "priceStatusProposed": "تم اقتراح السعر، في انتظار العميل"
+  "priceStatusProposed": "تم اقتراح السعر، في انتظار العميل",
+  "accountSuspended": "الحساب معطل",
+  "accountSuspendedMessage": "تم تعليق حسابك مؤقتاً.",
+  "accountSuspendedDetails": "وصل رصيدك إلى الحد الأقصى المسموح به أو تجاوزه. يرجى الاتصال بالمسؤول لإجراء الدفع وإعادة تفعيل حسابك.",
+  "currentBalance": "الرصيد الحالي",
+  "maximumAllowed": "الحد الأقصى المسموح",
+  "paymentRequiredMessage": "تحتاج إلى دفع {amount} شيكل لإعادة تفعيل حسابك.",
+  "@paymentRequiredMessage": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "checkAccountStatus": "التحقق من حالة الحساب",
+  "checking": "جارٍ التحقق..."
 }
 

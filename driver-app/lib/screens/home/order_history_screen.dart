@@ -21,6 +21,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   List<Map<String, dynamic>> _filteredOrders = [];
   double _totalDeliveryFees = 0.0;
   double? _driverBalance;
+  double? _maxAllowedBalance;
   bool _isLoadingBalance = false;
   final UserRepository _userRepository = UserRepository();
 
@@ -42,6 +43,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         final balanceInfo = response['balanceInfo'] as Map<String, dynamic>;
         setState(() {
           _driverBalance = (balanceInfo['currentBalance'] as num?)?.toDouble();
+          _maxAllowedBalance = (balanceInfo['maxAllowedBalance'] as num?)?.toDouble();
           _isLoadingBalance = false;
         });
       } else {
@@ -57,6 +59,14 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         });
       }
     }
+  }
+
+  /// Filter orders to show only completed (delivered) orders
+  List<Map<String, dynamic>> _filterDeliveredOrders(List<Map<String, dynamic>> allOrders) {
+    return allOrders.where((order) {
+      final status = (order['status'] ?? '').toString().toLowerCase();
+      return status == 'delivered';
+    }).toList();
   }
 
   void _applyFilters(List<Map<String, dynamic>> orders) {
@@ -163,7 +173,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       });
       // Use the widget's context, not the async context parameter
       final orderViewModel = Provider.of<OrderViewModel>(this.context, listen: false);
-      _applyFiltersSync(orderViewModel.myOrders);
+      final deliveredOrders = _filterDeliveredOrders(orderViewModel.myOrders);
+      _applyFiltersSync(deliveredOrders);
       // Refresh balance when filter changes
       _loadDriverBalance();
     }
@@ -176,7 +187,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     });
     // Apply filters immediately with latest orders
     final orderViewModel = Provider.of<OrderViewModel>(context, listen: false);
-    _applyFiltersSync(orderViewModel.myOrders);
+    final deliveredOrders = _filterDeliveredOrders(orderViewModel.myOrders);
+    _applyFiltersSync(deliveredOrders);
     // Refresh balance when filters are cleared
     _loadDriverBalance();
   }
@@ -198,7 +210,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
     return Consumer<OrderViewModel>(
       builder: (context, orderViewModel, _) {
-        final orders = orderViewModel.myOrders;
+        final allOrders = orderViewModel.myOrders;
+        
+        // Filter to show only completed (delivered) orders
+        final orders = _filterDeliveredOrders(allOrders);
 
         // Apply filters on initial load or when orders change
         // Only apply if filteredOrders is empty (initial load) or if orders list changed
@@ -328,15 +343,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildCompactStatCard(
-                      icon: Icons.account_balance_wallet_rounded,
-                      label: l10n.remainingBalance,
-                      value: _isLoadingBalance
-                          ? '...'
-                          : (_driverBalance != null
-                              ? l10n.nis(_driverBalance!.abs().toStringAsFixed(2))
-                              : l10n.nA),
-                      color: AppTheme.warningColor,
+                    child: _buildBalanceCard(
+                      balance: _driverBalance,
+                      maxAllowedBalance: _maxAllowedBalance,
                       isLoading: _isLoadingBalance,
                       onRefresh: _loadDriverBalance,
                     ),
@@ -356,7 +365,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   : RefreshIndicator(
                       onRefresh: () async {
                         await orderViewModel.fetchMyOrders();
-                        _applyFilters(orderViewModel.myOrders);
+                        // Filter to show only completed (delivered) orders first
+                        final deliveredOrders = _filterDeliveredOrders(orderViewModel.myOrders);
+                        _applyFilters(deliveredOrders);
                         // Refresh balance when pulling to refresh
                         _loadDriverBalance();
                       },
@@ -440,6 +451,124 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           const SizedBox(height: 4),
           Text(
             label,
+            style: TextStyle(
+              fontSize: 10,
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBalanceCard({
+    required double? balance,
+    required double? maxAllowedBalance,
+    required bool isLoading,
+    VoidCallback? onRefresh,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    final color = AppTheme.warningColor;
+    
+    // Determine color based on balance percentage
+    Color progressColor = AppTheme.successColor;
+    if (maxAllowedBalance != null && balance != null) {
+      final percentage = balance / maxAllowedBalance;
+      if (percentage >= 1.0) {
+        progressColor = Colors.red;
+      } else if (percentage >= 0.8) {
+        progressColor = Colors.orange;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.account_balance_wallet_rounded, color: color, size: 18),
+              if (onRefresh != null) ...[
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: onRefresh,
+                  child: Icon(
+                    Icons.refresh_rounded,
+                    color: color,
+                    size: 14,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (isLoading)
+            SizedBox(
+              height: 16,
+              width: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
+            )
+          else
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  balance != null
+                      ? l10n.nis(balance.toStringAsFixed(2))
+                      : l10n.nA,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                    letterSpacing: -0.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+                if (maxAllowedBalance != null && balance != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '/ ${l10n.nis(maxAllowedBalance.toStringAsFixed(2))}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: maxAllowedBalance > 0 ? (balance / maxAllowedBalance).clamp(0.0, 1.0) : 0,
+                      minHeight: 4,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.remainingBalance,
             style: TextStyle(
               fontSize: 10,
               color: AppTheme.textSecondary,
@@ -538,9 +667,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           });
                           // Get fresh orders from OrderViewModel and apply filters immediately
                           final orderViewModel = Provider.of<OrderViewModel>(context, listen: false);
-                          final orders = orderViewModel.myOrders;
+                          final deliveredOrders = _filterDeliveredOrders(orderViewModel.myOrders);
                           // Apply filters synchronously to ensure immediate update
-                          _applyFiltersSync(orders);
+                          _applyFiltersSync(deliveredOrders);
                           _loadDriverBalance();
                           Navigator.pop(context);
                         },

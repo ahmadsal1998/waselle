@@ -270,8 +270,18 @@ export const getMyBalance = async (
 
     const driverObjectId = new mongoose.Types.ObjectId(req.user.userId);
     const balanceInfo = await calculateDriverBalance(driverObjectId);
+    
+    // Get max allowed balance from settings
+    const Settings = (await import('../models/Settings')).default;
+    const settings = await Settings.getSettings();
+    const maxAllowedBalance = settings.maxAllowedBalance || 3;
 
-    res.status(200).json({ balanceInfo });
+    res.status(200).json({ 
+      balanceInfo: {
+        ...balanceInfo,
+        maxAllowedBalance,
+      }
+    });
   } catch (error: any) {
     res.status(500).json({
       message: error.message || 'Failed to get balance',

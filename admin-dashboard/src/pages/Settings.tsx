@@ -14,7 +14,7 @@ const Settings = () => {
   const [mapDefaultLng, setMapDefaultLng] = useState<number>(35.29172911766705);
   const [mapDefaultZoom, setMapDefaultZoom] = useState<number>(12);
   const [commissionPercentage, setCommissionPercentage] = useState<number>(2);
-  const [maxAllowedBalance, setMaxAllowedBalance] = useState<number>(50);
+  const [maxAllowedBalance, setMaxAllowedBalance] = useState<number>(3);
   const [otpMessageTemplate, setOtpMessageTemplate] = useState<string>(
     'Your OTP code is: ${otp}. This code will expire in 10 minutes.'
   );
@@ -521,7 +521,7 @@ const Settings = () => {
             </div>
             {settings && (
               <p className="mt-2 text-xs text-slate-500">
-                Current value: {settings.maxAllowedBalance || 50} NIS
+                Current value: {settings.maxAllowedBalance || 3} NIS
               </p>
             )}
           </div>

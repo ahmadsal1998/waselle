@@ -125,6 +125,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get accept => 'قبول';
 
   @override
+  String get proposeNewPrice => 'اقتراح سعر جديد';
+
+  @override
   String get orderAcceptedSuccessfully => 'تم قبول الطلب بنجاح!';
 
   @override
@@ -536,4 +539,30 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get priceStatusProposed => 'تم اقتراح السعر، في انتظار العميل';
+
+  @override
+  String get accountSuspended => 'الحساب معطل';
+
+  @override
+  String get accountSuspendedMessage => 'تم تعليق حسابك مؤقتاً.';
+
+  @override
+  String get accountSuspendedDetails => 'وصل رصيدك إلى الحد الأقصى المسموح به أو تجاوزه. يرجى الاتصال بالمسؤول لإجراء الدفع وإعادة تفعيل حسابك.';
+
+  @override
+  String get currentBalance => 'الرصيد الحالي';
+
+  @override
+  String get maximumAllowed => 'الحد الأقصى المسموح';
+
+  @override
+  String paymentRequiredMessage(String amount) {
+    return 'تحتاج إلى دفع $amount شيكل لإعادة تفعيل حسابك.';
+  }
+
+  @override
+  String get checkAccountStatus => 'التحقق من حالة الحساب';
+
+  @override
+  String get checking => 'جارٍ التحقق...';
 }

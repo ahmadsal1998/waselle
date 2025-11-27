@@ -1012,6 +1012,34 @@
   "viewPriceOffers": "View and respond to price offers",
   "@viewPriceOffers": {
     "description": "Subtitle for price offers menu item"
+  },
+  "newPriceOfferReceived": "New price offer received!",
+  "@newPriceOfferReceived": {
+    "description": "Notification message when a new price offer arrives"
+  },
+  "viewOrderHistory": "View your past orders",
+  "@viewOrderHistory": {
+    "description": "Subtitle for order history menu item"
+  },
+  "verifyPhoneNumber": "Verify Phone Number",
+  "@verifyPhoneNumber": {
+    "description": "Title for phone verification dialog"
+  },
+  "enterVerificationCodeWhatsApp": "Enter the 6-digit verification code sent to your WhatsApp:",
+  "@enterVerificationCodeWhatsApp": {
+    "description": "Instruction text for WhatsApp verification code"
+  },
+  "verifyAndSubmitOrder": "Verify & Submit Order",
+  "@verifyAndSubmitOrder": {
+    "description": "Button text to verify OTP and submit order"
+  },
+  "resendCode": "Resend Code",
+  "@resendCode": {
+    "description": "Button text to resend verification code"
+  },
+  "pleaseEnter6DigitCode": "Please enter 6-digit code",
+  "@pleaseEnter6DigitCode": {
+    "description": "Validation message for OTP input"
   }
 }
 

@@ -548,9 +548,11 @@ export const emitNewOrder = async (order: any): Promise<void> => {
     }
 
     // Find all available drivers matching the vehicle type
+    // CRITICAL: Only include active (non-suspended) drivers
     const drivers = await User.find({
       role: 'driver',
       isAvailable: true,
+      isActive: true, // Only active drivers (not suspended)
       vehicleType: order.vehicleType,
       location: { $exists: true },
     });
@@ -684,6 +686,8 @@ export const emitPriceProposed = (order: any): void => {
   // Notify customer about the proposed price
   emitToUserRoom(customerId, 'price-proposed', {
     orderId: order?._id?.toString() ?? order?.id,
+    newPrice: order?.finalPrice,
+    status: 'new_offer',
     finalPrice: order?.finalPrice,
     estimatedPrice: order?.estimatedPrice,
     driverName: order?.driverId?.name,

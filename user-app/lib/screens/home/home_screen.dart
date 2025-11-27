@@ -20,6 +20,7 @@ import 'order_tracking_screen.dart';
 import 'profile_screen.dart';
 import 'receive_request_screen.dart';
 import 'send_request_screen.dart';
+import 'delivery_price_offers_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -29,7 +30,7 @@ class HomeScreen extends StatelessWidget {
     return [
       l10n.discover,
       l10n.trackOrder,
-      l10n.orderHistory,
+      l10n.deliveryPriceOffers,
       l10n.profile,
     ];
   }
@@ -147,7 +148,7 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
             children: [
               _MapTab(viewModel: viewModel),
           const OrderTrackingScreen(showAppBar: false),
-              const OrderHistoryScreen(),
+              const DeliveryPriceOffersScreen(),
               const ProfileScreen(showAppBar: false),
             ],
           ),
@@ -233,9 +234,9 @@ class _HomeNavigationBar extends StatelessWidget {
           label: l10n.trackOrder,
         ),
         NavigationDestination(
-          icon: const Icon(Icons.history_outlined),
-          selectedIcon: const Icon(Icons.history),
-          label: l10n.orderHistory,
+          icon: const Icon(Icons.local_offer_outlined),
+          selectedIcon: const Icon(Icons.local_offer),
+          label: l10n.deliveryPriceOffers,
         ),
         NavigationDestination(
           icon: const Icon(Icons.person_outline),

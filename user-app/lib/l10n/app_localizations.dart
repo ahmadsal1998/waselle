@@ -1534,6 +1534,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View and respond to price offers'**
   String get viewPriceOffers;
+
+  /// Notification message when a new price offer arrives
+  ///
+  /// In en, this message translates to:
+  /// **'New price offer received!'**
+  String get newPriceOfferReceived;
+
+  /// Subtitle for order history menu item
+  ///
+  /// In en, this message translates to:
+  /// **'View your past orders'**
+  String get viewOrderHistory;
+
+  /// Title for phone verification dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Phone Number'**
+  String get verifyPhoneNumber;
+
+  /// Instruction text for WhatsApp verification code
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit verification code sent to your WhatsApp:'**
+  String get enterVerificationCodeWhatsApp;
+
+  /// Button text to verify OTP and submit order
+  ///
+  /// In en, this message translates to:
+  /// **'Verify & Submit Order'**
+  String get verifyAndSubmitOrder;
+
+  /// Button text to resend verification code
+  ///
+  /// In en, this message translates to:
+  /// **'Resend Code'**
+  String get resendCode;
+
+  /// Validation message for OTP input
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter 6-digit code'**
+  String get pleaseEnter6DigitCode;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

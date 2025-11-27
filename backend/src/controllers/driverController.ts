@@ -53,7 +53,7 @@ export const getAllDrivers = async (
 
     // Get settings for max allowed balance
     const settings = await Settings.getSettings();
-    const maxAllowedBalance = settings.maxAllowedBalance || 50;
+    const maxAllowedBalance = settings.maxAllowedBalance || 3;
 
     // Only calculate balances if requested (for performance)
     let driversWithBalance;

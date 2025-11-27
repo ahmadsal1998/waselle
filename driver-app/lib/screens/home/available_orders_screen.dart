@@ -121,12 +121,22 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
   Future<void> _acceptOrder(String orderId) async {
     final l10n = AppLocalizations.of(context)!;
     
-    // Find the order to get its estimated price
+    // Find the order to get its estimated price and status
     final orderViewModel = Provider.of<OrderViewModel>(context, listen: false);
     final order = orderViewModel.availableOrders.firstWhere(
       (o) => _normalizeOrderId(o['_id']) == orderId,
       orElse: () => <String, dynamic>{},
     );
+    
+    if (order.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.failedToAcceptOrder)),
+      );
+      return;
+    }
+    
+    final status = (order['status'] ?? '').toString().toLowerCase();
+    final isPriceRejected = status == 'price_rejected';
     
     final estimatedPrice = order['estimatedPrice']?.toString() ?? order['price']?.toString() ?? '0';
     
@@ -145,13 +155,8 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
       return;
     }
     
-    // Accept the order first
-    final success = await orderViewModel.acceptOrder(orderId);
-
-    if (!mounted) return;
-
-    if (success) {
-      // Now propose the final price
+    if (isPriceRejected) {
+      // For price_rejected orders, just propose a new price (order is already accepted)
       final priceSuccess = await orderViewModel.proposePrice(
         orderId: orderId,
         finalPrice: finalPrice,
@@ -161,24 +166,53 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
       
       if (priceSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.orderAcceptedSuccessfully)),
+          SnackBar(content: Text(l10n.priceProposedSuccessfully)),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.orderAcceptedPricePending)),
+          SnackBar(content: Text(l10n.failedToAcceptOrder)),
         );
       }
       
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => OrderDetailsScreen(orderId: orderId),
-        ),
-      );
+      // Refresh orders to update the list
+      await orderViewModel.fetchMyOrders();
+      await orderViewModel.fetchAvailableOrders();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.failedToAcceptOrder)),
-      );
+      // For pending orders, accept first then propose price
+      final success = await orderViewModel.acceptOrder(orderId);
+
+      if (!mounted) return;
+
+      if (success) {
+        // Now propose the final price
+        final priceSuccess = await orderViewModel.proposePrice(
+          orderId: orderId,
+          finalPrice: finalPrice,
+        );
+        
+        if (!mounted) return;
+        
+        if (priceSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.orderAcceptedSuccessfully)),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.orderAcceptedPricePending)),
+          );
+        }
+        
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OrderDetailsScreen(orderId: orderId),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.failedToAcceptOrder)),
+        );
+      }
     }
   }
 
@@ -369,6 +403,10 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                   
                   // Get notes
                   final notes = order['deliveryNotes']?.toString().trim() ?? '';
+                  
+                  // Get order status
+                  final status = (order['status'] ?? '').toString().toLowerCase();
+                  final isPriceRejected = status == 'price_rejected';
 
                   return _buildCleanOrderCard(
                     context: context,
@@ -382,6 +420,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                     price: price,
                     notes: notes,
                     normalizedId: normalizedId,
+                    isPriceRejected: isPriceRejected,
                   );
                 },
               );
@@ -404,6 +443,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
     required String price,
     required String notes,
     String? normalizedId,
+    bool isPriceRejected = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -666,18 +706,20 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                     ),
                     const SizedBox(width: 12),
                   ],
-                  // Accept Button
+                  // Accept/Propose Price Button
                   Expanded(
                     child: ResponsiveButton.elevated(
                       context: context,
                       onPressed: normalizedId != null
                           ? () => _acceptOrder(normalizedId)
                           : null,
-                      backgroundColor: AppTheme.primaryColor,
+                      backgroundColor: isPriceRejected 
+                          ? Colors.orange 
+                          : AppTheme.primaryColor,
                       foregroundColor: Colors.white,
                       borderRadius: 10,
                       child: Text(
-                        l10n.accept,
+                        isPriceRejected ? l10n.proposeNewPrice : l10n.accept,
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                         textAlign: TextAlign.center,

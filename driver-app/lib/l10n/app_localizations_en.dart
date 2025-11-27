@@ -125,6 +125,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accept => 'Accept';
 
   @override
+  String get proposeNewPrice => 'Propose New Price';
+
+  @override
   String get orderAcceptedSuccessfully => 'Order accepted successfully!';
 
   @override
@@ -536,4 +539,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get priceStatusProposed => 'Price proposed, waiting for customer';
+
+  @override
+  String get accountSuspended => 'Account Suspended';
+
+  @override
+  String get accountSuspendedMessage => 'Your account has been temporarily suspended.';
+
+  @override
+  String get accountSuspendedDetails => 'Your balance has reached or exceeded the maximum allowed limit. Please contact the administrator to make a payment and reactivate your account.';
+
+  @override
+  String get currentBalance => 'Current Balance';
+
+  @override
+  String get maximumAllowed => 'Maximum Allowed';
+
+  @override
+  String paymentRequiredMessage(String amount) {
+    return 'You need to pay $amount NIS to reactivate your account.';
+  }
+
+  @override
+  String get checkAccountStatus => 'Check Account Status';
+
+  @override
+  String get checking => 'Checking...';
 }

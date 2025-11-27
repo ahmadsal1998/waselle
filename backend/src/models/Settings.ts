@@ -121,7 +121,7 @@ const SettingsSchema: Schema = new Schema(
     maxAllowedBalance: {
       type: Number,
       required: true,
-      default: 50, // Default 50 NIS
+      default: 3, // Default 3 NIS
       min: 0,
     },
     otpMessageTemplate: {
@@ -181,7 +181,7 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
         cargo: { enabled: false, basePrice: 15 },
       },
       commissionPercentage: 2,
-      maxAllowedBalance: 50,
+      maxAllowedBalance: 3,
       otpMessageTemplate: 'Your OTP code is: ${otp}. This code will expire in 10 minutes.',
       otpMessageTemplateAr: 'رمز التحقق الخاص بك هو: ${otp}. هذا الرمز صالح لمدة 10 دقائق فقط.',
       otpMessageLanguage: 'en',
@@ -231,7 +231,7 @@ SettingsSchema.statics.getSettings = async function (): Promise<ISettings> {
       settings.commissionPercentage = 2;
     }
     if (settings.maxAllowedBalance === undefined) {
-      settings.maxAllowedBalance = 50;
+      settings.maxAllowedBalance = 3;
     }
     // Set default OTP message template if not set
     if (!settings.otpMessageTemplate) {

@@ -323,6 +323,12 @@ abstract class AppLocalizations {
   /// **'Accept'**
   String get accept;
 
+  /// Button label for proposing a new price for rejected orders
+  ///
+  /// In en, this message translates to:
+  /// **'Propose New Price'**
+  String get proposeNewPrice;
+
   /// Order acceptance success message
   ///
   /// In en, this message translates to:
@@ -1096,6 +1102,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Price proposed, waiting for customer'**
   String get priceStatusProposed;
+
+  /// Account suspended screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Account Suspended'**
+  String get accountSuspended;
+
+  /// Account suspended main message
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been temporarily suspended.'**
+  String get accountSuspendedMessage;
+
+  /// Account suspended detailed explanation
+  ///
+  /// In en, this message translates to:
+  /// **'Your balance has reached or exceeded the maximum allowed limit. Please contact the administrator to make a payment and reactivate your account.'**
+  String get accountSuspendedDetails;
+
+  /// Current balance label
+  ///
+  /// In en, this message translates to:
+  /// **'Current Balance'**
+  String get currentBalance;
+
+  /// Maximum allowed balance label
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum Allowed'**
+  String get maximumAllowed;
+
+  /// Payment required message with amount
+  ///
+  /// In en, this message translates to:
+  /// **'You need to pay {amount} NIS to reactivate your account.'**
+  String paymentRequiredMessage(String amount);
+
+  /// Check account status button text
+  ///
+  /// In en, this message translates to:
+  /// **'Check Account Status'**
+  String get checkAccountStatus;
+
+  /// Checking status message
+  ///
+  /// In en, this message translates to:
+  /// **'Checking...'**
+  String get checking;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

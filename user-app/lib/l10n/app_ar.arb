@@ -304,6 +304,13 @@
   "offerAccepted": "تم قبول العرض بنجاح",
   "offerRejected": "تم رفض العرض",
   "failedToLoadOffers": "فشل تحميل عروض الأسعار",
-  "viewPriceOffers": "عرض والرد على عروض الأسعار"
+  "viewPriceOffers": "عرض والرد على عروض الأسعار",
+  "newPriceOfferReceived": "تم استلام عرض سعر جديد!",
+  "viewOrderHistory": "عرض طلباتك السابقة",
+  "verifyPhoneNumber": "التحقق من رقم الهاتف",
+  "enterVerificationCodeWhatsApp": "أدخل رمز التحقق المكون من 6 أرقام المرسل إلى واتساب الخاص بك:",
+  "verifyAndSubmitOrder": "التحقق وإرسال الطلب",
+  "resendCode": "إعادة إرسال الرمز",
+  "pleaseEnter6DigitCode": "الرجاء إدخال رمز مكون من 6 أرقام"
 }
 

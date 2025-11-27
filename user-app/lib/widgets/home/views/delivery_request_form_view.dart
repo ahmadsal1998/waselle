@@ -7,10 +7,12 @@ import '../../../../view_models/location_view_model.dart';
 import '../../../../view_models/order_view_model.dart';
 import '../../../../view_models/region_view_model.dart';
 import '../../../../view_models/auth_view_model.dart';
+import '../../../../view_models/locale_view_model.dart';
 import '../../../../screens/home/order_success_screen.dart';
 import '../../../../services/saved_address_service.dart';
 import '../../../../models/saved_address.dart';
 import '../../../../utils/phone_utils.dart';
+import '../../../../utils/image_utils.dart';
 import '../controllers/delivery_request_form_controller.dart';
 
 class DeliveryRequestFormView extends StatefulWidget {
@@ -1681,24 +1683,50 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.verified_user_outlined, color: theme.colorScheme.primary),
-            const SizedBox(width: 12),
-            const Expanded(child: Text('Verify Phone Number')),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Enter the 6-digit verification code sent to your WhatsApp:',
-                style: theme.textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 20),
+      builder: (dialogContext) => Consumer<LocaleViewModel>(
+        builder: (context, localeViewModel, _) {
+          final dialogL10n = AppLocalizations.of(context)!;
+          final isArabic = localeViewModel.isArabic;
+          
+          // Get language-specific image path
+          final imagePath = ImageUtils.getWhatsAppVerificationImage(context);
+          
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.verified_user_outlined, color: theme.colorScheme.primary),
+                const SizedBox(width: 12),
+                Expanded(child: Text(dialogL10n.verifyPhoneNumber)),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Language-specific WhatsApp image
+                  Center(
+                    child: Image.asset(
+                      imagePath,
+                      width: 120,
+                      height: 120,
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback to icon if image doesn't exist
+                        return Icon(
+                          Icons.message,
+                          size: 120,
+                          color: theme.colorScheme.primary.withOpacity(0.7),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    dialogL10n.enterVerificationCodeWhatsApp,
+                    style: theme.textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
               TextField(
                 controller: controller.otpController,
                 keyboardType: TextInputType.number,
@@ -1738,7 +1766,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                     _showOTPDialog(context, controller, locationProvider, regionProvider, orderProvider);
                   }
                 },
-                child: const Text('Resend Code'),
+                child: Text(dialogL10n.resendCode),
               ),
             ],
           ),
@@ -1757,7 +1785,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                 : () async {
                     if (controller.otpController.text.length != 6) {
                       ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(content: Text('Please enter 6-digit code')),
+                        SnackBar(content: Text(dialogL10n.pleaseEnter6DigitCode)),
                       );
                       return;
                     }
@@ -1829,9 +1857,11 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Verify & Submit Order'),
+                : Text(dialogL10n.verifyAndSubmitOrder),
           ),
         ],
+      );
+        },
       ),
     );
   }

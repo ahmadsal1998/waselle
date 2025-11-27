@@ -745,4 +745,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewPriceOffers => 'View and respond to price offers';
+
+  @override
+  String get newPriceOfferReceived => 'New price offer received!';
+
+  @override
+  String get viewOrderHistory => 'View your past orders';
+
+  @override
+  String get verifyPhoneNumber => 'Verify Phone Number';
+
+  @override
+  String get enterVerificationCodeWhatsApp => 'Enter the 6-digit verification code sent to your WhatsApp:';
+
+  @override
+  String get verifyAndSubmitOrder => 'Verify & Submit Order';
+
+  @override
+  String get resendCode => 'Resend Code';
+
+  @override
+  String get pleaseEnter6DigitCode => 'Please enter 6-digit code';
 }

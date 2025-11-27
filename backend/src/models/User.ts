@@ -24,6 +24,8 @@ export interface IUser extends Document {
   profilePicture?: string;
   fcmToken?: string; // Firebase Cloud Messaging token for push notifications
   preferredLanguage?: 'ar' | 'en'; // User's preferred language for notifications ('ar' or 'en')
+  balance?: number; // Current commission balance (for drivers only, starts at 0)
+  lastBalanceSettlementDate?: Date; // Date when balance was last reset to 0 (for drivers only)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -146,6 +148,14 @@ const UserSchema: Schema = new Schema(
       enum: ['ar', 'en'],
       default: 'ar', // Default to Arabic to match app default
       trim: true,
+    },
+    balance: {
+      type: Number,
+      default: 0, // Balance starts at 0
+      min: 0,
+    },
+    lastBalanceSettlementDate: {
+      type: Date,
     },
   },
   {

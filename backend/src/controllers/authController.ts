@@ -501,6 +501,24 @@ export const getCurrentUser = async (
       return;
     }
 
+    // For drivers, check and update suspension status based on current balance
+    if (user.role === 'driver') {
+      const { checkAndSuspendDriverIfNeeded } = await import('../utils/balance');
+      const currentBalance = user.balance || 0;
+      
+      // Check if driver should be suspended or reactivated
+      // This function will update isActive status if needed
+      await checkAndSuspendDriverIfNeeded(user._id, currentBalance);
+      
+      // Refresh user data after potential status change
+      const updatedUser = await User.findById(req.user.userId).select('-password -otpCode -otpExpires');
+      if (updatedUser) {
+        // Update the user object with fresh data
+        user.isActive = updatedUser.isActive;
+        user.balance = updatedUser.balance;
+      }
+    }
+
     // Return user data with all fields including phone, countryCode, address, profilePicture
     const userData: any = {
       id: user._id,
@@ -520,6 +538,16 @@ export const getCurrentUser = async (
       profilePicture: user.profilePicture,
       createdAt: user.createdAt,
     };
+
+    // For drivers, include balance and max allowed balance
+    if (user.role === 'driver') {
+      userData.balance = user.balance || 0;
+      
+      // Get max allowed balance from settings
+      const Settings = (await import('../models/Settings')).default;
+      const settings = await Settings.getSettings();
+      userData.maxAllowedBalance = settings.maxAllowedBalance || 3;
+    }
 
     res.status(200).json({ user: userData });
   } catch (error: any) {

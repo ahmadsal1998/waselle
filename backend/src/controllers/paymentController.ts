@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import Payment from '../models/Payment';
 import User from '../models/User';
 import { AuthRequest } from '../middleware/auth';
-import { calculateDriverBalance, checkAndSuspendDriverIfNeeded } from '../utils/balance';
+import { calculateDriverBalance, checkAndSuspendDriverIfNeeded, resetDriverBalance } from '../utils/balance';
 
 // Add payment for a driver (admin only)
 export const addPayment = async (
@@ -43,8 +43,14 @@ export const addPayment = async (
       notes: notes || undefined,
     });
 
-    // Recalculate balance and check if suspension/reactivation is needed
-    const suspensionResult = await checkAndSuspendDriverIfNeeded(driverObjectId);
+    // Reset driver balance to 0 and update last settlement date
+    await resetDriverBalance(driverObjectId);
+    console.log(`Driver ${driverObjectId} balance reset to 0 after payment of ${amount} NIS`);
+
+    // Check if reactivation is needed (balance is now 0)
+    const suspensionResult = await checkAndSuspendDriverIfNeeded(driverObjectId, 0);
+    
+    // Recalculate balance info for response (should be 0 now)
     const balanceInfo = await calculateDriverBalance(driverObjectId);
 
     // Refresh driver data after potential status change

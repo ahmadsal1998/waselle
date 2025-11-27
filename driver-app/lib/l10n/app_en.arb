@@ -154,6 +154,10 @@
     "description": "Distance label"
   },
   "accept": "Accept",
+  "proposeNewPrice": "Propose New Price",
+  "@proposeNewPrice": {
+    "description": "Button label for proposing a new price for rejected orders"
+  },
   "@accept": {
     "description": "Accept button text"
   },
@@ -741,6 +745,43 @@
   "priceStatusProposed": "Price proposed, waiting for customer",
   "@priceStatusProposed": {
     "description": "Price status when proposed to customer"
+  },
+  "accountSuspended": "Account Suspended",
+  "@accountSuspended": {
+    "description": "Account suspended screen title"
+  },
+  "accountSuspendedMessage": "Your account has been temporarily suspended.",
+  "@accountSuspendedMessage": {
+    "description": "Account suspended main message"
+  },
+  "accountSuspendedDetails": "Your balance has reached or exceeded the maximum allowed limit. Please contact the administrator to make a payment and reactivate your account.",
+  "@accountSuspendedDetails": {
+    "description": "Account suspended detailed explanation"
+  },
+  "currentBalance": "Current Balance",
+  "@currentBalance": {
+    "description": "Current balance label"
+  },
+  "maximumAllowed": "Maximum Allowed",
+  "@maximumAllowed": {
+    "description": "Maximum allowed balance label"
+  },
+  "paymentRequiredMessage": "You need to pay {amount} NIS to reactivate your account.",
+  "@paymentRequiredMessage": {
+    "description": "Payment required message with amount",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "checkAccountStatus": "Check Account Status",
+  "@checkAccountStatus": {
+    "description": "Check account status button text"
+  },
+  "checking": "Checking...",
+  "@checking": {
+    "description": "Checking status message"
   }
 }
 

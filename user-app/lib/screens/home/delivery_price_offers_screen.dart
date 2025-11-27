@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:delivery_user_app/l10n/app_localizations.dart';
 import '../../view_models/order_view_model.dart';
 import '../../repositories/api_service.dart';
+import '../../services/socket_service.dart';
 
 class DeliveryPriceOffersScreen extends StatefulWidget {
   const DeliveryPriceOffersScreen({super.key});
@@ -16,6 +17,8 @@ class _DeliveryPriceOffersScreenState extends State<DeliveryPriceOffersScreen> {
   bool _isInitialized = false;
   List<Map<String, dynamic>> _offers = [];
   String? _error;
+  bool _isWebSocketConnected = false;
+  bool _isWebSocketConnecting = false;
 
   Future<void> _loadOffers() async {
     setState(() {
@@ -84,13 +87,172 @@ class _DeliveryPriceOffersScreenState extends State<DeliveryPriceOffersScreen> {
     }
   }
 
+  void _setupWebSocketListener() {
+    // Initialize socket if not already connected
+    if (!SocketService.isConnected) {
+      setState(() {
+        _isWebSocketConnecting = true;
+      });
+      SocketService.initialize().then((_) {
+        if (mounted) {
+          setState(() {
+            _isWebSocketConnecting = false;
+            _isWebSocketConnected = SocketService.isConnected;
+          });
+          // Setup listeners after connection is established
+          _attachWebSocketListeners();
+        }
+      });
+    } else {
+      setState(() {
+        _isWebSocketConnected = true;
+      });
+      _attachWebSocketListeners();
+    }
+  }
+
+  void _attachWebSocketListeners() {
+    // Listen for connection status changes
+    SocketService.on('connect', (_) {
+      if (mounted) {
+        setState(() {
+          _isWebSocketConnected = true;
+          _isWebSocketConnecting = false;
+        });
+      }
+    });
+
+    SocketService.on('disconnect', (_) {
+      if (mounted) {
+        setState(() {
+          _isWebSocketConnected = false;
+        });
+        // Attempt to reconnect
+        _reconnectWebSocket();
+      }
+    });
+
+    // Listen for new price offers
+    SocketService.on('price-proposed', _handleNewPriceOffer);
+  }
+
+  void _handleNewPriceOffer(dynamic data) {
+    if (!mounted) return;
+
+    try {
+      final orderId = data['orderId']?.toString();
+      final newPrice = data['newPrice'] ?? data['finalPrice'];
+      final status = data['status'] ?? 'new_offer';
+
+      if (orderId == null) {
+        debugPrint('Received price-proposed event without orderId');
+        return;
+      }
+
+      debugPrint('💰 New price offer received: Order $orderId, Price: $newPrice');
+
+      // Check if this order already exists in the list
+      final existingIndex = _offers.indexWhere(
+        (offer) => offer['_id']?.toString() == orderId,
+      );
+
+      if (existingIndex >= 0) {
+        // Update existing offer
+        setState(() {
+          _offers[existingIndex] = {
+            ..._offers[existingIndex],
+            'finalPrice': newPrice,
+            'priceProposedAt': DateTime.now().toIso8601String(),
+            'status': status,
+            // Update driver info if provided
+            if (data['driverName'] != null)
+              'driverId': {
+                ...(_offers[existingIndex]['driverId'] as Map? ?? {}),
+                'name': data['driverName'],
+              },
+            // Merge full order data if provided
+            if (data['order'] != null) ...data['order'],
+          };
+        });
+      } else {
+        // This is a new offer - we need to fetch the full order details
+        // For now, reload the offers list to get complete data
+        _loadOffers();
+      }
+
+      // Show a notification to the user
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.newPriceOfferReceived),
+          backgroundColor: Colors.blue,
+          action: SnackBarAction(
+            label: 'OK',
+            textColor: Colors.white,
+            onPressed: () {
+              // Dismiss the snackbar
+            },
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error handling new price offer: $e');
+    }
+  }
+
+  Future<void> _reconnectWebSocket() async {
+    if (_isWebSocketConnecting) return;
+
+    setState(() {
+      _isWebSocketConnecting = true;
+    });
+
+    try {
+      await SocketService.initialize();
+      if (mounted) {
+        setState(() {
+          _isWebSocketConnected = SocketService.isConnected;
+          _isWebSocketConnecting = false;
+        });
+        // Re-attach listeners after reconnection (don't re-initialize)
+        if (SocketService.isConnected) {
+          _attachWebSocketListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error reconnecting WebSocket: $e');
+      if (mounted) {
+        setState(() {
+          _isWebSocketConnecting = false;
+        });
+        // Retry after a delay
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted && !_isWebSocketConnected) {
+            _reconnectWebSocket();
+          }
+        });
+      }
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_isInitialized) {
       _isInitialized = true;
       _loadOffers();
+      _setupWebSocketListener();
     }
+  }
+
+  @override
+  void dispose() {
+    // Remove WebSocket listeners when screen is disposed
+    SocketService.off('price-proposed');
+    SocketService.off('connect');
+    SocketService.off('disconnect');
+    super.dispose();
   }
 
   @override
@@ -99,10 +261,48 @@ class _DeliveryPriceOffersScreenState extends State<DeliveryPriceOffersScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.deliveryPriceOffers),
+   /*   appBar: AppBar(
+     //   title: Text(l10n.deliveryPriceOffers),
         elevation: 0,
-      ),
+        actions: [
+          // WebSocket connection status indicator
+          if (_isWebSocketConnecting)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                ),
+              ),
+            )
+          else if (!_isWebSocketConnected)
+            Tooltip(
+              message: 'Connection lost. Reconnecting...',
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Icon(
+                  Icons.wifi_off,
+                  size: 20,
+                  color: Colors.orange,
+                ),
+              ),
+            )
+          else
+            Tooltip(
+              message: 'Real-time updates active',
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Icon(
+                  Icons.wifi,
+                  size: 20,
+                  color: Colors.green,
+                ),
+              ),
+            ),
+        ],
+      ),*/
       body: _isLoading && _offers.isEmpty
           ? const Center(child: CircularProgressIndicator())
               : _error != null

@@ -41,7 +41,15 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   Widget build(BuildContext context) {
     return Consumer<OrderViewModel>(
       builder: (context, orderProvider, _) {
-        final orders = orderProvider.orders;
+        final allOrders = orderProvider.orders;
+        
+        // Filter to show only submitted or completed orders, exclude cancelled/rejected
+        final orders = allOrders.where((order) {
+          final status = (order['status'] ?? '').toString().toLowerCase();
+          // Include: pending, accepted, on_the_way, delivered, new_price_pending
+          // Exclude: cancelled, price_rejected
+          return status != 'cancelled' && status != 'price_rejected';
+        }).toList();
 
         if (_isLoading && orders.isEmpty) {
           return const Center(child: CircularProgressIndicator());

@@ -40,6 +40,8 @@ flutter:
   generate: true
   assets:
     - assets/images/
+    - assets/images/ar/
+    - assets/images/en/
 
 flutter_native_splash:
   color: "#FFFFFF"

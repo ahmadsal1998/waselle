@@ -25,7 +25,7 @@ import { generateToken } from '../utils/jwt';
 import { normalizeAddress } from '../utils/address';
 import { admin } from '../utils/firebase';
 import { normalizePhoneNumber, splitPhoneNumber } from '../utils/phone';
-import { checkAndSuspendDriverIfNeeded } from '../utils/balance';
+import { checkAndSuspendDriverIfNeeded, addCommissionToBalance, calculateDriverBalance } from '../utils/balance';
 import { sendSMSOTP } from '../utils/smsProvider';
 import { generateOTP } from '../utils/otp';
 
@@ -472,6 +472,14 @@ export const getAvailableOrders = async (
       return;
     }
 
+    // Check if driver is suspended
+    if (driver.isActive === false) {
+      res.status(403).json({
+        message: 'Your account has been suspended. Please contact admin to resolve your balance.',
+      });
+      return;
+    }
+
     // Get pending orders with customer location populated
     // Only include orders from verified users
     const pendingOrders = await Order.find({
@@ -676,6 +684,23 @@ export const acceptOrder = async (
       return;
     }
 
+    // Check if driver balance has reached the maximum allowed limit
+    try {
+      const balanceInfo = await calculateDriverBalance(new mongoose.Types.ObjectId(req.user.userId));
+      const settings = await Settings.getSettings();
+      const maxAllowedBalance = settings.maxAllowedBalance || 3;
+      
+      if (balanceInfo.currentBalance >= maxAllowedBalance) {
+        res.status(403).json({
+          message: `You cannot accept new orders. Your balance has reached the maximum allowed limit of ${maxAllowedBalance} NIS. Current balance: ${balanceInfo.currentBalance.toFixed(2)} NIS. Please settle your balance to continue.`,
+        });
+        return;
+      }
+    } catch (balanceError: any) {
+      // Log error but don't fail the order acceptance (balance check is a safety measure)
+      console.error('Error checking driver balance before order acceptance:', balanceError);
+    }
+
     if (!driver.vehicleType) {
       res.status(400).json({
         message: 'Driver must have a vehicle type set before accepting orders',
@@ -782,18 +807,29 @@ export const updateOrderStatus = async (
     order.status = status;
     await order.save();
 
-    // If order is marked as delivered and has a driver, check balance and suspend if needed
+    // If order is marked as delivered and has a driver, add commission to balance and check suspension
     if (status === 'delivered' && order.driverId) {
       try {
-        const suspensionResult = await checkAndSuspendDriverIfNeeded(order.driverId);
+        // Get the order price (use finalPrice if available, otherwise use price)
+        const orderAmount = order.finalPrice || order.price;
+        
+        // Add commission to driver balance
+        const balanceResult = await addCommissionToBalance(order.driverId, orderAmount);
+        console.log(
+          `Order ${order._id} delivered. Added ${balanceResult.commissionAdded.toFixed(2)} NIS commission to driver ${order.driverId}. New balance: ${balanceResult.newBalance.toFixed(2)} NIS${balanceResult.capped ? ' (capped at max)' : ''}`
+        );
+
+        // Check if driver should be suspended due to balance limit
+        // Pass the new balance directly to avoid recalculation
+        const suspensionResult = await checkAndSuspendDriverIfNeeded(order.driverId, balanceResult.newBalance);
         if (suspensionResult.suspended) {
           console.log(
-            `Driver ${order.driverId} automatically suspended due to balance limit. Balance: ${suspensionResult.balance}, Max Allowed: ${suspensionResult.maxAllowed}`
+            `🚨 Driver ${order.driverId} automatically suspended due to balance limit. Balance: ${suspensionResult.balance.toFixed(2)} NIS, Max Allowed: ${suspensionResult.maxAllowed} NIS`
           );
         }
       } catch (balanceError: any) {
         // Log error but don't fail the order update
-        console.error('Error checking driver balance:', balanceError);
+        console.error('Error updating driver balance:', balanceError);
       }
     }
 
@@ -1332,13 +1368,14 @@ export const proposePrice = async (
       return;
     }
 
-    // Check order status - must be accepted (driver has accepted the order)
-    if (order.status !== 'accepted') {
-      res.status(400).json({ message: 'Can only propose price for accepted orders' });
+    // Check order status - must be accepted or price_rejected (driver can propose new price after rejection)
+    if (order.status !== 'accepted' && order.status !== 'price_rejected') {
+      res.status(400).json({ message: 'Can only propose price for accepted orders or orders with rejected prices' });
       return;
     }
 
     // Check price status - must be pending (not already proposed)
+    // If status is price_rejected, priceStatus should be pending (reset after rejection)
     if (order.priceStatus !== 'pending') {
       res.status(400).json({ message: 'Price has already been proposed for this order' });
       return;
@@ -1430,12 +1467,13 @@ export const respondToPrice = async (
     } else {
       // User rejected the price
       order.priceStatus = 'rejected';
-      // Reset finalPrice and revert status to accepted for driver to propose again
+      // Reset finalPrice and priceProposedAt
       order.finalPrice = undefined;
       order.priceProposedAt = undefined;
       order.priceStatus = 'pending';
-      // Set order status back to accepted so driver can propose a new price
-      order.status = 'accepted';
+      // Set order status to price_rejected so it doesn't appear in driver's active orders
+      // Driver can propose a new price, which will change status back to new_price_pending
+      order.status = 'price_rejected';
     }
     
     await order.save();

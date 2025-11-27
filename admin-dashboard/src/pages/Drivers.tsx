@@ -360,7 +360,7 @@ const Drivers = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col">
+                      <div className="flex flex-col gap-1">
                         {isLoadingBalances && typeof driver.balance !== 'number' ? (
                           <>
                             <div className="h-4 bg-slate-200 rounded w-20 mb-1 animate-pulse"></div>
@@ -368,22 +368,45 @@ const Drivers = () => {
                           </>
                         ) : (
                           <>
-                            <span
-                              className={`text-sm font-medium ${
-                                driver.balanceExceeded
-                                  ? 'text-red-600'
-                                  : typeof driver.balance === 'number' && driver.balance >= 0
-                                  ? 'text-slate-900'
-                                  : 'text-green-600'
-                              }`}
-                            >
-                              {typeof driver.balance === 'number'
-                                ? `${driver.balance >= 0 ? '+' : ''}${driver.balance.toFixed(2)} NIS`
-                                : 'Loading...'}
-                            </span>
-                            {driver.maxAllowedBalance && (
-                              <span className="text-xs text-slate-500">
-                                Limit: {driver.maxAllowedBalance} NIS
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-sm font-medium ${
+                                  driver.balanceExceeded
+                                    ? 'text-red-600'
+                                    : typeof driver.balance === 'number' && driver.balance >= 0
+                                    ? 'text-slate-900'
+                                    : 'text-green-600'
+                                }`}
+                              >
+                                {typeof driver.balance === 'number'
+                                  ? `${driver.balance.toFixed(2)} NIS`
+                                  : 'Loading...'}
+                              </span>
+                              {driver.maxAllowedBalance && typeof driver.balance === 'number' && (
+                                <span className="text-xs text-slate-500">
+                                  / {driver.maxAllowedBalance} NIS
+                                </span>
+                              )}
+                            </div>
+                            {driver.maxAllowedBalance && typeof driver.balance === 'number' && (
+                              <div className="w-full bg-slate-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full transition-all ${
+                                    driver.balanceExceeded || driver.balance >= driver.maxAllowedBalance
+                                      ? 'bg-red-500'
+                                      : driver.balance >= driver.maxAllowedBalance * 0.8
+                                      ? 'bg-yellow-500'
+                                      : 'bg-green-500'
+                                  }`}
+                                  style={{
+                                    width: `${Math.min((driver.balance / driver.maxAllowedBalance) * 100, 100)}%`,
+                                  }}
+                                />
+                              </div>
+                            )}
+                            {driver.balanceExceeded && (
+                              <span className="text-xs text-red-600 font-medium">
+                                Balance limit reached
                               </span>
                             )}
                           </>

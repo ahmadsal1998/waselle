@@ -14,9 +14,9 @@ export interface DriverBalanceInfo {
 }
 
 /**
- * Calculate driver balance based on completed deliveries and payments
- * Formula: (Sum of delivery prices * CommissionPercentage) - Sum of payments
- * Optimized to use aggregation pipelines for better performance
+ * Calculate driver balance based on completed deliveries after last settlement
+ * New system: Balance is stored in User model and only counts orders after lastBalanceSettlementDate
+ * Formula: Sum of (Order Amount × CommissionPercentage) for orders delivered after last settlement
  */
 export const calculateDriverBalance = async (
   driverId: mongoose.Types.ObjectId
@@ -25,53 +25,66 @@ export const calculateDriverBalance = async (
   const settings = await Settings.getSettings();
   const commissionPercentage = settings.commissionPercentage || 2;
 
-  // Use aggregation pipeline to calculate totals efficiently
-  const [orderStats, paymentStats, driver] = await Promise.all([
-    // Aggregate completed orders in a single query
-    Order.aggregate([
-      {
-        $match: {
-          driverId: driverId,
-          status: 'delivered',
-        },
+  // Get driver with balance and last settlement date
+  const driver = await User.findById(driverId).select('isActive balance lastBalanceSettlementDate');
+  
+  if (!driver) {
+    throw new Error('Driver not found');
+  }
+
+  // Get current balance from driver model (stored balance)
+  const currentBalance = driver.balance || 0;
+
+  // Calculate commission from orders delivered after last settlement (for verification/display)
+  const matchQuery: any = {
+    driverId: driverId,
+    status: 'delivered',
+  };
+
+  // Only count orders delivered after last settlement date
+  if (driver.lastBalanceSettlementDate) {
+    matchQuery.updatedAt = { $gte: driver.lastBalanceSettlementDate };
+  }
+
+  const orderStats = await Order.aggregate([
+    {
+      $match: matchQuery,
+    },
+    {
+      $group: {
+        _id: null,
+        totalDeliveryRevenue: { $sum: { $ifNull: ['$price', 0] } },
       },
-      {
-        $group: {
-          _id: null,
-          totalDeliveryRevenue: { $sum: { $ifNull: ['$price', 0] } },
-        },
-      },
-    ]),
-    // Aggregate payments in a single query
-    Payment.aggregate([
-      {
-        $match: {
-          driverId: driverId,
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalPaymentsMade: { $sum: '$amount' },
-        },
-      },
-    ]),
-    // Get driver status
-    User.findById(driverId).select('isActive'),
+    },
   ]);
 
   const totalDeliveryRevenue = orderStats[0]?.totalDeliveryRevenue || 0;
-  const totalPaymentsMade = paymentStats[0]?.totalPaymentsMade || 0;
   const totalCommissionOwed = (totalDeliveryRevenue * commissionPercentage) / 100;
-  const currentBalance = totalCommissionOwed - totalPaymentsMade;
-  const isSuspended = driver?.isActive === false;
+  const isSuspended = driver.isActive === false;
+
+  // Get total payments made (for display purposes)
+  const paymentStats = await Payment.aggregate([
+    {
+      $match: {
+        driverId: driverId,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalPaymentsMade: { $sum: '$amount' },
+      },
+    },
+  ]);
+
+  const totalPaymentsMade = paymentStats[0]?.totalPaymentsMade || 0;
 
   return {
     totalDeliveryRevenue,
     commissionPercentage,
     totalCommissionOwed,
     totalPaymentsMade,
-    currentBalance,
+    currentBalance, // Use stored balance from User model
     isSuspended,
   };
 };
@@ -122,10 +135,11 @@ export const calculateDriverBalancesBatch = async (
     },
   ]);
 
-  // Get all drivers' statuses in one query
+  // Get all drivers with their stored balance and status
+  // CRITICAL: Use stored balance from User model, not calculated from orders
   const drivers = await User.find({
     _id: { $in: driverIds },
-  }).select('_id isActive');
+  }).select('_id isActive balance');
 
   // Create maps for quick lookup
   const orderMap = new Map(
@@ -134,26 +148,25 @@ export const calculateDriverBalancesBatch = async (
   const paymentMap = new Map(
     paymentStats.map((stat) => [stat._id.toString(), stat.totalPaymentsMade])
   );
-  const driverMap = new Map(
-    drivers.map((driver) => [driver._id.toString(), driver.isActive === false])
-  );
 
-  // Build result map
+  // Build result map using stored balance from User model
   const result = new Map<string, DriverBalanceInfo>();
-  for (const driverId of driverIds) {
-    const driverIdStr = driverId.toString();
+  for (const driver of drivers) {
+    const driverIdStr = driver._id.toString();
     const totalDeliveryRevenue = orderMap.get(driverIdStr) || 0;
     const totalPaymentsMade = paymentMap.get(driverIdStr) || 0;
     const totalCommissionOwed = (totalDeliveryRevenue * commissionPercentage) / 100;
-    const currentBalance = totalCommissionOwed - totalPaymentsMade;
-    const isSuspended = driverMap.get(driverIdStr) || false;
+    
+    // CRITICAL: Use stored balance from User model, not calculated balance
+    const currentBalance = driver.balance || 0;
+    const isSuspended = driver.isActive === false;
 
     result.set(driverIdStr, {
       totalDeliveryRevenue,
       commissionPercentage,
       totalCommissionOwed,
       totalPaymentsMade,
-      currentBalance,
+      currentBalance, // Use stored balance, not calculated
       isSuspended,
     });
   }
@@ -165,53 +178,67 @@ export const calculateDriverBalancesBatch = async (
  * Check if driver should be suspended or reactivated based on balance
  * - Suspends if balance >= maxAllowedBalance
  * - Reactivates if balance <= 0 (fully paid or credit)
+ * @param driverId - The driver's ID
+ * @param currentBalance - Optional: current balance to check (if not provided, will fetch from driver)
  */
 export const checkAndSuspendDriverIfNeeded = async (
-  driverId: mongoose.Types.ObjectId
+  driverId: mongoose.Types.ObjectId,
+  currentBalance?: number
 ): Promise<{ suspended: boolean; reactivated: boolean; balance: number; maxAllowed: number }> => {
   const settings = await Settings.getSettings();
-  const maxAllowedBalance = settings.maxAllowedBalance || 50;
+  const maxAllowedBalance = settings.maxAllowedBalance || 3;
 
-  const balanceInfo = await calculateDriverBalance(driverId);
+  // Get driver first to check current status
   const driver = await User.findById(driverId);
   
   if (!driver) {
-    return {
-      suspended: false,
-      reactivated: false,
-      balance: balanceInfo.currentBalance,
-      maxAllowed: maxAllowedBalance,
-    };
+    throw new Error('Driver not found');
+  }
+
+  // Use provided balance or fetch from driver model
+  let balance: number;
+  if (currentBalance !== undefined) {
+    balance = currentBalance;
+  } else {
+    // Get balance from driver model (stored balance)
+    balance = driver.balance || 0;
   }
 
   let suspended = false;
   let reactivated = false;
 
   // Check if driver should be suspended (balance >= limit)
-  if (balanceInfo.currentBalance >= maxAllowedBalance) {
+  if (balance >= maxAllowedBalance) {
     if (driver.isActive !== false) {
       driver.isActive = false;
       await driver.save();
       suspended = true;
       console.log(
-        `Driver ${driverId} automatically suspended. Balance: ${balanceInfo.currentBalance.toFixed(2)} NIS (Limit: ${maxAllowedBalance} NIS)`
+        `✅ Driver ${driverId} automatically suspended. Balance: ${balance.toFixed(2)} NIS (Limit: ${maxAllowedBalance} NIS)`
+      );
+    } else {
+      // Driver is already suspended, but log for verification
+      console.log(
+        `⚠️ Driver ${driverId} is already suspended. Balance: ${balance.toFixed(2)} NIS (Limit: ${maxAllowedBalance} NIS)`
       );
     }
   }
-  // Check if driver should be reactivated (balance <= 0)
-  else if (balanceInfo.currentBalance <= 0 && driver.isActive === false) {
+  // Check if driver should be reactivated (only if balance is exactly 0 after payment)
+  else if (balance === 0 && driver.isActive === false) {
+    // Only reactivate if balance is exactly 0 (fully paid after payment)
+    // Don't reactivate if balance is just below the limit - driver must pay full balance
     driver.isActive = true;
     await driver.save();
     reactivated = true;
     console.log(
-      `Driver ${driverId} automatically reactivated. Balance: ${balanceInfo.currentBalance.toFixed(2)} NIS (fully paid or credit)`
+      `✅ Driver ${driverId} automatically reactivated. Balance: ${balance.toFixed(2)} NIS (fully paid)`
     );
   }
 
   return {
-    suspended: suspended || (driver.isActive === false && balanceInfo.currentBalance >= maxAllowedBalance),
+    suspended: suspended || (driver.isActive === false && balance >= maxAllowedBalance),
     reactivated,
-    balance: balanceInfo.currentBalance,
+    balance,
     maxAllowed: maxAllowedBalance,
   };
 };
@@ -229,12 +256,12 @@ export const checkAndSuspendDriversBatch = async (
   }
 
   const settings = await Settings.getSettings();
-  const maxAllowedBalance = settings.maxAllowedBalance || 50;
+  const maxAllowedBalance = settings.maxAllowedBalance || 3;
 
-  // Get all drivers in one query
+  // Get all drivers in one query with their stored balance
   const drivers = await User.find({
     _id: { $in: driverIds },
-  });
+  }).select('_id isActive balance');
 
   const updatesToSave: Array<{ driver: any; isActive: boolean }> = [];
   let suspended = 0;
@@ -247,20 +274,32 @@ export const checkAndSuspendDriversBatch = async (
     
     if (!balanceInfo) continue;
 
-    const shouldBeSuspended = balanceInfo.currentBalance >= maxAllowedBalance;
-    const shouldBeReactivated = balanceInfo.currentBalance <= 0;
+    // Use stored balance from driver model (source of truth)
+    const storedBalance = driver.balance || 0;
+    const shouldBeSuspended = storedBalance >= maxAllowedBalance;
+    
+    // Only reactivate if balance is exactly 0 (fully paid after payment)
+    // CRITICAL: Only reactivate if balance is 0, not if it's just below the limit
+    // This ensures drivers must pay the full balance before reactivation
+    const shouldBeReactivated = storedBalance === 0;
 
     // Check if suspension is needed
     if (shouldBeSuspended && driver.isActive !== false) {
       driver.isActive = false;
       updatesToSave.push({ driver, isActive: false });
       suspended++;
+      console.log(
+        `✅ Driver ${driverIdStr} automatically suspended via batch check. Balance: ${storedBalance.toFixed(2)} NIS (Limit: ${maxAllowedBalance} NIS)`
+      );
     }
-    // Check if reactivation is needed
+    // Check if reactivation is needed (only if balance is 0 or less)
     else if (shouldBeReactivated && driver.isActive === false) {
       driver.isActive = true;
       updatesToSave.push({ driver, isActive: true });
       reactivated++;
+      console.log(
+        `✅ Driver ${driverIdStr} automatically reactivated via batch check. Balance: ${storedBalance.toFixed(2)} NIS (fully paid)`
+      );
     }
   }
 
@@ -272,6 +311,64 @@ export const checkAndSuspendDriversBatch = async (
   }
 
   return { suspended, reactivated };
+};
+
+/**
+ * Add commission to driver balance when order is delivered
+ * Commission = Order Amount × CommissionPercentage
+ * Balance is capped at maxAllowedBalance
+ */
+export const addCommissionToBalance = async (
+  driverId: mongoose.Types.ObjectId,
+  orderAmount: number
+): Promise<{ newBalance: number; commissionAdded: number; capped: boolean }> => {
+  const settings = await Settings.getSettings();
+  const commissionPercentage = settings.commissionPercentage || 2;
+  const maxAllowedBalance = settings.maxAllowedBalance || 3;
+
+  const driver = await User.findById(driverId);
+  if (!driver) {
+    throw new Error('Driver not found');
+  }
+
+  // Calculate commission for this order
+  const commission = (orderAmount * commissionPercentage) / 100;
+  
+  // Get current balance (default to 0 if not set)
+  const currentBalance = driver.balance || 0;
+  
+  // Calculate new balance (capped at maxAllowedBalance)
+  const newBalanceUncapped = currentBalance + commission;
+  const newBalance = Math.min(newBalanceUncapped, maxAllowedBalance);
+  const capped = newBalanceUncapped > maxAllowedBalance;
+  const commissionAdded = newBalance - currentBalance;
+
+  // Update driver balance
+  driver.balance = newBalance;
+  await driver.save();
+
+  return {
+    newBalance,
+    commissionAdded,
+    capped,
+  };
+};
+
+/**
+ * Reset driver balance to 0 when payment is made
+ * Also updates lastBalanceSettlementDate
+ */
+export const resetDriverBalance = async (
+  driverId: mongoose.Types.ObjectId
+): Promise<void> => {
+  const driver = await User.findById(driverId);
+  if (!driver) {
+    throw new Error('Driver not found');
+  }
+
+  driver.balance = 0;
+  driver.lastBalanceSettlementDate = new Date();
+  await driver.save();
 };
 
 /**

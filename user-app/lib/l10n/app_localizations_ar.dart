@@ -745,4 +745,25 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get viewPriceOffers => 'عرض والرد على عروض الأسعار';
+
+  @override
+  String get newPriceOfferReceived => 'تم استلام عرض سعر جديد!';
+
+  @override
+  String get viewOrderHistory => 'عرض طلباتك السابقة';
+
+  @override
+  String get verifyPhoneNumber => 'التحقق من رقم الهاتف';
+
+  @override
+  String get enterVerificationCodeWhatsApp => 'أدخل رمز التحقق المكون من 6 أرقام المرسل إلى واتساب الخاص بك:';
+
+  @override
+  String get verifyAndSubmitOrder => 'التحقق وإرسال الطلب';
+
+  @override
+  String get resendCode => 'إعادة إرسال الرمز';
+
+  @override
+  String get pleaseEnter6DigitCode => 'الرجاء إدخال رمز مكون من 6 أرقام';
 }
