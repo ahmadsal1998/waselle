@@ -12,7 +12,7 @@ import {
   sendDeleteAccountOTP,
   deleteAccount,
 } from '../controllers/authController';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 
 const router = Router();
 
@@ -23,7 +23,8 @@ router.post('/verify-firebase-token', verifyFirebaseToken); // DEPRECATED - kept
 router.post('/phone-login', phoneLogin); // DEPRECATED - kept for backward compatibility
 router.post('/resend-otp', resendOTP);
 // New SMS-based phone authentication endpoints (replaces Firebase)
-router.post('/send-phone-otp', sendPhoneOTP);
+// Optional auth: if authenticated, stores OTP on authenticated user's record
+router.post('/send-phone-otp', optionalAuthenticate, sendPhoneOTP);
 router.post('/verify-phone-otp', verifyPhoneOTP);
 router.get('/me', authenticate, getCurrentUser);
 router.post('/send-delete-account-otp', authenticate, sendDeleteAccountOTP);

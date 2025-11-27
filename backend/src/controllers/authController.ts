@@ -530,8 +530,9 @@ export const getCurrentUser = async (
 /**
  * Send OTP to phone number via SMS provider
  * Replaces Firebase Phone Authentication
+ * If user is authenticated, stores OTP on authenticated user's record
  */
-export const sendPhoneOTP = async (req: Request, res: Response): Promise<void> => {
+export const sendPhoneOTP = async (req: Request | AuthRequest, res: Response): Promise<void> => {
   try {
     const { phoneNumber, language } = req.body;
 
@@ -554,36 +555,61 @@ export const sendPhoneOTP = async (req: Request, res: Response): Promise<void> =
     const otp = generateOTP();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Find or create user by phone number
-    let user = await User.findOne({ 
-      $or: [
-        { phone: normalizedPhone },
-        { phone: phoneNumber },
-      ]
-    });
+    // Check if user is authenticated (for account deletion flow)
+    const authReq = req as AuthRequest;
+    let user;
 
-    if (user) {
-      // Update existing user's OTP
+    if (authReq.user) {
+      // User is authenticated - use their record
+      user = await User.findById(authReq.user.userId);
+      if (!user) {
+        res.status(404).json({ message: 'User not found' });
+        return;
+      }
+
+      // Verify phone number matches authenticated user's phone
+      const userPhoneNormalized = user.phone ? normalizePhoneNumber(user.phone) : null;
+      if (!userPhoneNormalized || userPhoneNormalized !== normalizedPhone) {
+        res.status(400).json({ message: 'Phone number does not match your account' });
+        return;
+      }
+
+      // Store OTP on authenticated user's record
       user.otpCode = otp;
       user.otpExpires = otpExpires;
-      if (user.phone !== normalizedPhone) {
-        user.phone = normalizedPhone;
-      }
       await user.save();
     } else {
-      // Create new user with phone number
-      const phoneDigits = normalizedPhone.replace(/[^0-9]/g, '');
-      const emailPlaceholder = `${phoneDigits}@phone.local`;
-      
-      user = await User.create({
-        name: `User ${normalizedPhone.substring(normalizedPhone.length - 4)}`,
-        email: emailPlaceholder,
-        phone: normalizedPhone,
-        role: 'customer',
-        isEmailVerified: false, // Will be verified after OTP verification
-        otpCode: otp,
-        otpExpires: otpExpires,
+      // Not authenticated - find or create user by phone number (for registration/login flow)
+      user = await User.findOne({ 
+        $or: [
+          { phone: normalizedPhone },
+          { phone: phoneNumber },
+        ]
       });
+
+      if (user) {
+        // Update existing user's OTP
+        user.otpCode = otp;
+        user.otpExpires = otpExpires;
+        if (user.phone !== normalizedPhone) {
+          user.phone = normalizedPhone;
+        }
+        await user.save();
+      } else {
+        // Create new user with phone number
+        const phoneDigits = normalizedPhone.replace(/[^0-9]/g, '');
+        const emailPlaceholder = `${phoneDigits}@phone.local`;
+        
+        user = await User.create({
+          name: `User ${normalizedPhone.substring(normalizedPhone.length - 4)}`,
+          email: emailPlaceholder,
+          phone: normalizedPhone,
+          role: 'customer',
+          isEmailVerified: false, // Will be verified after OTP verification
+          otpCode: otp,
+          otpExpires: otpExpires,
+        });
+      }
     }
 
     // Send OTP via SMS provider

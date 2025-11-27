@@ -41,3 +41,27 @@ export const authorize = (...roles: string[]) => {
     next();
   };
 };
+
+/**
+ * Optional authentication middleware
+ * Parses token if present but doesn't fail if missing
+ */
+export const optionalAuthenticate = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (token) {
+      const decoded = verifyToken(token);
+      req.user = decoded;
+    }
+    // Continue even if no token (for unauthenticated requests)
+    next();
+  } catch (error) {
+    // Ignore token errors and continue (for unauthenticated requests)
+    next();
+  }
+};
