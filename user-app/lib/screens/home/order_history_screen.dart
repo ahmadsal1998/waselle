@@ -45,18 +45,46 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
-      appBar: AppBar(
-        title: Text(l10n.orderHistory),
-        elevation: 0,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.onSurface,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: Consumer<OrderViewModel>(
-        builder: (context, orderProvider, _) {
+      body: Column(
+        children: [
+          // Modern Header matching driver app
+          Container(
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              boxShadow: ModernCardShadow.medium,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    Expanded(
+                      child: Text(
+                        l10n.orderHistory,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Body Content
+          Expanded(
+            child: Consumer<OrderViewModel>(
+              builder: (context, orderProvider, _) {
           final allOrders = orderProvider.orders;
           
           // Filter to show only submitted or completed orders, exclude cancelled/rejected
@@ -434,6 +462,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           ),
         );
         },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -561,7 +592,6 @@ class _LocationText extends StatefulWidget {
 
 class _LocationTextState extends State<_LocationText> {
   String _displayText = '';
-  bool _isLoading = true;
   bool _hasLoaded = false;
 
   @override
@@ -586,7 +616,6 @@ class _LocationTextState extends State<_LocationText> {
     if (widget.location == null) {
       setState(() {
         _displayText = l10n.unknownLocation;
-        _isLoading = false;
       });
       return;
     }
@@ -597,7 +626,6 @@ class _LocationTextState extends State<_LocationText> {
     if (latValue == null || lngValue == null) {
       setState(() {
         _displayText = l10n.unknownLocation;
-        _isLoading = false;
       });
       return;
     }
@@ -612,7 +640,6 @@ class _LocationTextState extends State<_LocationText> {
     if (lat == null || lng == null) {
       setState(() {
         _displayText = l10n.unknownLocation;
-        _isLoading = false;
       });
       return;
     }
@@ -627,16 +654,10 @@ class _LocationTextState extends State<_LocationText> {
       if (mounted) {
         setState(() {
           _displayText = areaName;
-          _isLoading = false;
         });
       }
     } catch (e) {
       // Keep coordinates as fallback
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 

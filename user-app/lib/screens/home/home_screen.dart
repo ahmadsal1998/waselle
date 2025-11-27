@@ -10,19 +10,17 @@ import '../../view_models/home_view_model.dart';
 import '../../view_models/location_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
-import 'package:provider/provider.dart';
 import '../../view_models/auth_view_model.dart';
 import '../../services/notification_service.dart';
 import '../../services/socket_service.dart';
 import '../../widgets/responsive_button.dart';
 import '../../repositories/api_service.dart';
+import '../../theme/app_theme.dart';
 import 'delivery_price_offers_screen.dart';
-import 'order_history_screen.dart';
 import 'order_tracking_screen.dart';
 import 'profile_screen.dart';
 import 'receive_request_screen.dart';
 import 'send_request_screen.dart';
-import 'delivery_price_offers_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -153,21 +151,28 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
   Widget build(BuildContext context) {
     return Consumer<HomeViewModel>(
       builder: (context, viewModel, _) {
-        final l10n = AppLocalizations.of(context)!;
         final tabTitles = HomeScreen._tabTitles(context);
         return Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
-          appBar: _HomeAppBar(
-            title: tabTitles[viewModel.currentTabIndex],
-          ),
-          body: IndexedStack(
+          body: Column(
+            children: [
+              // Modern Header matching driver app
+              _HomeAppBar(
+                title: tabTitles[viewModel.currentTabIndex],
+              ),
+              // Body Content
+              Expanded(
+                child: IndexedStack(
             index: viewModel.currentTabIndex,
             children: [
               _MapTab(viewModel: viewModel),
-          const OrderTrackingScreen(showAppBar: false),
+              const OrderTrackingScreen(showAppBar: false),
               const DeliveryPriceOffersScreen(),
               const ProfileScreen(showAppBar: false),
-            ],
+                ],
+              ),
+            ),
+          ],
           ),
           bottomNavigationBar: _HomeNavigationBar(
             currentIndex: viewModel.currentTabIndex,
@@ -180,7 +185,7 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
   }
 }
 
-class _HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
+class _HomeAppBar extends StatelessWidget {
   const _HomeAppBar({
     required this.title,
   });
@@ -188,22 +193,39 @@ class _HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-
-  @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return AppBar(
-      backgroundColor: colorScheme.surface,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      centerTitle: true,
-      title: Text(
-        title,
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppTheme.primaryGradient,
+        boxShadow: ModernCardShadow.medium,
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -223,48 +245,268 @@ class _HomeNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
-    return NavigationBar(
-      selectedIndex: currentIndex,
-      animationDuration: const Duration(milliseconds: 400),
-      height: 72,
-      backgroundColor: colorScheme.surfaceVariant.withOpacity(0.92),
-      indicatorColor: colorScheme.primaryContainer,
-      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-      onDestinationSelected: onDestinationSelected,
-      destinations: [
-        NavigationDestination(
-          icon: const Icon(Icons.map_outlined),
-          selectedIcon: const Icon(Icons.map),
-          label: l10n.discover,
-        ),
-        NavigationDestination(
-          icon: _TrackNavIcon(
-            hasActiveOrder: hasActiveOrder,
-            isSelected: false,
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+            spreadRadius: 0,
           ),
-          selectedIcon: _TrackNavIcon(
-            hasActiveOrder: hasActiveOrder,
-            isSelected: true,
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+            spreadRadius: 0,
           ),
-          label: l10n.trackOrder,
-        ),
-        NavigationDestination(
-          icon: _PriceOffersNavIcon(
-            isSelected: false,
+        ],
+      ),
+      child: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 15,
+                offset: const Offset(0, 4),
+                spreadRadius: 0,
+              ),
+            ],
           ),
-          selectedIcon: _PriceOffersNavIcon(
-            isSelected: true,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _ModernNavItem(
+                icon: Icons.explore_outlined,
+                activeIcon: Icons.explore,
+                label: l10n.discover,
+                isActive: currentIndex == 0,
+                onTap: () => onDestinationSelected(0),
+              ),
+              _ModernNavItem(
+                icon: Icons.route_outlined,
+                activeIcon: Icons.route,
+                label: l10n.trackOrder,
+                isActive: currentIndex == 1,
+                hasActiveOrder: hasActiveOrder,
+                onTap: () => onDestinationSelected(1),
+              ),
+              ValueListenableBuilder<int>(
+                valueListenable: offersCountNotifier,
+                builder: (context, offersCount, _) {
+                  return _ModernNavItem(
+                    icon: Icons.local_offer_outlined,
+                    activeIcon: Icons.local_offer,
+                    label: l10n.deliveryPriceOffers,
+                    isActive: currentIndex == 2,
+                    hasOffers: offersCount > 0,
+                    onTap: () => onDestinationSelected(2),
+                  );
+                },
+              ),
+              _ModernNavItem(
+                icon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
+                label: l10n.profile,
+                isActive: currentIndex == 3,
+                onTap: () => onDestinationSelected(3),
+              ),
+            ],
           ),
-          label: l10n.deliveryPriceOffers,
         ),
-        NavigationDestination(
-          icon: const Icon(Icons.person_outline),
-          selectedIcon: const Icon(Icons.person),
-          label: l10n.profile,
+      ),
+    );
+  }
+}
+
+class _ModernNavItem extends StatefulWidget {
+  const _ModernNavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+    this.hasActiveOrder = false,
+    this.hasOffers = false,
+  });
+
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+  final bool hasActiveOrder;
+  final bool hasOffers;
+
+  @override
+  State<_ModernNavItem> createState() => _ModernNavItemState();
+}
+
+class _ModernNavItemState extends State<_ModernNavItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(_ModernNavItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive != oldWidget.isActive) {
+      if (widget.isActive) {
+        _animationController.forward().then((_) {
+          _animationController.reverse();
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            _animationController.forward().then((_) {
+              _animationController.reverse();
+            });
+            widget.onTap();
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedBuilder(
+            animation: _scaleAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnimation.value,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: widget.isActive
+                                  ? AppTheme.primaryColor.withOpacity(0.12)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              widget.isActive ? widget.activeIcon : widget.icon,
+                              color: widget.isActive
+                                  ? AppTheme.primaryColor
+                                  : AppTheme.textTertiary,
+                              size: 24,
+                            ),
+                          ),
+                          // Active order indicator
+                          if (widget.hasActiveOrder && widget.isActive == false)
+                            Positioned(
+                              right: -2,
+                              top: -2,
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.successColor,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.successColor.withOpacity(0.4),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          // Offers indicator
+                          if (widget.hasOffers && widget.isActive == false)
+                            Positioned(
+                              right: -2,
+                              top: -2,
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.green.withOpacity(0.4),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Flexible(
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 300),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: widget.isActive
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: widget.isActive
+                                ? AppTheme.primaryColor
+                                : AppTheme.textTertiary,
+                            height: 1.1,
+                          ),
+                          child: Text(
+                            widget.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -639,33 +881,71 @@ class _MapBottomActions extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: ResponsiveButton.filled(
-                    context: context,
+                  child: FilledButton(
                     onPressed: onSendRequest,
-                    icon: Icons.send,
-                    borderRadius: 18,
-                    child: Text(
-                      l10n.sendDelivery,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      textAlign: TextAlign.center,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.send, size: 18),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            l10n.sendDelivery,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ResponsiveButton.filled(
-                    context: context,
+                  child: FilledButton(
                     onPressed: onReceiveRequest,
-                    icon: Icons.call_received_rounded,
-                    backgroundColor: colorScheme.primaryContainer,
-                    foregroundColor: colorScheme.onPrimaryContainer,
-                    borderRadius: 18,
-                    child: Text(
-                      l10n.receiveRequest,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      textAlign: TextAlign.center,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colorScheme.primaryContainer,
+                      foregroundColor: colorScheme.onPrimaryContainer,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.call_received_rounded, size: 18),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            l10n.receiveRequest,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -821,101 +1101,3 @@ class _CenteredStatusCard extends StatelessWidget {
   }
 }
 
-class _TrackNavIcon extends StatelessWidget {
-  const _TrackNavIcon({
-    required this.hasActiveOrder,
-    required this.isSelected,
-  });
-
-  final bool hasActiveOrder;
-  final bool isSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final iconColor = isSelected
-        ? colorScheme.primary
-        : Theme.of(context).iconTheme.color ?? colorScheme.onSurfaceVariant;
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Icon(
-          isSelected ? Icons.route : Icons.route_outlined,
-          color: iconColor,
-        ),
-        if (hasActiveOrder)
-          Positioned(
-            right: -2,
-            top: -2,
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: colorScheme.secondary,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: colorScheme.secondary.withOpacity(0.4),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _PriceOffersNavIcon extends StatelessWidget {
-  const _PriceOffersNavIcon({
-    required this.isSelected,
-  });
-
-  final bool isSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final iconColor = isSelected
-        ? colorScheme.primary
-        : Theme.of(context).iconTheme.color ?? colorScheme.onSurfaceVariant;
-
-    return ValueListenableBuilder<int>(
-      valueListenable: offersCountNotifier,
-      builder: (context, count, _) {
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Icon(
-              isSelected ? Icons.local_offer : Icons.local_offer_outlined,
-              color: iconColor,
-            ),
-            if (count > 0)
-              Positioned(
-                right: -2,
-                top: -2,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.green.withOpacity(0.4),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-}

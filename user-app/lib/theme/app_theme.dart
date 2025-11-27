@@ -23,6 +23,13 @@ class AppTheme {
   // Border Colors
   static const Color borderColor = Color(0xFFE2E8F0);
   static const Color borderFocus = Color(0xFF2563EB);
+  
+  // Gradient Colors
+  static const LinearGradient primaryGradient = LinearGradient(
+    colors: [primaryColor, primaryDark],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   static ThemeData get lightTheme {
     final colorScheme = ColorScheme.light(
@@ -418,5 +425,53 @@ class AppTheme {
       ),
     );
   }
+}
+
+// Modern Card Shadow
+class ModernCardShadow {
+  static List<BoxShadow> get light => [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 2),
+          spreadRadius: 0,
+        ),
+        BoxShadow(
+          color: Colors.black.withOpacity(0.02),
+          blurRadius: 20,
+          offset: const Offset(0, 4),
+          spreadRadius: 0,
+        ),
+      ];
+  
+  static List<BoxShadow> get medium => [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.06),
+          blurRadius: 15,
+          offset: const Offset(0, 4),
+          spreadRadius: 0,
+        ),
+        BoxShadow(
+          color: Colors.black.withOpacity(0.03),
+          blurRadius: 30,
+          offset: const Offset(0, 8),
+          spreadRadius: 0,
+        ),
+      ];
+  
+  static List<BoxShadow> get heavy => [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.08),
+          blurRadius: 20,
+          offset: const Offset(0, 6),
+          spreadRadius: 0,
+        ),
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 40,
+          offset: const Offset(0, 12),
+          spreadRadius: 0,
+        ),
+      ];
 }
 

@@ -5,7 +5,6 @@ import '../../models/saved_address.dart';
 import '../../services/saved_address_service.dart';
 import '../../view_models/location_view_model.dart';
 import '../../view_models/region_view_model.dart';
-import '../../view_models/locale_view_model.dart';
 
 class SavedAddressesScreen extends StatefulWidget {
   const SavedAddressesScreen({super.key});
@@ -302,7 +301,6 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
 
     try {
       final locationProvider = context.read<LocationViewModel>();
-      final regionProvider = context.read<RegionViewModel>();
 
       double latitude;
       double longitude;
@@ -385,8 +383,6 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final locationProvider = context.watch<LocationViewModel>();
     final regionProvider = context.watch<RegionViewModel>();
 
     return Scaffold(

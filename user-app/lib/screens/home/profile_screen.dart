@@ -30,11 +30,43 @@ class ProfileScreen extends StatelessWidget {
 
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profile),
-        elevation: 0,
+      backgroundColor: Theme.of(context).colorScheme.background,
+      body: Column(
+        children: [
+          // Modern Header matching driver app
+          Container(
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              boxShadow: ModernCardShadow.medium,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.profile,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Body Content
+          Expanded(child: content),
+        ],
       ),
-      body: content,
     );
   }
 }
@@ -51,7 +83,6 @@ class _ProfileContent extends StatefulWidget {
 class _ProfileContentState extends State<_ProfileContent> {
   String? _privacyPolicyUrl;
   String? _termsOfServiceUrl;
-  bool _isLoadingUrls = true;
 
   @override
   void initState() {
@@ -66,7 +97,6 @@ class _ProfileContentState extends State<_ProfileContent> {
         setState(() {
           _privacyPolicyUrl = urls['privacyPolicyUrl'];
           _termsOfServiceUrl = urls['termsOfServiceUrl'];
-          _isLoadingUrls = false;
         });
       }
     } catch (e) {
@@ -77,7 +107,6 @@ class _ProfileContentState extends State<_ProfileContent> {
         setState(() {
           _privacyPolicyUrl = l10n.privacyPolicyUrl;
           _termsOfServiceUrl = l10n.termsOfServiceUrl;
-          _isLoadingUrls = false;
         });
       }
     }
@@ -537,9 +566,6 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(

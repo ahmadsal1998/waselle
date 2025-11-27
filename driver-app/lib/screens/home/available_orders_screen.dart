@@ -446,10 +446,11 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
     bool isPriceRejected = false,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: ModernCardShadow.medium,
         border: Border.all(
           color: Colors.grey[200]!,
           width: 1,
@@ -471,10 +472,10 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                       child: Text(
                         '#$displayId',
                         style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
                           color: AppTheme.textPrimary,
-                          letterSpacing: -0.5,
+                          letterSpacing: -0.3,
                         ),
                       ),
                     ),
@@ -489,7 +490,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: Colors.purple.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: Colors.purple.withOpacity(0.3),
                             width: 1,
@@ -501,7 +502,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                           children: [
                             Icon(
                               Icons.shopping_bag_rounded,
-                              size: 12,
+                              size: 11,
                               color: Colors.purple[700],
                             ),
                             const SizedBox(width: 4),
@@ -509,7 +510,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                               child: Text(
                                 orderCategory,
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.purple[700],
                                 ),
@@ -528,10 +529,10 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                     child: Text(
                       l10n.nis(price),
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
                         color: AppTheme.primaryColor,
-                        letterSpacing: -0.3,
+                        letterSpacing: -0.2,
                       ),
                       textAlign: TextAlign.end,
                     ),
@@ -539,16 +540,16 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                 ],
               ),
               
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               
               // Single Row: Order Type | Pickup | Delivery
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: Colors.grey[300]!,
+                    color: Colors.grey[200]!,
                     width: 1,
                   ),
                 ),
@@ -563,7 +564,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                           Text(
                             l10n.type,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               color: Colors.grey[600],
                               fontWeight: FontWeight.w600,
                             ),
@@ -572,7 +573,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                           Text(
                             orderType,
                             style: const TextStyle(
-                              fontSize: 13,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: AppTheme.textPrimary,
                               height: 1.3,
@@ -587,7 +588,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                     // Divider
                     Container(
                       width: 1,
-                      height: 40,
+                      height: 36,
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       color: Colors.grey[300],
                     ),
@@ -601,14 +602,14 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                             children: [
                               Icon(
                                 Icons.location_on_rounded,
-                                size: 14,
+                                size: 12,
                                 color: Colors.red[600],
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 l10n.pickup,
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   color: Colors.grey[600],
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -619,7 +620,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                           Text(
                             pickupAddress,
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: AppTheme.textPrimary,
                               height: 1.3,
@@ -634,7 +635,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                     // Divider
                     Container(
                       width: 1,
-                      height: 40,
+                      height: 36,
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       color: Colors.grey[300],
                     ),
@@ -648,14 +649,14 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                             children: [
                               Icon(
                                 Icons.flag_rounded,
-                                size: 14,
+                                size: 12,
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 l10n.dropoff,
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   color: Colors.grey[600],
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -666,7 +667,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                           Text(
                             deliveryAddress,
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: AppTheme.textPrimary,
                               height: 1.3,
@@ -681,7 +682,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                 ),
               ),
               
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               
               // Action Buttons Row
               Row(
@@ -689,40 +690,65 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                   // Order Contents Button (for notes)
                   if (notes.isNotEmpty) ...[
                     Expanded(
-                      child: ResponsiveButton.outlined(
-                        context: context,
-                        onPressed: () => _showOrderNotes(context, l10n, notes),
-                        icon: Icons.note_rounded,
-                        foregroundColor: AppTheme.textPrimary,
-                        borderColor: Colors.grey[300]!,
-                        borderRadius: 10,
-                        child: Text(
-                          l10n.orderContents,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          textAlign: TextAlign.center,
+                      child: SizedBox(
+                        height: 36,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showOrderNotes(context, l10n, notes),
+                          icon: Icon(
+                            Icons.note_rounded,
+                            size: 16,
+                            color: AppTheme.textPrimary,
+                          ),
+                          label: Text(
+                            l10n.orderContents,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            side: BorderSide(color: Colors.grey[300]!),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                   ],
                   // Accept/Propose Price Button
                   Expanded(
-                    child: ResponsiveButton.elevated(
-                      context: context,
-                      onPressed: normalizedId != null
-                          ? () => _acceptOrder(normalizedId)
-                          : null,
-                      backgroundColor: isPriceRejected 
-                          ? Colors.orange 
-                          : AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      borderRadius: 10,
-                      child: Text(
-                        isPriceRejected ? l10n.proposeNewPrice : l10n.accept,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                        textAlign: TextAlign.center,
+                    child: SizedBox(
+                      height: 36,
+                      child: ElevatedButton(
+                        onPressed: normalizedId != null
+                            ? () => _acceptOrder(normalizedId)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isPriceRejected 
+                              ? Colors.orange 
+                              : AppTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          isPriceRejected ? l10n.proposeNewPrice : l10n.accept,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
                     ),
                   ),

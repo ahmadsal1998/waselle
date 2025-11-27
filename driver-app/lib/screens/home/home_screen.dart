@@ -166,6 +166,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
+  String _getAppBarTitle(AppLocalizations l10n) {
+    switch (_currentIndex) {
+      case 0:
+        return l10n.available;
+      case 1:
+        return l10n.activeOrder;
+      case 2:
+        return l10n.orderHistory;
+      case 3:
+        return l10n.profile;
+      default:
+        return l10n.driverDashboard;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -204,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                l10n.driverDashboard,
+                                _getAppBarTitle(l10n),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
@@ -243,20 +258,40 @@ class _HomeScreenState extends State<HomeScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+              spreadRadius: 0,
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 10,
               offset: const Offset(0, -2),
+              spreadRadius: 0,
             ),
           ],
         ),
         child: SafeArea(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 15,
+                  offset: const Offset(0, 4),
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _ModernNavItem(
-                  icon: Icons.inbox_rounded,
+                  icon: Icons.inbox_outlined,
                   activeIcon: Icons.inbox_rounded,
                   label: l10n.available,
                   isActive: _currentIndex == 0,
@@ -294,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _ModernNavItem extends StatelessWidget {
+class _ModernNavItem extends StatefulWidget {
   final IconData icon;
   final IconData activeIcon;
   final String label;
@@ -312,84 +347,146 @@ class _ModernNavItem extends StatelessWidget {
   });
 
   @override
+  State<_ModernNavItem> createState() => _ModernNavItemState();
+}
+
+class _ModernNavItemState extends State<_ModernNavItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(_ModernNavItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive != oldWidget.isActive) {
+      if (widget.isActive) {
+        _animationController.forward().then((_) {
+          _animationController.reverse();
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? AppTheme.primaryColor.withOpacity(0.1)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        isActive ? activeIcon : icon,
-                        color: isActive
-                            ? AppTheme.primaryColor
-                            : AppTheme.textTertiary,
-                        size: 22,
-                      ),
-                    ),
-                    if (badge != null && badge! > 0)
-                      Positioned(
-                        right: -2,
-                        top: -2,
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            color: AppTheme.errorColor,
-                            shape: BoxShape.circle,
+          onTap: () {
+            _animationController.forward().then((_) {
+              _animationController.reverse();
+            });
+            widget.onTap();
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedBuilder(
+            animation: _scaleAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnimation.value,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: widget.isActive
+                                  ? AppTheme.primaryColor.withOpacity(0.12)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              widget.isActive ? widget.activeIcon : widget.icon,
+                              color: widget.isActive
+                                  ? AppTheme.primaryColor
+                                  : AppTheme.textTertiary,
+                              size: 24,
+                            ),
                           ),
-                          constraints: const BoxConstraints(
-                            minWidth: 14,
-                            minHeight: 14,
+                          if (widget.badge != null && widget.badge! > 0)
+                            Positioned(
+                              right: -2,
+                              top: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.errorColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  widget.badge! > 9 ? '9+' : widget.badge.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Flexible(
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 300),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: widget.isActive
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: widget.isActive
+                                ? AppTheme.primaryColor
+                                : AppTheme.textTertiary,
+                            height: 1.1,
                           ),
                           child: Text(
-                            badge! > 9 ? '9+' : badge.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            widget.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
                           ),
                         ),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                      color: isActive
-                          ? AppTheme.primaryColor
-                          : AppTheme.textTertiary,
-                      height: 1.1,
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),

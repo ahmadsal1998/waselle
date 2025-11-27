@@ -795,6 +795,10 @@
   "@unableToOpenPrivacyPolicy": {
     "description": "Error message when Privacy Policy URL cannot be opened"
   },
+  "privacyPolicyDescription": "Tap the button below to view our Privacy Policy in your browser.",
+  "@privacyPolicyDescription": {
+    "description": "Description text on Privacy Policy screen"
+  },
   "termsOfService": "Terms of Service",
   "@termsOfService": {
     "description": "Terms of Service menu item"
@@ -810,6 +814,10 @@
   "unableToOpenTermsOfService": "Unable to open Terms of Service. Please check your internet connection.",
   "@unableToOpenTermsOfService": {
     "description": "Error message when Terms of Service URL cannot be opened"
+  },
+  "termsOfServiceDescription": "Tap the button below to view our Terms of Service in your browser.",
+  "@termsOfServiceDescription": {
+    "description": "Description text on Terms of Service screen"
   },
   "manageSavedAddresses": "Manage your saved addresses",
   "@manageSavedAddresses": {
@@ -1040,6 +1048,10 @@
   "pleaseEnter6DigitCode": "Please enter 6-digit code",
   "@pleaseEnter6DigitCode": {
     "description": "Validation message for OTP input"
+  },
+  "locationNotAvailable": "Location not available",
+  "@locationNotAvailable": {
+    "description": "Error message when location is not available"
   }
 }
 

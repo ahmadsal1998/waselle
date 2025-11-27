@@ -13,7 +13,6 @@ import '../../../../repositories/api_service.dart';
 import '../../../../services/socket_service.dart';
 // Firebase Auth Service removed - using SMS-based OTP instead
 import '../../../../services/saved_address_service.dart';
-import '../../../../models/saved_address.dart';
 import '../../../../utils/phone_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

@@ -32,6 +32,8 @@
 		<string>This app needs access to your location to help you find nearby delivery services and track your orders.</string>
 		<key>NSPrivacyPolicyURL</key>
 		<string>https://wassle.ps/privacy-policy</string>
+		<key>NSTermsOfServiceURL</key>
+		<string>https://wassle.ps/terms-of-service</string>
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>remote-notification</string>

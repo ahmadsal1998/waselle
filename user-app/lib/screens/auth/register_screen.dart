@@ -67,7 +67,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           );
         } else if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(authViewModel.errorMessage ?? 'Failed to send OTP'),

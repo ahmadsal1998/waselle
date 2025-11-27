@@ -12,13 +12,12 @@ class AppLifecycleService with WidgetsBindingObserver {
   static const String _pendingCallKey = 'pending_incoming_call';
   Timer? _callCheckTimer;
   bool _isInitialized = false;
-  GlobalKey<NavigatorState>? _navigatorKey;
 
   /// Initialize the lifecycle service
   Future<void> initialize({GlobalKey<NavigatorState>? navigatorKey}) async {
     if (_isInitialized) return;
     
-    _navigatorKey = navigatorKey;
+    // navigatorKey parameter kept for API compatibility but not currently used
     WidgetsBinding.instance.addObserver(this);
     _isInitialized = true;
     

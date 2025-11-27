@@ -13,6 +13,7 @@ import {
   DollarSign,
   Shield,
   FileText,
+  HelpCircle,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -34,6 +35,7 @@ const navItems: NavItem[] = [
   { path: '/dashboard/privacy-policy', label: 'Privacy Policy', icon: Shield },
   { path: '/dashboard/terms-of-service', label: 'Terms of Service', icon: FileText },
   { path: '/dashboard/settings', label: 'Settings', icon: Settings },
+  { path: '/dashboard/support', label: 'Support', icon: HelpCircle },
 ];
 
 interface SidebarProps {

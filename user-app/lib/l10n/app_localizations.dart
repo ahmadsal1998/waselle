@@ -1229,6 +1229,12 @@ abstract class AppLocalizations {
   /// **'Unable to open Privacy Policy. Please check your internet connection.'**
   String get unableToOpenPrivacyPolicy;
 
+  /// Description text on Privacy Policy screen
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the button below to view our Privacy Policy in your browser.'**
+  String get privacyPolicyDescription;
+
   /// Terms of Service menu item
   ///
   /// In en, this message translates to:
@@ -1252,6 +1258,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to open Terms of Service. Please check your internet connection.'**
   String get unableToOpenTermsOfService;
+
+  /// Description text on Terms of Service screen
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the button below to view our Terms of Service in your browser.'**
+  String get termsOfServiceDescription;
 
   /// Subtitle for saved addresses tile
   ///
@@ -1576,6 +1588,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please enter 6-digit code'**
   String get pleaseEnter6DigitCode;
+
+  /// Error message when location is not available
+  ///
+  /// In en, this message translates to:
+  /// **'Location not available'**
+  String get locationNotAvailable;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

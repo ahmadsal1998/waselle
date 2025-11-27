@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:delivery_user_app/l10n/app_localizations.dart';
 
 /// Utility class for handling language-specific images
 class ImageUtils {
@@ -17,15 +16,11 @@ class ImageUtils {
     String imageName, {
     String? fallbackPath,
   }) {
-    final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context);
     final languageCode = locale.languageCode;
     
     // Try language-specific path first
     final localizedPath = 'assets/images/$languageCode/$imageName';
-    
-    // Fallback to default path if language-specific doesn't exist
-    final defaultPath = fallbackPath ?? 'assets/images/$imageName';
     
     // In Flutter, we can't check if asset exists at runtime easily,
     // so we'll return the localized path and handle errors in the widget

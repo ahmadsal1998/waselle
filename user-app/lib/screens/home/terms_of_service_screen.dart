@@ -64,7 +64,7 @@ class TermsOfServiceScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Tap the button below to view our Terms of Service in your browser.',
+                l10n.termsOfServiceDescription,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[600],

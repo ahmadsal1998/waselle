@@ -64,7 +64,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Tap the button below to view our Privacy Policy in your browser.',
+                l10n.privacyPolicyDescription,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[600],

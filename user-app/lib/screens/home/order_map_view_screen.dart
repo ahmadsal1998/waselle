@@ -134,7 +134,7 @@ class OrderMapViewScreen extends StatelessWidget {
                     ),
                   if (pickup != null)
                     _buildMarker(
-                      point: pickup!,
+                      point: pickup,
                       color: Colors.orange,
                       icon: Icons.store_rounded,
                       size: 36,
@@ -142,7 +142,7 @@ class OrderMapViewScreen extends StatelessWidget {
                     ),
                   if (dropoff != null)
                     _buildMarker(
-                      point: dropoff!,
+                      point: dropoff,
                       color: Colors.red,
                       icon: Icons.location_on_rounded,
                       size: 36,

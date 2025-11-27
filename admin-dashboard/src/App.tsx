@@ -15,6 +15,7 @@ import DriverBalance from '@/pages/DriverBalance';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import TermsOfService from '@/pages/TermsOfService';
 import TermsOfServicePage from '@/pages/TermsOfServicePage';
+import Support from '@/pages/Support';
 import Layout from '@/components/layout/Layout';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { LanguageProvider } from '@/store/language/LanguageContext';
@@ -68,6 +69,7 @@ function App() {
               <Route path="driver-balance" element={<DriverBalance />} />
               <Route path="privacy-policy" element={<PrivacyPolicy />} />
               <Route path="terms-of-service" element={<TermsOfService />} />
+              <Route path="support" element={<Support />} />
             </Route>
           </Routes>
         </Router>

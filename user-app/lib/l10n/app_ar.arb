@@ -239,10 +239,12 @@
   "privacyPolicyTitle": "سياسة الخصوصية",
   "privacyPolicyUrl": "https://www.wassle.ps/privacy-policy",
   "unableToOpenPrivacyPolicy": "تعذر فتح سياسة الخصوصية. يرجى التحقق من اتصال الإنترنت.",
+  "privacyPolicyDescription": "اضغط على الزر أدناه لعرض سياسة الخصوصية الخاصة بنا في المتصفح.",
   "termsOfService": "شروط الخدمة",
   "termsOfServiceTitle": "شروط الخدمة",
   "termsOfServiceUrl": "https://www.wassle.ps/terms-of-service",
   "unableToOpenTermsOfService": "تعذر فتح شروط الخدمة. يرجى التحقق من اتصال الإنترنت.",
+  "termsOfServiceDescription": "اضغط على الزر أدناه لعرض شروط الخدمة الخاصة بنا في المتصفح.",
   "manageSavedAddresses": "إدارة عناوينك المحفوظة",
   "readPrivacyPolicy": "اقرأ سياسة الخصوصية الخاصة بنا",
   "readTermsOfService": "اقرأ شروط الخدمة الخاصة بنا",
@@ -311,6 +313,7 @@
   "enterVerificationCodeWhatsApp": "أدخل رمز التحقق المكون من 6 أرقام المرسل إلى واتساب الخاص بك:",
   "verifyAndSubmitOrder": "التحقق وإرسال الطلب",
   "resendCode": "إعادة إرسال الرمز",
-  "pleaseEnter6DigitCode": "الرجاء إدخال رمز مكون من 6 أرقام"
+  "pleaseEnter6DigitCode": "الرجاء إدخال رمز مكون من 6 أرقام",
+  "locationNotAvailable": "الموقع غير متاح"
 }
 

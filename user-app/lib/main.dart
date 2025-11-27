@@ -17,7 +17,6 @@ import 'view_models/locale_view_model.dart';
 import 'view_models/map_style_view_model.dart';
 import 'view_models/driver_view_model.dart';
 import 'view_models/region_view_model.dart';
-import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'services/notification_service.dart';
 import 'services/fcm_service.dart';

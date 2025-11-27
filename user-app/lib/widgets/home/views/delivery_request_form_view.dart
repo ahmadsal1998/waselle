@@ -501,8 +501,6 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
     LocationViewModel locationProvider,
     OrderViewModel orderProvider,
   ) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final vehicleOptions = _vehicleOptions(context, controller);
 
     if (vehicleOptions.isEmpty) {
@@ -674,7 +672,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                   color: theme.colorScheme.onSurface,
                   letterSpacing: 0.15,
                 ) ?? const TextStyle(),
-                child: item.child ?? const SizedBox.shrink(),
+                child: item.child,
               ),
             ),
           );
@@ -795,7 +793,6 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
     DeliveryRequestFormController controller,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
 
     return Row(
       children: [
@@ -942,10 +939,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
     LocationViewModel locationProvider,
     OrderViewModel orderProvider,
   ) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     // Watch controller to rebuild when selection changes
-    final useCurrentLocation = controller.useCurrentLocation;
     final selectedSavedAddressId = controller.selectedSavedAddressId;
 
     return FutureBuilder<List<SavedAddress>>(
@@ -1239,9 +1233,10 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                 if (position == null) {
                   Navigator.of(dialogContext).pop();
                   if (context.mounted) {
+                    final l10n = AppLocalizations.of(context)!;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Location not available'),
+                      SnackBar(
+                        content: Text(l10n.locationNotAvailable),
                       ),
                     );
                   }
@@ -1678,7 +1673,6 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
     OrderViewModel orderProvider,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
 
     showDialog(
       context: context,
@@ -1686,7 +1680,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
       builder: (dialogContext) => Consumer<LocaleViewModel>(
         builder: (context, localeViewModel, _) {
           final dialogL10n = AppLocalizations.of(context)!;
-          final isArabic = localeViewModel.isArabic;
+          final theme = Theme.of(context);
           
           // Get language-specific image path
           final imagePath = ImageUtils.getWhatsAppVerificationImage(context);

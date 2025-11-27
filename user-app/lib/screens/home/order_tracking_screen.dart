@@ -8,9 +8,9 @@ import '../../view_models/location_view_model.dart';
 import '../../view_models/map_style_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../view_models/order_tracking_view_model.dart';
-import '../../view_models/auth_view_model.dart';
 import '../../view_models/locale_view_model.dart';
 import '../../widgets/responsive_button.dart';
+import '../../theme/app_theme.dart';
 import 'order_map_view_screen.dart';
 
 class OrderTrackingScreen extends StatelessWidget {
@@ -100,8 +100,43 @@ class _OrderTrackingView extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     if (showAppBar) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.trackOrders)),
-        body: body,
+        backgroundColor: Theme.of(context).colorScheme.background,
+        body: Column(
+          children: [
+            // Modern Header matching driver app
+            Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                boxShadow: ModernCardShadow.medium,
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.trackOrders,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Body Content
+            Expanded(child: body),
+          ],
+        ),
       );
     }
     return body;
@@ -1075,13 +1110,13 @@ class _StageDetailSheet extends StatelessWidget {
                       if (order['pickupLocation'] != null)
                         _DetailItem(
                           label: 'Pickup Location',
-                          value: _formatLocation(order['pickupLocation']),
+                          value: _formatLocation(order['pickupLocation'], l10n),
                           icon: Icons.location_on_rounded,
                         ),
                       if (order['dropoffLocation'] != null)
                         _DetailItem(
                           label: 'Drop-off Location',
-                          value: _formatLocation(order['dropoffLocation']),
+                          value: _formatLocation(order['dropoffLocation'], l10n),
                           icon: Icons.flag_rounded,
                         ),
                     ],
@@ -1437,45 +1472,6 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      backgroundColor:
-          Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
-      label: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _OrderDetailsPanel extends StatelessWidget {
   const _OrderDetailsPanel({
@@ -1527,8 +1523,8 @@ class _OrderDetailsPanel extends StatelessWidget {
                     context: context,
                     icon: Icons.call_made,
                     iconColor: Colors.blue,
-                    label: l10n.from ?? 'From',
-                    value: _formatLocationShort(order['pickupLocation']),
+                    label: l10n.from,
+                    value: _formatLocationShort(order['pickupLocation'], l10n),
                   ),
                 if (order['pickupLocation'] != null) const SizedBox(height: 12),
                 // To (Dropoff Location)
@@ -1537,8 +1533,8 @@ class _OrderDetailsPanel extends StatelessWidget {
                     context: context,
                     icon: Icons.call_received,
                     iconColor: Colors.green,
-                    label: l10n.to ?? 'To',
-                    value: _formatLocationShort(order['dropoffLocation']),
+                    label: l10n.to,
+                    value: _formatLocationShort(order['dropoffLocation'], l10n),
                   ),
               ],
             ),
@@ -1563,8 +1559,8 @@ class _OrderDetailsPanel extends StatelessWidget {
                 children: [
                   Text(
                     isExpanded
-                        ? (l10n.viewLess ?? 'View Less')
-                        : (l10n.viewMore ?? 'View More'),
+                        ? l10n.viewLess
+                        : l10n.viewMore,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                           color: colorScheme.primary,
                           fontWeight: FontWeight.w600,
@@ -1763,8 +1759,8 @@ class _OrderDetailsPanel extends StatelessWidget {
     );
   }
 
-  String _formatLocationShort(Map<String, dynamic>? location) {
-    if (location == null || location.isEmpty) return 'Not available';
+  String _formatLocationShort(Map<String, dynamic>? location, AppLocalizations l10n) {
+    if (location == null || location.isEmpty) return l10n.notAvailable;
     if (location['address'] != null &&
         location['address'].toString().isNotEmpty) {
       final address = location['address'].toString();
@@ -1773,10 +1769,10 @@ class _OrderDetailsPanel extends StatelessWidget {
     }
     final lat = location['lat'];
     final lng = location['lng'];
-    if (lat == null || lng == null) return 'Not available';
+    if (lat == null || lng == null) return l10n.notAvailable;
     final latValue = lat is num ? lat.toDouble() : double.tryParse('$lat');
     final lngValue = lng is num ? lng.toDouble() : double.tryParse('$lng');
-    if (latValue == null || lngValue == null) return 'Not available';
+    if (latValue == null || lngValue == null) return l10n.notAvailable;
     return '${latValue.toStringAsFixed(4)}, ${lngValue.toStringAsFixed(4)}';
   }
 
@@ -1822,18 +1818,18 @@ String? _formatDate(dynamic value) {
       '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
 }
 
-String _formatLocation(Map<String, dynamic>? location) {
-  if (location == null || location.isEmpty) return 'Not available';
+String _formatLocation(Map<String, dynamic>? location, AppLocalizations l10n) {
+  if (location == null || location.isEmpty) return l10n.notAvailable;
   if (location['address'] != null &&
       location['address'].toString().isNotEmpty) {
     return location['address'].toString();
   }
   final lat = location['lat'];
   final lng = location['lng'];
-  if (lat == null || lng == null) return 'Not available';
+  if (lat == null || lng == null) return l10n.notAvailable;
   final latValue = lat is num ? lat.toDouble() : double.tryParse('$lat');
   final lngValue = lng is num ? lng.toDouble() : double.tryParse('$lng');
-  if (latValue == null || lngValue == null) return 'Not available';
+  if (latValue == null || lngValue == null) return l10n.notAvailable;
   return '${latValue.toStringAsFixed(5)}, ${lngValue.toStringAsFixed(5)}';
 }
 
@@ -1878,7 +1874,6 @@ class _PriceProposalSectionState extends State<_PriceProposalSection> {
       return const SizedBox.shrink();
     }
 
-    final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
     return Container(

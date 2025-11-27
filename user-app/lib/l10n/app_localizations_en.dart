@@ -590,6 +590,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unableToOpenPrivacyPolicy => 'Unable to open Privacy Policy. Please check your internet connection.';
 
   @override
+  String get privacyPolicyDescription => 'Tap the button below to view our Privacy Policy in your browser.';
+
+  @override
   String get termsOfService => 'Terms of Service';
 
   @override
@@ -600,6 +603,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unableToOpenTermsOfService => 'Unable to open Terms of Service. Please check your internet connection.';
+
+  @override
+  String get termsOfServiceDescription => 'Tap the button below to view our Terms of Service in your browser.';
 
   @override
   String get manageSavedAddresses => 'Manage your saved addresses';
@@ -766,4 +772,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pleaseEnter6DigitCode => 'Please enter 6-digit code';
+
+  @override
+  String get locationNotAvailable => 'Location not available';
 }
