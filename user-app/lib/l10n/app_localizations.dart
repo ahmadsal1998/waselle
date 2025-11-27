@@ -1408,6 +1408,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm'**
   String get confirm;
+
+  /// Title for price proposal section
+  ///
+  /// In en, this message translates to:
+  /// **'Price Proposal Received'**
+  String get priceProposalReceived;
+
+  /// Subtitle for price proposal section
+  ///
+  /// In en, this message translates to:
+  /// **'The driver has proposed a delivery price'**
+  String get driverProposedPrice;
+
+  /// Label for estimated price
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated Price'**
+  String get estimatedPrice;
+
+  /// Final price label
+  ///
+  /// In en, this message translates to:
+  /// **'Final Price'**
+  String get finalPrice;
+
+  /// Accept price button text
+  ///
+  /// In en, this message translates to:
+  /// **'Accept Price'**
+  String get acceptPrice;
+
+  /// Reject price button text
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get rejectPrice;
+
+  /// Success message when price is accepted
+  ///
+  /// In en, this message translates to:
+  /// **'Price accepted! The driver will start the delivery.'**
+  String get priceAcceptedSuccess;
+
+  /// Success message when price is rejected
+  ///
+  /// In en, this message translates to:
+  /// **'Price rejected. The driver will propose a new price.'**
+  String get priceRejectedSuccess;
+
+  /// Error message when price response fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to respond to price. Please try again.'**
+  String get failedToRespondToPrice;
+
+  /// Status message when waiting for driver to set price
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for driver to set the delivery price'**
+  String get waitingForPrice;
+
+  /// Status message when price is proposed
+  ///
+  /// In en, this message translates to:
+  /// **'Price proposed, waiting for confirmation'**
+  String get priceProposed;
+
+  /// Status message when price is accepted
+  ///
+  /// In en, this message translates to:
+  /// **'Price confirmed'**
+  String get priceAccepted;
+
+  /// Title for the delivery price offers page
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery Price Offers'**
+  String get deliveryPriceOffers;
+
+  /// Message when there are no price offers
+  ///
+  /// In en, this message translates to:
+  /// **'No price offers available'**
+  String get noPriceOffers;
+
+  /// Label for proposed price
+  ///
+  /// In en, this message translates to:
+  /// **'Proposed Price'**
+  String get proposedPrice;
+
+  /// Button to accept a price offer
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get acceptOffer;
+
+  /// Button to reject a price offer
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get rejectOffer;
+
+  /// Message when offer is accepted
+  ///
+  /// In en, this message translates to:
+  /// **'Offer accepted successfully'**
+  String get offerAccepted;
+
+  /// Message when offer is rejected
+  ///
+  /// In en, this message translates to:
+  /// **'Offer rejected'**
+  String get offerRejected;
+
+  /// Error message when loading offers fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load price offers'**
+  String get failedToLoadOffers;
+
+  /// Subtitle for price offers menu item
+  ///
+  /// In en, this message translates to:
+  /// **'View and respond to price offers'**
+  String get viewPriceOffers;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

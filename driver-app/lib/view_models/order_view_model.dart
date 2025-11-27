@@ -99,6 +99,40 @@ class OrderViewModel with ChangeNotifier {
       }
     });
 
+    // Listen for price-accepted event (customer accepted the proposed price)
+    SocketService.off('price-accepted');
+    SocketService.on('price-accepted', (data) {
+      debugPrint('💰 Received price-accepted event: $data');
+      if (data is Map<String, dynamic>) {
+        final order = data['order'];
+        if (order is Map<String, dynamic>) {
+          final orderId = _getOrderId(order);
+          if (_activeOrder != null && _getOrderId(_activeOrder!) == orderId) {
+            _activeOrder = Map<String, dynamic>.from(order);
+          }
+          _updateOrderInList(Map<String, dynamic>.from(order));
+          notifyListeners();
+        }
+      }
+    });
+
+    // Listen for price-rejected event (customer rejected the proposed price)
+    SocketService.off('price-rejected');
+    SocketService.on('price-rejected', (data) {
+      debugPrint('💰 Received price-rejected event: $data');
+      if (data is Map<String, dynamic>) {
+        final order = data['order'];
+        if (order is Map<String, dynamic>) {
+          final orderId = _getOrderId(order);
+          if (_activeOrder != null && _getOrderId(_activeOrder!) == orderId) {
+            _activeOrder = Map<String, dynamic>.from(order);
+          }
+          _updateOrderInList(Map<String, dynamic>.from(order));
+          notifyListeners();
+        }
+      }
+    });
+
     // Listen for socket connection to ensure listeners are active
     SocketService.off('connect');
     SocketService.on('connect', (_) {
@@ -405,6 +439,35 @@ class OrderViewModel with ChangeNotifier {
       debugPrint('Error fetching order by id: $e');
     }
     return null;
+  }
+
+  /// Propose a final price for an order
+  Future<bool> proposePrice({
+    required String orderId,
+    required double finalPrice,
+  }) async {
+    try {
+      final response = await _orderRepository.proposePrice(
+        orderId: orderId,
+        finalPrice: finalPrice,
+      );
+
+      if (response['order'] != null) {
+        // Update the order in the local list
+        final updatedOrder = response['order'];
+        if (_activeOrder?['_id'] == orderId) {
+          _activeOrder = updatedOrder;
+        }
+        _updateOrderInList(Map<String, dynamic>.from(updatedOrder));
+        await fetchMyOrders();
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error proposing price: $e');
+      return false;
+    }
   }
 }
 

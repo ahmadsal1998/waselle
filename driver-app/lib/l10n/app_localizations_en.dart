@@ -488,4 +488,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get delete => 'Delete';
+
+  @override
+  String get setDeliveryPrice => 'Set Delivery Price';
+
+  @override
+  String get estimatedPrice => 'Estimated Price';
+
+  @override
+  String get enterFinalPrice => 'Enter the final delivery price:';
+
+  @override
+  String get enterValidPrice => 'Please enter a valid price';
+
+  @override
+  String get nisSymbol => '₪';
+
+  @override
+  String get priceWillBeSentToCustomer => 'This price will be sent to the customer for approval';
+
+  @override
+  String get confirmPrice => 'Confirm Price';
+
+  @override
+  String get orderAcceptedPricePending => 'Order accepted. Price proposal pending.';
+
+  @override
+  String get priceProposedSuccessfully => 'Price proposed successfully. Waiting for customer approval.';
+
+  @override
+  String get waitingForPriceApproval => 'Waiting for customer to approve the price';
+
+  @override
+  String get priceAccepted => 'Price Accepted';
+
+  @override
+  String get priceRejected => 'Price Rejected';
+
+  @override
+  String get proposedPrice => 'Proposed Price';
+
+  @override
+  String get finalPrice => 'Final Price';
+
+  @override
+  String get priceStatusPending => 'Waiting for price proposal';
+
+  @override
+  String get priceStatusProposed => 'Price proposed, waiting for customer';
 }

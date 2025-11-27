@@ -249,6 +249,22 @@
   "confirm": "تأكيد",
   "cancel": "إلغاء",
   "delete": "حذف",
-  "pleaseEnterValidOtp": "الرجاء إدخال رمز التحقق المكون من 6 أرقام"
+  "pleaseEnterValidOtp": "الرجاء إدخال رمز التحقق المكون من 6 أرقام",
+  "setDeliveryPrice": "تحديد سعر التوصيل",
+  "estimatedPrice": "السعر التقديري",
+  "enterFinalPrice": "أدخل سعر التوصيل النهائي:",
+  "enterValidPrice": "الرجاء إدخال سعر صحيح",
+  "nisSymbol": "₪",
+  "priceWillBeSentToCustomer": "سيتم إرسال هذا السعر للعميل للموافقة عليه",
+  "confirmPrice": "تأكيد السعر",
+  "orderAcceptedPricePending": "تم قبول الطلب. في انتظار اقتراح السعر.",
+  "priceProposedSuccessfully": "تم اقتراح السعر بنجاح. في انتظار موافقة العميل.",
+  "waitingForPriceApproval": "في انتظار موافقة العميل على السعر",
+  "priceAccepted": "تم قبول السعر",
+  "priceRejected": "تم رفض السعر",
+  "proposedPrice": "السعر المقترح",
+  "finalPrice": "السعر النهائي",
+  "priceStatusPending": "في انتظار اقتراح السعر",
+  "priceStatusProposed": "تم اقتراح السعر، في انتظار العميل"
 }
 

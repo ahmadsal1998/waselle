@@ -839,7 +839,9 @@ class DeliveryRequestFormController extends ChangeNotifier {
       // Format phone number: convert Arabic digits, remove leading zero, add +972
       final formattedPhone = PhoneUtils.formatPhoneForSubmission(trimmedPhone);
       
-      print('📱 Sending OTP via SMS to: $formattedPhone');
+      if (kDebugMode) {
+        print('📱 Sending OTP via SMS to: $formattedPhone');
+      }
 
       // Call backend API to send OTP via SMS provider
       final response = await ApiService.sendPhoneOTP(
@@ -847,7 +849,9 @@ class DeliveryRequestFormController extends ChangeNotifier {
       );
 
       if (response['message'] != null) {
-        print('✅ OTP sent successfully');
+        if (kDebugMode) {
+          print('✅ OTP sent successfully');
+        }
         _otpSent = true;
         _otpError = null;
       } else {
@@ -855,7 +859,9 @@ class DeliveryRequestFormController extends ChangeNotifier {
         _otpSent = false;
       }
     } catch (e) {
-      print('❌ Exception in sendOTP: $e');
+      if (kDebugMode) {
+        print('❌ Exception in sendOTP: $e');
+      }
       _otpError = e.toString().replaceAll('Exception: ', '');
       _otpSent = false;
     } finally {
@@ -1565,7 +1571,9 @@ class DeliveryRequestFormController extends ChangeNotifier {
     _notifyListenersSafely();
 
     try {
-      print('🔄 Verifying OTP via SMS provider...');
+      if (kDebugMode) {
+        print('🔄 Verifying OTP via SMS provider...');
+      }
       
       // Format phone number: convert Arabic digits, remove leading zero, add +972
       final formattedPhone = PhoneUtils.formatPhoneForSubmission(trimmedPhone);
@@ -1583,7 +1591,9 @@ class DeliveryRequestFormController extends ChangeNotifier {
         );
       }
 
-      print('✅ OTP verified. User authenticated.');
+      if (kDebugMode) {
+        print('✅ OTP verified. User authenticated.');
+      }
 
       // Update auth state with user data from verification response
       if (verifyResponse['user'] != null) {
@@ -1593,7 +1603,9 @@ class DeliveryRequestFormController extends ChangeNotifier {
         );
       }
 
-      print('✅ Creating order...');
+      if (kDebugMode) {
+        print('✅ Creating order...');
+      }
 
       // Extract digits only (remove +972) for integer conversion
       // formattedPhone is already available from OTP verification above

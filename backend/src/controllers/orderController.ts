@@ -9,6 +9,8 @@ import {
   emitNewOrder,
   emitOrderAccepted,
   emitOrderUpdated,
+  emitPriceProposed,
+  emitPriceResponse,
 } from '../services/socketService';
 import {
   sendOrderStatusNotification,
@@ -411,6 +413,32 @@ export const getOrders = async (
     res.status(200).json({ orders });
   } catch (error: any) {
     res.status(500).json({ message: error.message || 'Failed to get orders' });
+  }
+};
+
+// Get orders with new price offers (new_price_pending status) for customers
+export const getPriceOffers = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user || req.user.role !== 'customer') {
+      res.status(403).json({ message: 'Only customers can access price offers' });
+      return;
+    }
+
+    const orders = await Order.find({
+      customerId: req.user.userId,
+      status: 'new_price_pending',
+      priceStatus: 'proposed',
+    })
+      .populate('customerId', 'name email phone countryCode')
+      .populate('driverId', 'name email phone countryCode')
+      .sort({ priceProposedAt: -1 }); // Most recent offers first
+
+    res.status(200).json({ orders });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message || 'Failed to get price offers' });
   }
 };
 
@@ -1270,6 +1298,177 @@ export const verifyOTPAndCreateOrder = async (
     res.status(500).json({
       message: error.message || 'Failed to verify OTP and create order',
     });
+  }
+};
+
+// Driver proposes final price for an order
+export const proposePrice = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user || req.user.role !== 'driver') {
+      res.status(403).json({ message: 'Only drivers can propose prices' });
+      return;
+    }
+
+    const { orderId } = req.params;
+    const { finalPrice } = req.body;
+
+    if (typeof finalPrice !== 'number' || finalPrice < 0) {
+      res.status(400).json({ message: 'A valid final price is required' });
+      return;
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      res.status(404).json({ message: 'Order not found' });
+      return;
+    }
+
+    // Verify driver is assigned to this order
+    if (order.driverId?.toString() !== req.user.userId) {
+      res.status(403).json({ message: 'Not authorized to propose price for this order' });
+      return;
+    }
+
+    // Check order status - must be accepted (driver has accepted the order)
+    if (order.status !== 'accepted') {
+      res.status(400).json({ message: 'Can only propose price for accepted orders' });
+      return;
+    }
+
+    // Check price status - must be pending (not already proposed)
+    if (order.priceStatus !== 'pending') {
+      res.status(400).json({ message: 'Price has already been proposed for this order' });
+      return;
+    }
+
+    // Update order with proposed price
+    // Set status to new_price_pending so it appears in the Delivery Price Offers page
+    order.finalPrice = finalPrice;
+    order.priceStatus = 'proposed';
+    order.priceProposedAt = new Date();
+    order.status = 'new_price_pending';
+    await order.save();
+
+    await order.populate([
+      { path: 'customerId', select: 'name email phone countryCode' },
+      { path: 'driverId', select: 'name email phone countryCode' },
+    ]);
+
+    const orderData = order.toObject();
+
+    // Emit socket event to notify customer about proposed price (for real-time updates)
+    emitPriceProposed(orderData);
+
+    // NOTE: Push notifications are NOT sent for price proposals
+    // Users will see offers in the "Delivery Price Offers" page instead
+
+    res.status(200).json({
+      message: 'Price proposed successfully',
+      order: orderData,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message || 'Failed to propose price' });
+  }
+};
+
+// User accepts or rejects the proposed price
+export const respondToPrice = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user || req.user.role !== 'customer') {
+      res.status(403).json({ message: 'Only customers can respond to price proposals' });
+      return;
+    }
+
+    const { orderId } = req.params;
+    const { accept } = req.body;
+
+    if (typeof accept !== 'boolean') {
+      res.status(400).json({ message: 'Response (accept: true/false) is required' });
+      return;
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      res.status(404).json({ message: 'Order not found' });
+      return;
+    }
+
+    // Verify customer owns this order
+    if (order.customerId.toString() !== req.user.userId) {
+      res.status(403).json({ message: 'Not authorized to respond to this order' });
+      return;
+    }
+
+    // Check order status - must be new_price_pending (order with price offer)
+    if (order.status !== 'new_price_pending') {
+      res.status(400).json({ message: 'Order does not have a pending price offer' });
+      return;
+    }
+
+    // Check price status - must be proposed
+    if (order.priceStatus !== 'proposed') {
+      res.status(400).json({ message: 'No price proposal to respond to' });
+      return;
+    }
+
+    // Update order based on response
+    order.priceRespondedAt = new Date();
+    
+    if (accept) {
+      // User accepted the price - update order to confirmed status
+      order.priceStatus = 'accepted';
+      // Update the actual price to the final price
+      order.price = order.finalPrice || order.estimatedPrice;
+      // Set order status back to accepted (confirmed) so it shows in user's active orders
+      order.status = 'accepted';
+    } else {
+      // User rejected the price
+      order.priceStatus = 'rejected';
+      // Reset finalPrice and revert status to accepted for driver to propose again
+      order.finalPrice = undefined;
+      order.priceProposedAt = undefined;
+      order.priceStatus = 'pending';
+      // Set order status back to accepted so driver can propose a new price
+      order.status = 'accepted';
+    }
+    
+    await order.save();
+
+    await order.populate([
+      { path: 'customerId', select: 'name email phone countryCode' },
+      { path: 'driverId', select: 'name email phone countryCode' },
+    ]);
+
+    const orderData = order.toObject();
+
+    // Emit socket event to notify driver about price response
+    emitPriceResponse(orderData, accept);
+
+    // Send push notification to driver about the response
+    if (order.driverId) {
+      const driverId = typeof order.driverId === 'object' && (order.driverId as any)._id 
+        ? (order.driverId as any)._id.toString() 
+        : order.driverId.toString();
+      await sendDriverOrderStatusNotification(
+        order._id.toString(),
+        driverId,
+        accept ? 'price_accepted' : 'price_rejected',
+        orderData
+      );
+    }
+
+    res.status(200).json({
+      message: accept ? 'Price accepted' : 'Price rejected',
+      order: orderData,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message || 'Failed to respond to price' });
   }
 };
 

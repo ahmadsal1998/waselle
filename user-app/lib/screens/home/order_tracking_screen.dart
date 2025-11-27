@@ -256,6 +256,12 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
             ),
           ),
 
+          // Price Proposal Section (shown when driver has proposed a price)
+          _PriceProposalSection(
+            order: latestOrder,
+            orderId: orderId,
+          ),
+
           // Map Section (Collapsible) - Directly below order number
           Column(
             children: [
@@ -1646,17 +1652,33 @@ class _OrderDetailsPanel extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    // Price
-                    if (order['price'] != null) ...[
-                      _buildDetailRow(
-                        context: context,
-                        icon: Icons.attach_money,
-                        iconColor: Colors.green,
-                        label: l10n.price,
-                        value: '₪${order['price']}',
-                      ),
-                      const SizedBox(height: 12),
-                    ],
+                    // Price - show finalPrice if proposed/accepted, otherwise show estimated price
+                    Builder(
+                      builder: (context) {
+                        final priceStatus = order['priceStatus']?.toString().toLowerCase();
+                        final finalPrice = order['finalPrice'];
+                        final displayPrice = (priceStatus == 'proposed' || priceStatus == 'accepted') && finalPrice != null
+                            ? finalPrice
+                            : order['price'] ?? order['estimatedPrice'];
+                        if (displayPrice == null) {
+                          return const SizedBox.shrink();
+                        }
+                        return Column(
+                          children: [
+                            _buildDetailRow(
+                              context: context,
+                              icon: Icons.attach_money,
+                              iconColor: Colors.green,
+                              label: (priceStatus == 'proposed' || priceStatus == 'accepted') && finalPrice != null
+                                  ? l10n.finalPrice
+                                  : l10n.price,
+                              value: '₪${displayPrice}',
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        );
+                      },
+                    ),
                     // Distance
                     if (order['distance'] != null) ...[
                       _buildDetailRow(
@@ -1825,4 +1847,257 @@ String? _formatPhone(dynamic phone) {
 String _readableOrderId(String orderId) {
   if (orderId.length <= 6) return '#${orderId.toUpperCase()}';
   return '#${orderId.substring(orderId.length - 6).toUpperCase()}';
+}
+
+/// Widget to show price proposal from driver and allow user to accept/reject
+class _PriceProposalSection extends StatefulWidget {
+  const _PriceProposalSection({
+    required this.order,
+    required this.orderId,
+  });
+
+  final Map<String, dynamic> order;
+  final String orderId;
+
+  @override
+  State<_PriceProposalSection> createState() => _PriceProposalSectionState();
+}
+
+class _PriceProposalSectionState extends State<_PriceProposalSection> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final priceStatus = widget.order['priceStatus']?.toString().toLowerCase();
+    final finalPrice = widget.order['finalPrice'];
+    final estimatedPrice = widget.order['estimatedPrice'];
+    final orderStatus = widget.order['status']?.toString().toLowerCase();
+    
+    // Only show if price status is 'proposed' and order is accepted (not yet on_the_way)
+    if (priceStatus != 'proposed' || orderStatus != 'accepted') {
+      return const SizedBox.shrink();
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.orange.withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.attach_money_rounded,
+                  color: Colors.orange,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.priceProposalReceived,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.orange.shade800,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.driverProposedPrice,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.orange.shade700,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Price comparison
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                // Estimated price
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        l10n.estimatedPrice,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${estimatedPrice ?? 0} ₪',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Colors.grey[600],
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Arrow
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  color: Colors.orange,
+                  size: 24,
+                ),
+                // Final price
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        l10n.finalPrice,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Colors.orange.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${finalPrice ?? 0} ₪',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Colors.orange.shade800,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Accept/Reject buttons
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(),
+            )
+          else
+            Row(
+              children: [
+                // Reject button
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _respondToPrice(false),
+                    icon: const Icon(Icons.close_rounded),
+                    label: Text(l10n.rejectPrice),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Accept button
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _respondToPrice(true),
+                    icon: const Icon(Icons.check_rounded),
+                    label: Text(l10n.acceptPrice),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _respondToPrice(bool accept) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final orderViewModel = Provider.of<OrderViewModel>(context, listen: false);
+      final success = await orderViewModel.respondToPrice(
+        orderId: widget.orderId,
+        accept: accept,
+      );
+
+      if (!mounted) return;
+
+      final l10n = AppLocalizations.of(context)!;
+      
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              accept ? l10n.priceAcceptedSuccess : l10n.priceRejectedSuccess,
+            ),
+            backgroundColor: accept ? Colors.green : Colors.orange,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.failedToRespondToPrice),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.failedToRespondToPrice),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 }

@@ -28,7 +28,11 @@ export interface IOrder extends Document {
   };
   price: number;
   estimatedPrice: number;
-  status: 'pending' | 'accepted' | 'on_the_way' | 'delivered' | 'cancelled';
+  finalPrice?: number; // Final price set by driver
+  priceStatus: 'pending' | 'proposed' | 'accepted' | 'rejected'; // Price confirmation status
+  priceProposedAt?: Date; // When the driver proposed the final price
+  priceRespondedAt?: Date; // When the user accepted/rejected the price
+  status: 'pending' | 'accepted' | 'on_the_way' | 'delivered' | 'cancelled' | 'new_price_pending';
   estimatedTime?: number;
   distance?: number;
   createdAt: Date;
@@ -127,9 +131,31 @@ const OrderSchema: Schema = new Schema(
       required: [true, 'Estimated price is required'],
       min: 0,
     },
+    finalPrice: {
+      type: Number,
+      min: 0,
+      // Final price set by driver, null until driver proposes it
+    },
+    priceStatus: {
+      type: String,
+      enum: ['pending', 'proposed', 'accepted', 'rejected'],
+      default: 'pending',
+      // pending: waiting for driver to propose price
+      // proposed: driver has proposed a price, waiting for user response
+      // accepted: user accepted the proposed price
+      // rejected: user rejected the proposed price
+    },
+    priceProposedAt: {
+      type: Date,
+      // Timestamp when driver proposed the final price
+    },
+    priceRespondedAt: {
+      type: Date,
+      // Timestamp when user accepted/rejected the price
+    },
     status: {
       type: String,
-      enum: ['pending', 'accepted', 'on_the_way', 'delivered', 'cancelled'],
+      enum: ['pending', 'accepted', 'on_the_way', 'delivered', 'cancelled', 'new_price_pending'],
       default: 'pending',
     },
     estimatedTime: {

@@ -10,6 +10,9 @@ import {
   sendOrderOTP,
   verifyOTPAndCreateOrder,
   createOrderWithFirebaseToken,
+  proposePrice,
+  respondToPrice,
+  getPriceOffers,
 } from '../controllers/orderController';
 import { authenticate, authorize } from '../middleware/auth';
 
@@ -27,6 +30,14 @@ router.post('/create-with-firebase-token', createOrderWithFirebaseToken); // ✅
 router.post('/', authenticate, createOrder);
 router.get('/', authenticate, getOrders);
 router.get('/available', authenticate, authorize('driver'), getAvailableOrders);
+// IMPORTANT: Specific routes must come before parameterized routes
+router.get('/price-offers', authenticate, authorize('customer'), getPriceOffers);
+
+// Price negotiation endpoints (must come before /:orderId route)
+router.post('/:orderId/propose-price', authenticate, authorize('driver'), proposePrice);
+router.post('/:orderId/respond-price', authenticate, authorize('customer'), respondToPrice);
+
+// Order action endpoints
 router.post('/:orderId/accept', authenticate, authorize('driver'), acceptOrder);
 router.patch('/:orderId/status', authenticate, updateOrderStatus);
 router.get('/:orderId', authenticate, getOrderById);

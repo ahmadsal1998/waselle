@@ -99,7 +99,9 @@ class AuthViewModel with ChangeNotifier {
     notifyListeners();
 
     try {
-      print('🔄 Starting OTP send process for: $phoneNumber');
+      if (kDebugMode) {
+        print('🔄 Starting OTP send process for: $phoneNumber');
+      }
       
       // Normalize phone number before sending
       String? normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber);
@@ -114,7 +116,9 @@ class AuthViewModel with ChangeNotifier {
       );
 
       if (response['message'] != null) {
-        print('✅ OTP sent successfully');
+        if (kDebugMode) {
+          print('✅ OTP sent successfully');
+        }
         _errorMessage = null;
         return true;
       }
@@ -122,7 +126,9 @@ class AuthViewModel with ChangeNotifier {
       _errorMessage = 'Failed to send OTP. Please try again.';
       return false;
     } catch (e) {
-      print('❌ Exception in sendOTP: $e');
+      if (kDebugMode) {
+        print('❌ Exception in sendOTP: $e');
+      }
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
       return false;
     }
@@ -234,7 +240,9 @@ class AuthViewModel with ChangeNotifier {
     notifyListeners();
 
     try {
-      print('🔄 Starting delete account OTP send process for: $phoneNumber');
+      if (kDebugMode) {
+        print('🔄 Starting delete account OTP send process for: $phoneNumber');
+      }
       
       // Normalize phone number before sending
       String? normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber);
@@ -250,7 +258,9 @@ class AuthViewModel with ChangeNotifier {
         );
 
         if (response['message'] != null) {
-          print('✅ Delete account OTP sent successfully');
+          if (kDebugMode) {
+            print('✅ Delete account OTP sent successfully');
+          }
           _errorMessage = null;
           return true;
         }
@@ -260,13 +270,17 @@ class AuthViewModel with ChangeNotifier {
       } catch (e) {
         // If new endpoint doesn't exist (404), use regular endpoint which now supports auth
         if (e.toString().contains('404') || e.toString().contains('Cannot POST')) {
-          print('⚠️  New endpoint not available, using regular sendPhoneOTP with auth');
+          if (kDebugMode) {
+            print('⚠️  New endpoint not available, using regular sendPhoneOTP with auth');
+          }
           final response = await ApiService.sendPhoneOTP(
             phoneNumber: normalizedPhone,
           );
 
           if (response['message'] != null) {
-            print('✅ Delete account OTP sent successfully via fallback');
+            if (kDebugMode) {
+              print('✅ Delete account OTP sent successfully via fallback');
+            }
             _errorMessage = null;
             return true;
           }
@@ -277,7 +291,9 @@ class AuthViewModel with ChangeNotifier {
         rethrow;
       }
     } catch (e) {
-      print('❌ Exception in sendDeleteAccountOTP: $e');
+      if (kDebugMode) {
+        print('❌ Exception in sendDeleteAccountOTP: $e');
+      }
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
       return false;
     }

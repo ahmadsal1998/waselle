@@ -682,4 +682,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirm => 'Confirm';
+
+  @override
+  String get priceProposalReceived => 'Price Proposal Received';
+
+  @override
+  String get driverProposedPrice => 'The driver has proposed a delivery price';
+
+  @override
+  String get estimatedPrice => 'Estimated Price';
+
+  @override
+  String get finalPrice => 'Final Price';
+
+  @override
+  String get acceptPrice => 'Accept Price';
+
+  @override
+  String get rejectPrice => 'Reject';
+
+  @override
+  String get priceAcceptedSuccess => 'Price accepted! The driver will start the delivery.';
+
+  @override
+  String get priceRejectedSuccess => 'Price rejected. The driver will propose a new price.';
+
+  @override
+  String get failedToRespondToPrice => 'Failed to respond to price. Please try again.';
+
+  @override
+  String get waitingForPrice => 'Waiting for driver to set the delivery price';
+
+  @override
+  String get priceProposed => 'Price proposed, waiting for confirmation';
+
+  @override
+  String get priceAccepted => 'Price confirmed';
+
+  @override
+  String get deliveryPriceOffers => 'Delivery Price Offers';
+
+  @override
+  String get noPriceOffers => 'No price offers available';
+
+  @override
+  String get proposedPrice => 'Proposed Price';
+
+  @override
+  String get acceptOffer => 'Accept';
+
+  @override
+  String get rejectOffer => 'Reject';
+
+  @override
+  String get offerAccepted => 'Offer accepted successfully';
+
+  @override
+  String get offerRejected => 'Offer rejected';
+
+  @override
+  String get failedToLoadOffers => 'Failed to load price offers';
+
+  @override
+  String get viewPriceOffers => 'View and respond to price offers';
 }

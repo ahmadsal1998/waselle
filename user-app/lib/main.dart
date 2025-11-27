@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -29,10 +30,12 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Initialize Firebase in background isolate
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   
-  print('📨 Background message received: ${message.messageId}');
-  print('   Title: ${message.notification?.title}');
-  print('   Body: ${message.notification?.body}');
-  print('   Data: ${message.data}');
+  if (kDebugMode) {
+    print('📨 Background message received: ${message.messageId}');
+    print('   Title: ${message.notification?.title}');
+    print('   Body: ${message.notification?.body}');
+    print('   Data: ${message.data}');
+  }
   
   // Initialize local notifications plugin for background handler
   final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
@@ -105,7 +108,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       payload: payload,
     );
     
-    print('✅ Local notification shown in background handler');
+    if (kDebugMode) {
+      print('✅ Local notification shown in background handler');
+    }
   }
   
   // Store notification data for when app opens
@@ -113,9 +118,13 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('pending_order_navigation', message.data['orderId']!);
-      print('✅ Stored order ID for navigation: ${message.data['orderId']}');
+      if (kDebugMode) {
+        print('✅ Stored order ID for navigation: ${message.data['orderId']}');
+      }
     } catch (e) {
-      print('❌ Error storing notification data: $e');
+      if (kDebugMode) {
+        print('❌ Error storing notification data: $e');
+      }
     }
   }
 }

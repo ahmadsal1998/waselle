@@ -924,6 +924,94 @@
   "confirm": "Confirm",
   "@confirm": {
     "description": "Confirm button text"
+  },
+  "priceProposalReceived": "Price Proposal Received",
+  "@priceProposalReceived": {
+    "description": "Title for price proposal section"
+  },
+  "driverProposedPrice": "The driver has proposed a delivery price",
+  "@driverProposedPrice": {
+    "description": "Subtitle for price proposal section"
+  },
+  "estimatedPrice": "Estimated Price",
+  "@estimatedPrice": {
+    "description": "Estimated price label"
+  },
+  "finalPrice": "Final Price",
+  "@finalPrice": {
+    "description": "Final price label"
+  },
+  "acceptPrice": "Accept Price",
+  "@acceptPrice": {
+    "description": "Accept price button text"
+  },
+  "rejectPrice": "Reject",
+  "@rejectPrice": {
+    "description": "Reject price button text"
+  },
+  "priceAcceptedSuccess": "Price accepted! The driver will start the delivery.",
+  "@priceAcceptedSuccess": {
+    "description": "Success message when price is accepted"
+  },
+  "priceRejectedSuccess": "Price rejected. The driver will propose a new price.",
+  "@priceRejectedSuccess": {
+    "description": "Success message when price is rejected"
+  },
+  "failedToRespondToPrice": "Failed to respond to price. Please try again.",
+  "@failedToRespondToPrice": {
+    "description": "Error message when price response fails"
+  },
+  "waitingForPrice": "Waiting for driver to set the delivery price",
+  "@waitingForPrice": {
+    "description": "Status message when waiting for driver to set price"
+  },
+  "priceProposed": "Price proposed, waiting for confirmation",
+  "@priceProposed": {
+    "description": "Status message when price is proposed"
+  },
+  "priceAccepted": "Price confirmed",
+  "@priceAccepted": {
+    "description": "Status message when price is accepted"
+  },
+  "deliveryPriceOffers": "Delivery Price Offers",
+  "@deliveryPriceOffers": {
+    "description": "Title for the delivery price offers page"
+  },
+  "noPriceOffers": "No price offers available",
+  "@noPriceOffers": {
+    "description": "Message when there are no price offers"
+  },
+  "proposedPrice": "Proposed Price",
+  "@proposedPrice": {
+    "description": "Label for proposed price"
+  },
+  "estimatedPrice": "Estimated Price",
+  "@estimatedPrice": {
+    "description": "Label for estimated price"
+  },
+  "acceptOffer": "Accept",
+  "@acceptOffer": {
+    "description": "Button to accept a price offer"
+  },
+  "rejectOffer": "Reject",
+  "@rejectOffer": {
+    "description": "Button to reject a price offer"
+  },
+  "offerAccepted": "Offer accepted successfully",
+  "@offerAccepted": {
+    "description": "Message when offer is accepted"
+  },
+  "offerRejected": "Offer rejected",
+  "@offerRejected": {
+    "description": "Message when offer is rejected"
+  },
+  "failedToLoadOffers": "Failed to load price offers",
+  "@failedToLoadOffers": {
+    "description": "Error message when loading offers fails"
+  },
+  "viewPriceOffers": "View and respond to price offers",
+  "@viewPriceOffers": {
+    "description": "Subtitle for price offers menu item"
   }
 }
 

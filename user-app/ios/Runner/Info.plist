@@ -30,8 +30,8 @@
 		<string>This app needs access to your location to help you find nearby delivery services and track your orders.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>This app needs access to your location to help you find nearby delivery services and track your orders.</string>
-		<key>NSMicrophoneUsageDescription</key>
-		<string>We need microphone access to enable voice calls with drivers.</string>
+		<key>NSPrivacyPolicyURL</key>
+		<string>https://wassle.ps/privacy-policy</string>
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>remote-notification</string>

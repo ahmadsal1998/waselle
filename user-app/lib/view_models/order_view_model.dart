@@ -81,6 +81,9 @@ class OrderViewModel with ChangeNotifier {
     // Remove existing listeners to avoid duplicates
     SocketService.off('order-accepted');
     SocketService.off('order-updated');
+    SocketService.off('price-proposed');
+    SocketService.off('price-accepted');
+    SocketService.off('price-rejected');
     
     // Set up order-accepted listener
     SocketService.on('order-accepted', (data) {
@@ -106,7 +109,31 @@ class OrderViewModel with ChangeNotifier {
       _applyIncomingOrder(order);
     });
     
-    debugPrint('✅ Socket listeners set up for order-accepted and order-updated');
+    // Set up price-proposed listener (driver proposed a final price)
+    SocketService.on('price-proposed', (data) {
+      debugPrint('💰 Received price-proposed event: $data');
+      if (data is Map) {
+        final order = data['order'];
+        if (order != null) {
+          final normalizedOrder = _normalizeOrder(order);
+          if (normalizedOrder != null) {
+            debugPrint('✅ Processing price-proposed: ${normalizedOrder['_id']}, finalPrice: ${normalizedOrder['finalPrice']}, priceStatus: ${normalizedOrder['priceStatus']}');
+            _applyIncomingOrder(normalizedOrder);
+            // Also refresh orders from server to ensure we have the latest data
+            fetchOrders();
+          }
+        } else {
+          // If order is not in the data, try to fetch it from server
+          final orderId = data['orderId'];
+          if (orderId != null) {
+            debugPrint('⚠️ Order data not in price-proposed event, fetching from server: $orderId');
+            fetchOrders();
+          }
+        }
+      }
+    });
+    
+    debugPrint('✅ Socket listeners set up for order-accepted, order-updated, and price-proposed');
   }
 
   void _applyIncomingOrder(Map<String, dynamic> order) {
@@ -335,5 +362,31 @@ class OrderViewModel with ChangeNotifier {
     if (status == null) return false;
     final normalized = status.toString().trim().toLowerCase();
     return _trackedStatuses.contains(normalized);
+  }
+
+  /// Respond to a driver's price proposal (accept or reject)
+  Future<bool> respondToPrice({
+    required String orderId,
+    required bool accept,
+  }) async {
+    try {
+      final response = await ApiService.respondToPrice(
+        orderId: orderId,
+        accept: accept,
+      );
+
+      if (response['order'] != null) {
+        final updatedOrder =
+            Map<String, dynamic>.from(response['order'] as Map<String, dynamic>);
+        _updateOrderInList(updatedOrder);
+        _syncActiveOrders(updatedOrder);
+        await fetchOrders();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error responding to price: $e');
+      return false;
+    }
   }
 }

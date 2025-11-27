@@ -1000,6 +1000,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get delete;
+
+  /// Title for price input dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Set Delivery Price'**
+  String get setDeliveryPrice;
+
+  /// Estimated price label
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated Price'**
+  String get estimatedPrice;
+
+  /// Instruction for entering final price
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the final delivery price:'**
+  String get enterFinalPrice;
+
+  /// Price validation error
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid price'**
+  String get enterValidPrice;
+
+  /// NIS currency symbol
+  ///
+  /// In en, this message translates to:
+  /// **'₪'**
+  String get nisSymbol;
+
+  /// Info message about price being sent to customer
+  ///
+  /// In en, this message translates to:
+  /// **'This price will be sent to the customer for approval'**
+  String get priceWillBeSentToCustomer;
+
+  /// Confirm price button text
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Price'**
+  String get confirmPrice;
+
+  /// Message when order is accepted but price proposal failed
+  ///
+  /// In en, this message translates to:
+  /// **'Order accepted. Price proposal pending.'**
+  String get orderAcceptedPricePending;
+
+  /// Success message when price is proposed
+  ///
+  /// In en, this message translates to:
+  /// **'Price proposed successfully. Waiting for customer approval.'**
+  String get priceProposedSuccessfully;
+
+  /// Status message when waiting for price approval
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for customer to approve the price'**
+  String get waitingForPriceApproval;
+
+  /// Status when customer accepted the price
+  ///
+  /// In en, this message translates to:
+  /// **'Price Accepted'**
+  String get priceAccepted;
+
+  /// Status when customer rejected the price
+  ///
+  /// In en, this message translates to:
+  /// **'Price Rejected'**
+  String get priceRejected;
+
+  /// Label for proposed price
+  ///
+  /// In en, this message translates to:
+  /// **'Proposed Price'**
+  String get proposedPrice;
+
+  /// Label for final price
+  ///
+  /// In en, this message translates to:
+  /// **'Final Price'**
+  String get finalPrice;
+
+  /// Price status when pending driver proposal
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for price proposal'**
+  String get priceStatusPending;
+
+  /// Price status when proposed to customer
+  ///
+  /// In en, this message translates to:
+  /// **'Price proposed, waiting for customer'**
+  String get priceStatusProposed;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

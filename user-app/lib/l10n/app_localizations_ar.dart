@@ -682,4 +682,67 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get confirm => 'تأكيد';
+
+  @override
+  String get priceProposalReceived => 'تم استلام عرض السعر';
+
+  @override
+  String get driverProposedPrice => 'السائق اقترح سعر التوصيل';
+
+  @override
+  String get estimatedPrice => 'السعر المقدر';
+
+  @override
+  String get finalPrice => 'السعر النهائي';
+
+  @override
+  String get acceptPrice => 'قبول السعر';
+
+  @override
+  String get rejectPrice => 'رفض';
+
+  @override
+  String get priceAcceptedSuccess => 'تم قبول السعر! سيبدأ السائق التوصيل.';
+
+  @override
+  String get priceRejectedSuccess => 'تم رفض السعر. السائق سيقترح سعراً جديداً.';
+
+  @override
+  String get failedToRespondToPrice => 'فشل الرد على السعر. الرجاء المحاولة مرة أخرى.';
+
+  @override
+  String get waitingForPrice => 'في انتظار السائق لتحديد سعر التوصيل';
+
+  @override
+  String get priceProposed => 'تم اقتراح السعر، في انتظار التأكيد';
+
+  @override
+  String get priceAccepted => 'تم تأكيد السعر';
+
+  @override
+  String get deliveryPriceOffers => 'عروض أسعار التوصيل';
+
+  @override
+  String get noPriceOffers => 'لا توجد عروض أسعار متاحة';
+
+  @override
+  String get proposedPrice => 'السعر المقترح';
+
+  @override
+  String get acceptOffer => 'قبول';
+
+  @override
+  String get rejectOffer => 'رفض';
+
+  @override
+  String get offerAccepted => 'تم قبول العرض بنجاح';
+
+  @override
+  String get offerRejected => 'تم رفض العرض';
+
+  @override
+  String get failedToLoadOffers => 'فشل تحميل عروض الأسعار';
+
+  @override
+  String get viewPriceOffers => 'عرض والرد على عروض الأسعار';
 }

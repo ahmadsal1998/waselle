@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/api_service.dart';
@@ -34,9 +35,13 @@ class NotificationService {
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
-        print('✅ User granted notification permission');
+        if (kDebugMode) {
+          print('✅ User granted notification permission');
+        }
       } else {
-        print('❌ User declined notification permission');
+        if (kDebugMode) {
+          print('❌ User declined notification permission');
+        }
         return;
       }
 
@@ -74,13 +79,17 @@ class NotificationService {
       // Get FCM token
       _fcmToken = await _firebaseMessaging.getToken();
       if (_fcmToken != null) {
-        print('✅ FCM Token: $_fcmToken');
+        if (kDebugMode) {
+          print('✅ FCM Token: $_fcmToken');
+        }
         await _registerToken(_fcmToken!);
       }
 
       // Listen for token refresh
       _firebaseMessaging.onTokenRefresh.listen((newToken) {
-        print('🔄 FCM Token refreshed: $newToken');
+        if (kDebugMode) {
+          print('🔄 FCM Token refreshed: $newToken');
+        }
         _fcmToken = newToken;
         _registerToken(newToken);
       });
@@ -92,7 +101,9 @@ class NotificationService {
       // Handle notification when app is opened from terminated state
       final initialMessage = await _firebaseMessaging.getInitialMessage();
       if (initialMessage != null) {
-        print('📱 App opened from notification (terminated state)');
+        if (kDebugMode) {
+          print('📱 App opened from notification (terminated state)');
+        }
         // Wait a bit for app to initialize before handling
         Future.delayed(const Duration(seconds: 1), () {
           _handleNotificationTap(initialMessage);
@@ -103,9 +114,13 @@ class NotificationService {
       // This is required for notifications to work when app is terminated
 
       _isInitialized = true;
-      print('✅ Notification service initialized');
+      if (kDebugMode) {
+        print('✅ Notification service initialized');
+      }
     } catch (e) {
-      print('❌ Error initializing notification service: $e');
+      if (kDebugMode) {
+        print('❌ Error initializing notification service: $e');
+      }
     }
   }
 
@@ -119,18 +134,24 @@ class NotificationService {
       if (storedToken != token) {
         await ApiService.registerFCMToken(token);
         await prefs.setString('fcm_token', token);
-        print('✅ FCM token registered with backend');
+        if (kDebugMode) {
+          print('✅ FCM token registered with backend');
+        }
       }
     } catch (e) {
-      print('❌ Error registering FCM token: $e');
+      if (kDebugMode) {
+        print('❌ Error registering FCM token: $e');
+      }
     }
   }
 
   /// Handle foreground messages (when app is open)
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    print('📨 Foreground message received: ${message.messageId}');
-    print('   Notification: ${message.notification?.title} - ${message.notification?.body}');
-    print('   Data: ${message.data}');
+    if (kDebugMode) {
+      print('📨 Foreground message received: ${message.messageId}');
+      print('   Notification: ${message.notification?.title} - ${message.notification?.body}');
+      print('   Data: ${message.data}');
+    }
     
     final notification = message.notification;
     final data = message.data;
@@ -155,15 +176,21 @@ class NotificationService {
         body: body,
         data: data,
       );
-      print('✅ Local notification shown in foreground');
+      if (kDebugMode) {
+        print('✅ Local notification shown in foreground');
+      }
     } else {
-      print('⚠️ No notification content to display');
+      if (kDebugMode) {
+        print('⚠️ No notification content to display');
+      }
     }
   }
 
   /// Handle notification tap (when app is in background or terminated)
   void _handleNotificationTap(RemoteMessage message) {
-    print('👆 Notification tapped: ${message.messageId}');
+    if (kDebugMode) {
+      print('👆 Notification tapped: ${message.messageId}');
+    }
     final data = message.data;
     
     if (data['type'] == 'order_status_update' && data['orderId'] != null) {
@@ -176,7 +203,9 @@ class NotificationService {
 
   /// Handle local notification tap
   void _onNotificationTapped(NotificationResponse response) {
-    print('👆 Local notification tapped: ${response.id}');
+    if (kDebugMode) {
+      print('👆 Local notification tapped: ${response.id}');
+    }
     final payload = response.payload;
     if (payload != null) {
       try {
@@ -187,7 +216,9 @@ class NotificationService {
           _storePendingNavigation(data['orderId']!);
         }
       } catch (e) {
-        print('❌ Error parsing notification payload: $e');
+        if (kDebugMode) {
+          print('❌ Error parsing notification payload: $e');
+        }
       }
     }
   }

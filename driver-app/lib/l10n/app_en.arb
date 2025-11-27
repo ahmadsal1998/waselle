@@ -677,6 +677,70 @@
   "pleaseEnterValidOtp": "Please enter a valid 6-digit OTP",
   "@pleaseEnterValidOtp": {
     "description": "OTP validation error"
+  },
+  "setDeliveryPrice": "Set Delivery Price",
+  "@setDeliveryPrice": {
+    "description": "Title for price input dialog"
+  },
+  "estimatedPrice": "Estimated Price",
+  "@estimatedPrice": {
+    "description": "Estimated price label"
+  },
+  "enterFinalPrice": "Enter the final delivery price:",
+  "@enterFinalPrice": {
+    "description": "Instruction for entering final price"
+  },
+  "enterValidPrice": "Please enter a valid price",
+  "@enterValidPrice": {
+    "description": "Price validation error"
+  },
+  "nisSymbol": "₪",
+  "@nisSymbol": {
+    "description": "NIS currency symbol"
+  },
+  "priceWillBeSentToCustomer": "This price will be sent to the customer for approval",
+  "@priceWillBeSentToCustomer": {
+    "description": "Info message about price being sent to customer"
+  },
+  "confirmPrice": "Confirm Price",
+  "@confirmPrice": {
+    "description": "Confirm price button text"
+  },
+  "orderAcceptedPricePending": "Order accepted. Price proposal pending.",
+  "@orderAcceptedPricePending": {
+    "description": "Message when order is accepted but price proposal failed"
+  },
+  "priceProposedSuccessfully": "Price proposed successfully. Waiting for customer approval.",
+  "@priceProposedSuccessfully": {
+    "description": "Success message when price is proposed"
+  },
+  "waitingForPriceApproval": "Waiting for customer to approve the price",
+  "@waitingForPriceApproval": {
+    "description": "Status message when waiting for price approval"
+  },
+  "priceAccepted": "Price Accepted",
+  "@priceAccepted": {
+    "description": "Status when customer accepted the price"
+  },
+  "priceRejected": "Price Rejected",
+  "@priceRejected": {
+    "description": "Status when customer rejected the price"
+  },
+  "proposedPrice": "Proposed Price",
+  "@proposedPrice": {
+    "description": "Label for proposed price"
+  },
+  "finalPrice": "Final Price",
+  "@finalPrice": {
+    "description": "Label for final price"
+  },
+  "priceStatusPending": "Waiting for price proposal",
+  "@priceStatusPending": {
+    "description": "Price status when pending driver proposal"
+  },
+  "priceStatusProposed": "Price proposed, waiting for customer",
+  "@priceStatusProposed": {
+    "description": "Price status when proposed to customer"
   }
 }
 

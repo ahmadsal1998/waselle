@@ -404,11 +404,22 @@ class _LocationText extends StatefulWidget {
 class _LocationTextState extends State<_LocationText> {
   String _displayText = '';
   bool _isLoading = true;
+  bool _hasLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _loadLocationName();
+    // Don't access inherited widgets in initState
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Load location name after dependencies are available
+    if (!_hasLoaded) {
+      _hasLoaded = true;
+      _loadLocationName();
+    }
   }
 
   Future<void> _loadLocationName() async {

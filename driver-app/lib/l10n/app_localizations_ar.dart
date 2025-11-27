@@ -488,4 +488,52 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get delete => 'حذف';
+
+  @override
+  String get setDeliveryPrice => 'تحديد سعر التوصيل';
+
+  @override
+  String get estimatedPrice => 'السعر التقديري';
+
+  @override
+  String get enterFinalPrice => 'أدخل سعر التوصيل النهائي:';
+
+  @override
+  String get enterValidPrice => 'الرجاء إدخال سعر صحيح';
+
+  @override
+  String get nisSymbol => '₪';
+
+  @override
+  String get priceWillBeSentToCustomer => 'سيتم إرسال هذا السعر للعميل للموافقة عليه';
+
+  @override
+  String get confirmPrice => 'تأكيد السعر';
+
+  @override
+  String get orderAcceptedPricePending => 'تم قبول الطلب. في انتظار اقتراح السعر.';
+
+  @override
+  String get priceProposedSuccessfully => 'تم اقتراح السعر بنجاح. في انتظار موافقة العميل.';
+
+  @override
+  String get waitingForPriceApproval => 'في انتظار موافقة العميل على السعر';
+
+  @override
+  String get priceAccepted => 'تم قبول السعر';
+
+  @override
+  String get priceRejected => 'تم رفض السعر';
+
+  @override
+  String get proposedPrice => 'السعر المقترح';
+
+  @override
+  String get finalPrice => 'السعر النهائي';
+
+  @override
+  String get priceStatusPending => 'في انتظار اقتراح السعر';
+
+  @override
+  String get priceStatusProposed => 'تم اقتراح السعر، في انتظار العميل';
 }

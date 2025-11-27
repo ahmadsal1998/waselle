@@ -120,16 +120,55 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
 
   Future<void> _acceptOrder(String orderId) async {
     final l10n = AppLocalizations.of(context)!;
-    final orderViewModel =
-        Provider.of<OrderViewModel>(context, listen: false);
+    
+    // Find the order to get its estimated price
+    final orderViewModel = Provider.of<OrderViewModel>(context, listen: false);
+    final order = orderViewModel.availableOrders.firstWhere(
+      (o) => _normalizeOrderId(o['_id']) == orderId,
+      orElse: () => <String, dynamic>{},
+    );
+    
+    final estimatedPrice = order['estimatedPrice']?.toString() ?? order['price']?.toString() ?? '0';
+    
+    // Show price input dialog
+    final finalPrice = await showDialog<double>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _PriceInputDialog(
+        estimatedPrice: double.tryParse(estimatedPrice) ?? 0,
+        l10n: l10n,
+      ),
+    );
+    
+    if (finalPrice == null) {
+      // User cancelled the dialog
+      return;
+    }
+    
+    // Accept the order first
     final success = await orderViewModel.acceptOrder(orderId);
 
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.orderAcceptedSuccessfully)),
+      // Now propose the final price
+      final priceSuccess = await orderViewModel.proposePrice(
+        orderId: orderId,
+        finalPrice: finalPrice,
       );
+      
+      if (!mounted) return;
+      
+      if (priceSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.orderAcceptedSuccessfully)),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.orderAcceptedPricePending)),
+        );
+      }
+      
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -876,6 +915,280 @@ class _OrderNotesDialogState extends State<_OrderNotesDialog> {
                     textAlign: TextAlign.center,
                   ),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Dialog for entering the final delivery price
+class _PriceInputDialog extends StatefulWidget {
+  final double estimatedPrice;
+  final AppLocalizations l10n;
+
+  const _PriceInputDialog({
+    required this.estimatedPrice,
+    required this.l10n,
+  });
+
+  @override
+  State<_PriceInputDialog> createState() => _PriceInputDialogState();
+}
+
+class _PriceInputDialogState extends State<_PriceInputDialog> {
+  late TextEditingController _priceController;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _priceController = TextEditingController(
+      text: widget.estimatedPrice.toStringAsFixed(0),
+    );
+  }
+
+  @override
+  void dispose() {
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  void _validateAndSubmit() {
+    final priceText = _priceController.text.trim();
+    final price = double.tryParse(priceText);
+    
+    if (price == null || price <= 0) {
+      setState(() {
+        _errorText = widget.l10n.enterValidPrice;
+      });
+      return;
+    }
+    
+    Navigator.of(context).pop(price);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryColor.withOpacity(0.1),
+                    AppTheme.primaryColor.withOpacity(0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.attach_money_rounded,
+                      color: AppTheme.primaryColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      widget.l10n.setDeliveryPrice,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Estimated price info
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.blue.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: Colors.blue[700],
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '${widget.l10n.estimatedPrice}: ${widget.l10n.nis(widget.estimatedPrice.toStringAsFixed(0))}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Price input field
+                  Text(
+                    widget.l10n.enterFinalPrice,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _priceController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: '0',
+                      suffixText: widget.l10n.nisSymbol,
+                      suffixStyle: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryColor,
+                      ),
+                      errorText: _errorText,
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: AppTheme.primaryColor,
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    onChanged: (_) {
+                      if (_errorText != null) {
+                        setState(() {
+                          _errorText = null;
+                        });
+                      }
+                    },
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  Text(
+                    widget.l10n.priceWillBeSentToCustomer,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            
+            // Action buttons
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ResponsiveButton.outlined(
+                      context: context,
+                      onPressed: () => Navigator.of(context).pop(),
+                      foregroundColor: AppTheme.textPrimary,
+                      borderColor: Colors.grey[300]!,
+                      borderRadius: 12,
+                      child: Text(
+                        widget.l10n.cancel,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ResponsiveButton.elevated(
+                      context: context,
+                      onPressed: _validateAndSubmit,
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      borderRadius: 12,
+                      child: Text(
+                        widget.l10n.confirmPrice,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

@@ -32,6 +32,18 @@ class OrderRepository {
     return _asMap(response);
   }
 
+  /// Propose a final price for an order (driver only)
+  Future<Map<String, dynamic>> proposePrice({
+    required String orderId,
+    required double finalPrice,
+  }) async {
+    final response = await ApiClient.post(
+      '/orders/$orderId/propose-price',
+      body: {'finalPrice': finalPrice},
+    );
+    return _asMap(response);
+  }
+
   Map<String, dynamic> _asMap(dynamic response) {
     if (response is Map<String, dynamic>) {
       return response;

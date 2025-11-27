@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -66,7 +67,9 @@ class FirebaseAuthService {
         }
       }
 
-      print('📱 Attempting to send OTP to: $formattedPhone');
+      if (kDebugMode) {
+        print('📱 Attempting to send OTP to: $formattedPhone');
+      }
 
       bool codeSent = false;
       bool errorOccurred = false;
@@ -75,13 +78,17 @@ class FirebaseAuthService {
         phoneNumber: formattedPhone,
         verificationCompleted: (PhoneAuthCredential credential) {
           // Auto-verification completed (Android only)
-          print('✅ Auto-verification completed');
+          if (kDebugMode) {
+            print('✅ Auto-verification completed');
+          }
         },
         verificationFailed: (FirebaseAuthException e) {
-          print('❌ Firebase Auth Error: ${e.code} - ${e.message}');
-          print('❌ Error details: ${e.toString()}');
-          if (e.stackTrace != null) {
-            print('❌ Stack trace: ${e.stackTrace}');
+          if (kDebugMode) {
+            print('❌ Firebase Auth Error: ${e.code} - ${e.message}');
+            print('❌ Error details: ${e.toString()}');
+            if (e.stackTrace != null) {
+              print('❌ Stack trace: ${e.stackTrace}');
+            }
           }
           
           if (!errorOccurred) {
@@ -103,14 +110,18 @@ class FirebaseAuthService {
                   '2. App is rebuilt after Info.plist changes\n'
                   '3. GoogleService-Info.plist is properly configured\n'
                   '4. Firebase Phone Auth is enabled in Firebase Console';
-              print('❌ Firebase OTP error: ${e.message ?? "Unknown internal error"}');
+              if (kDebugMode) {
+                print('❌ Firebase OTP error: ${e.message ?? "Unknown internal error"}');
+              }
             }
             
             onError(errorMsg);
           }
         },
         codeSent: (String verificationId, int? resendToken) {
-          print('✅ OTP code sent successfully. Verification ID received.');
+          if (kDebugMode) {
+            print('✅ OTP code sent successfully. Verification ID received.');
+          }
           if (!codeSent && !errorOccurred) {
             codeSent = true;
             onCodeSent(verificationId);
@@ -118,7 +129,9 @@ class FirebaseAuthService {
         },
         codeAutoRetrievalTimeout: (String verificationId) {
           // Auto-retrieval timeout - code was sent but not auto-retrieved
-          print('⏱️ Auto-retrieval timeout. Code was sent.');
+          if (kDebugMode) {
+            print('⏱️ Auto-retrieval timeout. Code was sent.');
+          }
           if (!codeSent && !errorOccurred) {
             codeSent = true;
             onCodeSent(verificationId);
@@ -127,7 +140,9 @@ class FirebaseAuthService {
         timeout: const Duration(seconds: 60),
       );
     } catch (e) {
-      print('❌ Exception in sendOTPWithCallback: $e');
+      if (kDebugMode) {
+        print('❌ Exception in sendOTPWithCallback: $e');
+      }
       onError('Failed to send OTP: ${e.toString()}');
     }
   }

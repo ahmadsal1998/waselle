@@ -461,6 +461,40 @@ class ApiService {
     }
   }
 
+  /// Get orders with pending price offers (new_price_pending status)
+  static Future<Map<String, dynamic>> getPriceOffers() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/orders/price-offers'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return _parseResponse(response);
+      } else {
+        // Try to parse error response
+        try {
+          final responseData = _parseResponse(response);
+          throw Exception(responseData['message'] ?? 'Failed to fetch price offers');
+        } catch (e) {
+          if (e is Exception) rethrow;
+          throw Exception(
+              'Failed to fetch price offers with status ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (e is http.ClientException ||
+          e.toString().contains('Connection refused') ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Network is unreachable')) {
+        throw Exception(
+            'Unable to connect to server. Please check your internet connection.');
+      }
+      if (e is Exception) rethrow;
+      throw Exception('Failed to fetch price offers: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> getOrderById(String orderId) async {
     try {
       final response = await http.get(
@@ -1036,6 +1070,38 @@ class ApiService {
             'Unable to connect to server. Please check your internet connection.');
       }
       rethrow;
+    }
+  }
+
+  /// Respond to a driver's price proposal (accept or reject)
+  static Future<Map<String, dynamic>> respondToPrice({
+    required String orderId,
+    required bool accept,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/orders/$orderId/respond-price'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'accept': accept,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return _parseResponse(response);
+      } else {
+        try {
+          final responseData = _parseResponse(response);
+          throw Exception(responseData['message'] ?? 'Failed to respond to price');
+        } catch (e) {
+          if (e is Exception) rethrow;
+          throw Exception(
+              'Failed to respond to price with status ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to respond to price: $e');
     }
   }
 
