@@ -16,6 +16,7 @@ import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import TermsOfService from '@/pages/TermsOfService';
 import TermsOfServicePage from '@/pages/TermsOfServicePage';
 import Support from '@/pages/Support';
+import SupportPage from '@/pages/SupportPage';
 import Layout from '@/components/layout/Layout';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { LanguageProvider } from '@/store/language/LanguageContext';
@@ -48,6 +49,7 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+            <Route path="/support" element={<SupportPage />} />
             <Route path="/login" element={<Login />} />
             <Route
               path="/dashboard"
