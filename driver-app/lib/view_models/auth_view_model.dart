@@ -228,10 +228,21 @@ class AuthViewModel with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Use authenticated endpoint for account deletion OTP
-      await _authRepository.sendDeleteAccountOTP(phoneNumber: phoneNumber);
-      _errorMessage = null;
-      return true;
+      // Try authenticated endpoint first, fallback to regular endpoint
+      try {
+        await _authRepository.sendDeleteAccountOTP(phoneNumber: phoneNumber);
+        _errorMessage = null;
+        return true;
+      } catch (e) {
+        // If new endpoint doesn't exist (404), use regular endpoint which now supports auth
+        if (e.toString().contains('404') || e.toString().contains('Cannot POST')) {
+          debugPrint('New endpoint not available, using regular sendPhoneOTP with auth');
+          await _authRepository.sendPhoneOTP(phoneNumber: phoneNumber);
+          _errorMessage = null;
+          return true;
+        }
+        rethrow;
+      }
     } catch (e) {
       debugPrint('Error sending OTP: $e');
       _errorMessage = e.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');

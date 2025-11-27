@@ -243,19 +243,39 @@ class AuthViewModel with ChangeNotifier {
         return false;
       }
 
-      // Call authenticated backend API to send OTP via SMS provider
-      final response = await ApiService.sendDeleteAccountOTP(
-        phoneNumber: normalizedPhone,
-      );
+      // Try authenticated endpoint first, fallback to regular endpoint
+      try {
+        final response = await ApiService.sendDeleteAccountOTP(
+          phoneNumber: normalizedPhone,
+        );
 
-      if (response['message'] != null) {
-        print('✅ Delete account OTP sent successfully');
-        _errorMessage = null;
-        return true;
+        if (response['message'] != null) {
+          print('✅ Delete account OTP sent successfully');
+          _errorMessage = null;
+          return true;
+        }
+        
+        _errorMessage = 'Failed to send OTP. Please try again.';
+        return false;
+      } catch (e) {
+        // If new endpoint doesn't exist (404), use regular endpoint which now supports auth
+        if (e.toString().contains('404') || e.toString().contains('Cannot POST')) {
+          print('⚠️  New endpoint not available, using regular sendPhoneOTP with auth');
+          final response = await ApiService.sendPhoneOTP(
+            phoneNumber: normalizedPhone,
+          );
+
+          if (response['message'] != null) {
+            print('✅ Delete account OTP sent successfully via fallback');
+            _errorMessage = null;
+            return true;
+          }
+          
+          _errorMessage = 'Failed to send OTP. Please try again.';
+          return false;
+        }
+        rethrow;
       }
-      
-      _errorMessage = 'Failed to send OTP. Please try again.';
-      return false;
     } catch (e) {
       print('❌ Exception in sendDeleteAccountOTP: $e');
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
