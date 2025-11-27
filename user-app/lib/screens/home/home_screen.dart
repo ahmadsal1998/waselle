@@ -15,6 +15,8 @@ import '../../view_models/auth_view_model.dart';
 import '../../services/notification_service.dart';
 import '../../services/socket_service.dart';
 import '../../widgets/responsive_button.dart';
+import '../../repositories/api_service.dart';
+import 'delivery_price_offers_screen.dart';
 import 'order_history_screen.dart';
 import 'order_tracking_screen.dart';
 import 'profile_screen.dart';
@@ -66,7 +68,22 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPendingNavigation();
       _initializeCallListener();
+      _checkInitialOffersCount();
     });
+  }
+
+  Future<void> _checkInitialOffersCount() async {
+    // Check offers count on app start to update green dot indicator
+    try {
+      final response = await ApiService.getPriceOffers();
+      final offers = List<Map<String, dynamic>>.from(
+        response['orders'] ?? [],
+      );
+      offersCountNotifier.value = offers.length;
+    } catch (e) {
+      // Silently fail - offers will be checked when user navigates to offers screen
+      debugPrint('Failed to check initial offers count: $e');
+    }
   }
 
   Future<void> _checkPendingNavigation() async {
@@ -234,8 +251,12 @@ class _HomeNavigationBar extends StatelessWidget {
           label: l10n.trackOrder,
         ),
         NavigationDestination(
-          icon: const Icon(Icons.local_offer_outlined),
-          selectedIcon: const Icon(Icons.local_offer),
+          icon: _PriceOffersNavIcon(
+            isSelected: false,
+          ),
+          selectedIcon: _PriceOffersNavIcon(
+            isSelected: true,
+          ),
           label: l10n.deliveryPriceOffers,
         ),
         NavigationDestination(
@@ -844,6 +865,57 @@ class _TrackNavIcon extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _PriceOffersNavIcon extends StatelessWidget {
+  const _PriceOffersNavIcon({
+    required this.isSelected,
+  });
+
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final iconColor = isSelected
+        ? colorScheme.primary
+        : Theme.of(context).iconTheme.color ?? colorScheme.onSurfaceVariant;
+
+    return ValueListenableBuilder<int>(
+      valueListenable: offersCountNotifier,
+      builder: (context, count, _) {
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(
+              isSelected ? Icons.local_offer : Icons.local_offer_outlined,
+              color: iconColor,
+            ),
+            if (count > 0)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.withOpacity(0.4),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

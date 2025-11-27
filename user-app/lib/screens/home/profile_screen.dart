@@ -10,7 +10,6 @@ import '../../repositories/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/delete_account_otp_dialog.dart';
 import 'saved_addresses_screen.dart';
-import 'delivery_price_offers_screen.dart';
 import 'order_history_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -296,20 +295,6 @@ class _ProfileContentState extends State<_ProfileContent> {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => const SavedAddressesScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  _ModernProfileTile(
-                    icon: Icons.local_offer_rounded,
-                    iconColor: AppTheme.primaryColor,
-                    title: l10n.deliveryPriceOffers,
-                    subtitle: l10n.viewPriceOffers,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const DeliveryPriceOffersScreen(),
                         ),
                       );
                     },

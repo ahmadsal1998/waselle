@@ -16,6 +16,7 @@ import {
   sendOrderStatusNotification,
   sendDriverOrderStatusNotification,
   sendNewOrderNotificationToDrivers,
+  sendNotificationToUser,
 } from '../services/notificationService';
 import OrderCategory from '../models/OrderCategory';
 import Settings from '../models/Settings';
@@ -1399,8 +1400,39 @@ export const proposePrice = async (
     // Emit socket event to notify customer about proposed price (for real-time updates)
     emitPriceProposed(orderData);
 
-    // NOTE: Push notifications are NOT sent for price proposals
-    // Users will see offers in the "Delivery Price Offers" page instead
+    // Send push notification to customer about the price proposal
+    const customerId = order.customerId?.toString();
+    if (customerId) {
+      try {
+        const customer = await User.findById(customerId);
+        const language = (customer?.preferredLanguage || 'ar') as 'ar' | 'en';
+        
+        const messages = {
+          ar: {
+            title: 'تم الحصول على عرض سعر',
+            body: 'تم استلام عرض سعر جديد للتوصيل. اضغط لعرض التفاصيل.',
+          },
+          en: {
+            title: 'Delivery price has been received',
+            body: 'A new delivery price offer has been received. Tap to view details.',
+          },
+        };
+        
+        const message = messages[language];
+        
+        await sendNotificationToUser(customerId, {
+          title: message.title,
+          body: message.body,
+          data: {
+            type: 'price_proposed',
+            orderId: orderId,
+          },
+        });
+      } catch (error: any) {
+        console.error('Error sending price proposal notification:', error);
+        // Don't fail the request if notification fails
+      }
+    }
 
     res.status(200).json({
       message: 'Price proposed successfully',

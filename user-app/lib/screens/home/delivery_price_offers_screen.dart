@@ -12,6 +12,9 @@ class DeliveryPriceOffersScreen extends StatefulWidget {
   State<DeliveryPriceOffersScreen> createState() => _DeliveryPriceOffersScreenState();
 }
 
+// Global notifier for offers count (used by navigation bar)
+final ValueNotifier<int> offersCountNotifier = ValueNotifier<int>(0);
+
 class _DeliveryPriceOffersScreenState extends State<DeliveryPriceOffersScreen> {
   bool _isLoading = false;
   bool _isInitialized = false;
@@ -35,6 +38,8 @@ class _DeliveryPriceOffersScreenState extends State<DeliveryPriceOffersScreen> {
           );
           _isLoading = false;
         });
+        // Update global offers count notifier
+        offersCountNotifier.value = _offers.length;
       }
     } catch (e) {
       if (mounted) {
@@ -69,6 +74,7 @@ class _DeliveryPriceOffersScreenState extends State<DeliveryPriceOffersScreen> {
       
       // Reload offers to remove the accepted/rejected offer
       await _loadOffers();
+      // Update global offers count notifier (already done in _loadOffers)
       
       // Notify order view model to refresh orders
       if (!mounted) return;
@@ -174,6 +180,8 @@ class _DeliveryPriceOffersScreenState extends State<DeliveryPriceOffersScreen> {
             if (data['order'] != null) ...data['order'],
           };
         });
+        // Update global offers count notifier
+        offersCountNotifier.value = _offers.length;
       } else {
         // This is a new offer - we need to fetch the full order details
         // For now, reload the offers list to get complete data

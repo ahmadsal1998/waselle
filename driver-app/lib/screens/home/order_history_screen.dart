@@ -322,35 +322,38 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               color: Colors.white,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildCompactStatCard(
-                      icon: Icons.receipt_long_rounded,
-                      label: l10n.totalOrders,
-                      value: '${_filteredOrders.length}',
-                      color: AppTheme.primaryColor,
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _buildCompactStatCard(
+                        icon: Icons.receipt_long_rounded,
+                        label: l10n.totalOrders,
+                        value: '${_filteredOrders.length}',
+                        color: AppTheme.primaryColor,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildCompactStatCard(
-                      icon: Icons.attach_money_rounded,
-                      label: l10n.totalDeliveryFees,
-                      value: l10n.nis(_totalDeliveryFees.toStringAsFixed(2)),
-                      color: AppTheme.secondaryColor,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildCompactStatCard(
+                        icon: Icons.attach_money_rounded,
+                        label: l10n.totalDeliveryFees,
+                        value: l10n.nis(_totalDeliveryFees.toStringAsFixed(2)),
+                        color: AppTheme.secondaryColor,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildBalanceCard(
-                      balance: _driverBalance,
-                      maxAllowedBalance: _maxAllowedBalance,
-                      isLoading: _isLoadingBalance,
-                      onRefresh: _loadDriverBalance,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildBalanceCard(
+                        balance: _driverBalance,
+                        maxAllowedBalance: _maxAllowedBalance,
+                        isLoading: _isLoadingBalance,
+                        onRefresh: _loadDriverBalance,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -406,7 +409,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         ),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -426,28 +430,29 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             ],
           ),
           const SizedBox(height: 6),
-          if (isLoading)
-            SizedBox(
-              height: 16,
-              width: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-              ),
-            )
-          else
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: color,
-                letterSpacing: -0.3,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
+          Flexible(
+            child: isLoading
+                ? SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                    ),
+                  )
+                : Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                      letterSpacing: -0.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+          ),
           const SizedBox(height: 4),
           Text(
             label,
@@ -456,7 +461,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               color: AppTheme.textSecondary,
               fontWeight: FontWeight.w600,
             ),
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
           ),
@@ -496,7 +501,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         ),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -516,56 +522,59 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             ],
           ),
           const SizedBox(height: 6),
-          if (isLoading)
-            SizedBox(
-              height: 16,
-              width: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-              ),
-            )
-          else
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  balance != null
-                      ? l10n.nis(balance.toStringAsFixed(2))
-                      : l10n.nA,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: color,
-                    letterSpacing: -0.3,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
-                if (maxAllowedBalance != null && balance != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    '/ ${l10n.nis(maxAllowedBalance.toStringAsFixed(2))}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: AppTheme.textSecondary,
-                      fontWeight: FontWeight.w600,
+          Flexible(
+            child: isLoading
+                ? SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
                     ),
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        balance != null
+                            ? l10n.nis(balance.toStringAsFixed(2))
+                            : l10n.nA,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: color,
+                          letterSpacing: -0.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                      if (maxAllowedBalance != null && balance != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '/ ${l10n.nis(maxAllowedBalance.toStringAsFixed(2))}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppTheme.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: maxAllowedBalance > 0 ? (balance / maxAllowedBalance).clamp(0.0, 1.0) : 0,
+                            minHeight: 4,
+                            backgroundColor: Colors.grey[200],
+                            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: maxAllowedBalance > 0 ? (balance / maxAllowedBalance).clamp(0.0, 1.0) : 0,
-                      minHeight: 4,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          ),
           const SizedBox(height: 4),
           Text(
             l10n.remainingBalance,
@@ -574,7 +583,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               color: AppTheme.textSecondary,
               fontWeight: FontWeight.w600,
             ),
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
           ),

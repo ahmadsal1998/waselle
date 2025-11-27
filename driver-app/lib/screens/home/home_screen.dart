@@ -169,7 +169,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final activeOrdersCount = context.watch<OrderViewModel>().activeOrders.length;
+    final orderViewModel = context.watch<OrderViewModel>();
+    final activeOrdersCount = orderViewModel.activeOrders.length;
+    final availableOrdersCount = orderViewModel.availableOrders.length;
     final authViewModel = context.watch<AuthViewModel>();
     
     // Check suspension status whenever widget rebuilds
@@ -258,6 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   activeIcon: Icons.inbox_rounded,
                   label: l10n.available,
                   isActive: _currentIndex == 0,
+                  badge: availableOrdersCount > 0 ? availableOrdersCount : null,
                   onTap: () => setState(() => _currentIndex = 0),
                 ),
                 _ModernNavItem(
