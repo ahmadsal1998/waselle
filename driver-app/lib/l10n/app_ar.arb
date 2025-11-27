@@ -220,6 +220,35 @@
   "termsOfService": "شروط الخدمة",
   "termsOfServiceTitle": "شروط الخدمة",
   "termsOfServiceUrl": "https://www.wassle.ps/terms-of-service",
-  "unableToOpenTermsOfService": "تعذر فتح شروط الخدمة. يرجى التحقق من اتصال الإنترنت."
+  "unableToOpenTermsOfService": "تعذر فتح شروط الخدمة. يرجى التحقق من اتصال الإنترنت.",
+  "deleteAccount": "حذف الحساب",
+  "confirmDeleteAccount": "هل أنت متأكد من حذف حسابك؟",
+  "deleteAccountWarning": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بيانات حسابك بشكل دائم.",
+  "deleteAccountOtpTitle": "التحقق من هاتفك",
+  "deleteAccountOtpMessage": "أرسلنا رمز التحقق إلى\n{phoneNumber}\n\nالرجاء إدخال الرمز لتأكيد حذف الحساب.",
+  "@deleteAccountOtpMessage": {
+    "placeholders": {
+      "phoneNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "otpSentSuccessfully": "تم إرسال رمز التحقق بنجاح",
+  "resendOtp": "إعادة إرسال رمز التحقق",
+  "resendOtpIn": "إعادة إرسال رمز التحقق خلال {seconds} ثانية",
+  "@resendOtpIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "accountDeletedSuccessfully": "تم حذف الحساب بنجاح",
+  "failedToDeleteAccount": "فشل حذف الحساب",
+  "failedToSendOtp": "فشل إرسال رمز التحقق. الرجاء المحاولة مرة أخرى.",
+  "confirm": "تأكيد",
+  "cancel": "إلغاء",
+  "delete": "حذف",
+  "pleaseEnterValidOtp": "الرجاء إدخال رمز التحقق المكون من 6 أرقام"
 }
 

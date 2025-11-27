@@ -55,6 +55,44 @@ class AuthRepository {
     return _asMap(response);
   }
 
+  Future<Map<String, dynamic>> sendPhoneOTP({
+    required String phoneNumber,
+  }) async {
+    final response = await ApiClient.post(
+      '/auth/send-phone-otp',
+      body: {
+        'phoneNumber': phoneNumber,
+      },
+    );
+    return _asMap(response);
+  }
+
+  Future<Map<String, dynamic>> sendDeleteAccountOTP({
+    required String phoneNumber,
+  }) async {
+    final response = await ApiClient.post(
+      '/auth/send-delete-account-otp',
+      body: {
+        'phoneNumber': phoneNumber,
+      },
+    );
+    return _asMap(response);
+  }
+
+  Future<Map<String, dynamic>> deleteAccount({
+    required String phoneNumber,
+    required String otp,
+  }) async {
+    final response = await ApiClient.delete(
+      '/auth/delete-account',
+      body: {
+        'phoneNumber': phoneNumber,
+        'otp': otp,
+      },
+    );
+    return _asMap(response);
+  }
+
   Map<String, dynamic> _asMap(dynamic response) {
     if (response is Map<String, dynamic>) {
       return response;

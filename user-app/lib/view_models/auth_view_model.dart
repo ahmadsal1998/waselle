@@ -228,6 +228,41 @@ class AuthViewModel with ChangeNotifier {
     notifyListeners();
   }
 
+  // Send OTP for account deletion (uses authenticated endpoint)
+  Future<bool> sendDeleteAccountOTP(String phoneNumber) async {
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      print('🔄 Starting delete account OTP send process for: $phoneNumber');
+      
+      // Normalize phone number before sending
+      String? normalizedPhone = PhoneUtils.normalizePhoneNumber(phoneNumber);
+      if (normalizedPhone == null) {
+        _errorMessage = 'Invalid phone number format';
+        return false;
+      }
+
+      // Call authenticated backend API to send OTP via SMS provider
+      final response = await ApiService.sendDeleteAccountOTP(
+        phoneNumber: normalizedPhone,
+      );
+
+      if (response['message'] != null) {
+        print('✅ Delete account OTP sent successfully');
+        _errorMessage = null;
+        return true;
+      }
+      
+      _errorMessage = 'Failed to send OTP. Please try again.';
+      return false;
+    } catch (e) {
+      print('❌ Exception in sendDeleteAccountOTP: $e');
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    }
+  }
+
   // Delete account with OTP verification
   Future<bool> deleteAccount({
     required String phoneNumber,

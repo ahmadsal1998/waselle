@@ -715,6 +715,96 @@ export const verifyPhoneOTP = async (req: Request, res: Response): Promise<void>
 };
 
 /**
+ * Send OTP for account deletion (authenticated endpoint)
+ * Stores OTP on the authenticated user's record
+ */
+export const sendDeleteAccountOTP = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    const { phoneNumber, language } = req.body;
+
+    if (!phoneNumber || typeof phoneNumber !== 'string') {
+      res.status(400).json({ message: 'Phone number is required' });
+      return;
+    }
+
+    // Validate language if provided (should be 'ar' or 'en')
+    const validLanguage = language && ['ar', 'en'].includes(language) ? language : undefined;
+
+    // Normalize phone number
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    if (!normalizedPhone) {
+      res.status(400).json({ message: 'Invalid phone number format' });
+      return;
+    }
+
+    // Find authenticated user
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    // Verify phone number matches user's phone
+    const userPhoneNormalized = user.phone ? normalizePhoneNumber(user.phone) : null;
+    if (!userPhoneNormalized || userPhoneNormalized !== normalizedPhone) {
+      res.status(400).json({ message: 'Phone number does not match your account' });
+      return;
+    }
+
+    // Generate 6-digit OTP
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Store OTP on authenticated user's record
+    user.otpCode = otp;
+    user.otpExpires = otpExpires;
+    await user.save();
+
+    // Send OTP via SMS provider
+    try {
+      await sendSMSOTP(normalizedPhone, otp, validLanguage);
+    } catch (error: any) {
+      console.error('Error sending SMS OTP:', error);
+      // In development, return OTP in response if SMS fails
+      const isDevelopment = process.env.NODE_ENV !== 'production';
+      if (isDevelopment) {
+        console.warn(`⚠️  SMS sending failed. OTP for ${normalizedPhone}: ${otp}`);
+        res.status(200).json({
+          message: 'OTP generated. Check console for OTP code (SMS sending failed).',
+          phone: normalizedPhone,
+          otp: otp, // Only in development
+        });
+        return;
+      }
+      // In production, return error
+      res.status(500).json({ 
+        message: 'Failed to send OTP. Please try again later.' 
+      });
+      return;
+    }
+
+    // Success response (don't include OTP in production)
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    res.status(200).json({
+      message: 'OTP sent successfully',
+      phone: normalizedPhone,
+      ...(isDevelopment && { otp }), // Only include OTP in development
+    });
+  } catch (error: any) {
+    console.error('Error in sendDeleteAccountOTP:', error);
+    res.status(500).json({ message: error.message || 'Failed to send OTP' });
+  }
+};
+
+/**
  * Delete user account with OTP verification
  * Requires authentication and OTP verification before deletion
  */
@@ -747,7 +837,7 @@ export const deleteAccount = async (
       return;
     }
 
-    // Find user by ID (from authenticated token) and phone number
+    // Find user by ID (from authenticated token)
     const user = await User.findById(req.user.userId);
     
     if (!user) {

@@ -963,6 +963,43 @@ class ApiService {
     }
   }
 
+  // Send OTP for account deletion (authenticated endpoint)
+  static Future<Map<String, dynamic>> sendDeleteAccountOTP({
+    required String phoneNumber,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/send-delete-account-otp'),
+        headers: await _getHeaders(),
+        body: jsonEncode({
+          'phoneNumber': phoneNumber,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return _parseResponse(response);
+      } else {
+        try {
+          final responseData = _parseResponse(response);
+          throw Exception(responseData['message'] ?? 'Failed to send OTP');
+        } catch (e) {
+          if (e is Exception) rethrow;
+          throw Exception(
+              'Failed to send OTP with status ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (e is http.ClientException ||
+          e.toString().contains('Connection refused') ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Network is unreachable')) {
+        throw Exception(
+            'Unable to connect to server. Please check your internet connection.');
+      }
+      rethrow;
+    }
+  }
+
   // Delete account with OTP verification
   static Future<Map<String, dynamic>> deleteAccount({
     required String phoneNumber,

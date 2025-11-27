@@ -442,4 +442,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unableToOpenTermsOfService => 'Unable to open Terms of Service. Please check your internet connection.';
+
+  @override
+  String get deleteAccount => 'Delete Account';
+
+  @override
+  String get confirmDeleteAccount => 'Are you sure you want to delete your account?';
+
+  @override
+  String get deleteAccountWarning => 'This action cannot be undone. All your account data will be permanently deleted.';
+
+  @override
+  String get deleteAccountOtpTitle => 'Verify Your Phone';
+
+  @override
+  String deleteAccountOtpMessage(String phoneNumber) {
+    return 'We sent a verification code to\n$phoneNumber\n\nPlease enter the code to confirm account deletion.';
+  }
+
+  @override
+  String get otpSentSuccessfully => 'OTP sent successfully';
+
+  @override
+  String get resendOtp => 'Resend OTP';
+
+  @override
+  String resendOtpIn(int seconds) {
+    return 'Resend OTP in ${seconds}s';
+  }
+
+  @override
+  String get accountDeletedSuccessfully => 'Account deleted successfully';
+
+  @override
+  String get failedToDeleteAccount => 'Failed to delete account';
+
+  @override
+  String get failedToSendOtp => 'Failed to send OTP. Please try again.';
+
+  @override
+  String get confirm => 'Confirm';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get delete => 'Delete';
 }

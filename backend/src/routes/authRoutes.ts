@@ -9,6 +9,7 @@ import {
   getCurrentUser,
   sendPhoneOTP,
   verifyPhoneOTP,
+  sendDeleteAccountOTP,
   deleteAccount,
 } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
@@ -25,6 +26,7 @@ router.post('/resend-otp', resendOTP);
 router.post('/send-phone-otp', sendPhoneOTP);
 router.post('/verify-phone-otp', verifyPhoneOTP);
 router.get('/me', authenticate, getCurrentUser);
+router.post('/send-delete-account-otp', authenticate, sendDeleteAccountOTP);
 router.delete('/delete-account', authenticate, deleteAccount);
 
 export default router;

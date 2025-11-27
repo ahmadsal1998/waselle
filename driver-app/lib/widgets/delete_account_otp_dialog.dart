@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:delivery_user_app/l10n/app_localizations.dart';
+import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../view_models/auth_view_model.dart';
 import '../utils/phone_utils.dart';
 
@@ -66,7 +66,7 @@ class _DeleteAccountOTPDialogState extends State<DeleteAccountOTPDialog> {
       return;
     }
 
-    final success = await authViewModel.sendDeleteAccountOTP(normalizedPhone);
+    final success = await authViewModel.sendOTP(normalizedPhone);
     
     setState(() => _isSendingOtp = false);
 

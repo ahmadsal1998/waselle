@@ -13,6 +13,8 @@ import '../../view_models/order_view_model.dart';
 import '../../services/socket_service.dart';
 import '../../services/cloudinary_service.dart';
 import '../../utils/api_client.dart';
+import '../../utils/phone_utils.dart';
+import '../../widgets/delete_account_otp_dialog.dart';
 import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -274,6 +276,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (previous != value && mounted) {
         setState(() {});
       }
+    }
+  }
+
+  Future<void> _handleDeleteAccount(
+    BuildContext context,
+    AuthViewModel authViewModel,
+    AppLocalizations l10n,
+  ) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            l10n.deleteAccount,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 64,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.confirmDeleteAccount,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.deleteAccountWarning,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(l10n.confirm),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    // Get user's phone number
+    final user = authViewModel.user;
+    // Backend returns 'phone', but check both for compatibility
+    final phoneNumber = (user?['phone'] ?? user?['phoneNumber']) as String?;
+    
+    if (phoneNumber == null || phoneNumber.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.failedToDeleteAccount),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show OTP verification dialog
+    final deleted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => DeleteAccountOTPDialog(
+        phoneNumber: phoneNumber,
+      ),
+    );
+
+    if (deleted == true && context.mounted) {
+      // Account deleted successfully - navigate to login
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/',
+        (route) => false,
+      );
     }
   }
 
@@ -554,6 +655,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () => _openTermsOfService(context),
                   ),
                   const SizedBox(height: 24),
+                  if (isLoggedIn)
+                    _ModernProfileTile(
+                      icon: Icons.delete_outline_rounded,
+                      title: l10n.deleteAccount,
+                      subtitle: 'Permanently delete your account',
+                      isDestructive: true,
+                      onTap: () => _handleDeleteAccount(context, authViewModel, l10n),
+                    ),
+                  const SizedBox(height: 12),
                   if (isLoggedIn)
                     _ModernProfileTile(
                       icon: Icons.logout_rounded,

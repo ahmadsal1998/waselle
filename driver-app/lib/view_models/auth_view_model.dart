@@ -220,6 +220,62 @@ class AuthViewModel with ChangeNotifier {
     notifyListeners();
   }
 
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
+  Future<bool> sendOTP(String phoneNumber) async {
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Use authenticated endpoint for account deletion OTP
+      await _authRepository.sendDeleteAccountOTP(phoneNumber: phoneNumber);
+      _errorMessage = null;
+      return true;
+    } catch (e) {
+      debugPrint('Error sending OTP: $e');
+      _errorMessage = e.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
+      return false;
+    }
+  }
+
+  Future<bool> deleteAccount({
+    required String phoneNumber,
+    required String otp,
+  }) async {
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _authRepository.deleteAccount(
+        phoneNumber: phoneNumber,
+        otp: otp,
+      );
+
+      if (response['message'] != null || response['success'] == true) {
+        // Clear all local data
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
+        
+        // Clear auth state
+        _isAuthenticated = false;
+        _user = null;
+        _isSuspended = false;
+        _errorMessage = null;
+        
+        notifyListeners();
+        return true;
+      }
+      
+      _errorMessage = response['message'] ?? 'Failed to delete account. Please try again.';
+      return false;
+    } catch (e) {
+      debugPrint('Error deleting account: $e');
+      _errorMessage = e.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
+      return false;
+    }
+  }
+
   void setSuspended(bool suspended) {
     _isSuspended = suspended;
     notifyListeners();

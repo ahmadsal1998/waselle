@@ -607,6 +607,76 @@
   "unableToOpenTermsOfService": "Unable to open Terms of Service. Please check your internet connection.",
   "@unableToOpenTermsOfService": {
     "description": "Error message when Terms of Service URL cannot be opened"
+  },
+  "deleteAccount": "Delete Account",
+  "@deleteAccount": {
+    "description": "Delete account button text"
+  },
+  "confirmDeleteAccount": "Are you sure you want to delete your account?",
+  "@confirmDeleteAccount": {
+    "description": "Delete account confirmation dialog message"
+  },
+  "deleteAccountWarning": "This action cannot be undone. All your account data will be permanently deleted.",
+  "@deleteAccountWarning": {
+    "description": "Delete account warning message"
+  },
+  "deleteAccountOtpTitle": "Verify Your Phone",
+  "@deleteAccountOtpTitle": {
+    "description": "Delete account OTP verification title"
+  },
+  "deleteAccountOtpMessage": "We sent a verification code to\n{phoneNumber}\n\nPlease enter the code to confirm account deletion.",
+  "@deleteAccountOtpMessage": {
+    "description": "Delete account OTP message",
+    "placeholders": {
+      "phoneNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "otpSentSuccessfully": "OTP sent successfully",
+  "@otpSentSuccessfully": {
+    "description": "OTP sent success message"
+  },
+  "resendOtp": "Resend OTP",
+  "@resendOtp": {
+    "description": "Resend OTP button text"
+  },
+  "resendOtpIn": "Resend OTP in {seconds}s",
+  "@resendOtpIn": {
+    "description": "Resend OTP countdown message",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "accountDeletedSuccessfully": "Account deleted successfully",
+  "@accountDeletedSuccessfully": {
+    "description": "Account deleted success message"
+  },
+  "failedToDeleteAccount": "Failed to delete account",
+  "@failedToDeleteAccount": {
+    "description": "Delete account error message"
+  },
+  "failedToSendOtp": "Failed to send OTP. Please try again.",
+  "@failedToSendOtp": {
+    "description": "Failed to send OTP error message"
+  },
+  "confirm": "Confirm",
+  "@confirm": {
+    "description": "Confirm button text"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button text"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete button text"
+  },
+  "pleaseEnterValidOtp": "Please enter a valid 6-digit OTP",
+  "@pleaseEnterValidOtp": {
+    "description": "OTP validation error"
   }
 }
 
