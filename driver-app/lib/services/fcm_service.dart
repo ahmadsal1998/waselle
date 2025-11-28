@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../firebase_options.dart';
 import '../utils/api_client.dart';
 import '../main.dart'; // For GlobalNavigatorKey
 
@@ -821,7 +822,9 @@ class FCMService {
       // Ensure Firebase is initialized
       if (!Firebase.apps.isNotEmpty) {
         debugPrint('⚠️ Firebase not initialized, initializing now...');
-        await Firebase.initializeApp();
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
       }
       
       // On iOS, ensure APNS token is available first
@@ -914,7 +917,9 @@ class FCMService {
       // Ensure Firebase is initialized
       if (!Firebase.apps.isNotEmpty) {
         debugPrint('⚠️ Firebase not initialized, initializing now...');
-        await Firebase.initializeApp();
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
       }
       
       _fcmToken = await _firebaseMessaging.getToken();
@@ -1072,10 +1077,10 @@ class FCMService {
 /// This must be a top-level function, not a class method
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Initialize Firebase in background isolate
-  // Note: If firebase_options.dart exists, use: await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Otherwise, Firebase will use platform-specific config files (GoogleService-Info.plist for iOS, google-services.json for Android)
-  await Firebase.initializeApp();
+  // Initialize Firebase in background isolate with platform-specific options
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   
   debugPrint('📨 Background message received: ${message.messageId}');
   debugPrint('   Title: ${message.notification?.title}');

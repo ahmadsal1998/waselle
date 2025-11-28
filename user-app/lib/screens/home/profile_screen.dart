@@ -610,13 +610,18 @@ class _ProfileHeader extends StatelessWidget {
           const SizedBox(height: 20),
           
           // User Name
-          Text(
-            userName,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
+          Builder(
+            builder: (context) {
+              final theme = Theme.of(context);
+              return Text(
+                userName,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              );
+            },
           ),
           
           const SizedBox(height: 8),
@@ -625,6 +630,7 @@ class _ProfileHeader extends StatelessWidget {
           Builder(
             builder: (context) {
               final l10n = AppLocalizations.of(context)!;
+              final theme = Theme.of(context);
               final shouldShowEmail = isLoggedIn || (userEmail != l10n.notAvailable && userEmail.isNotEmpty);
               if (!shouldShowEmail) return const SizedBox.shrink();
               return Text(

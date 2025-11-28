@@ -293,17 +293,21 @@ export const createOrder = async (
 
     emitNewOrder(orderData);
 
-    // Send push notification to customer when order is created
+    // Send push notification to customer when order is created (optional - customer may not have FCM token)
     if (order.customerId) {
       const customerId = typeof order.customerId === 'object' && (order.customerId as any)._id 
         ? (order.customerId as any)._id.toString() 
         : order.customerId.toString();
-      await sendOrderStatusNotification(
+      // Use skipLogging option to avoid error logs for customers without FCM tokens
+      sendOrderStatusNotification(
         order._id.toString(),
         customerId,
         'pending',
         orderData
-      );
+      ).catch((error) => {
+        // Silently handle customer notification errors (customers may not have FCM tokens)
+        console.log(`[createOrder] Customer notification skipped (optional): ${error.message}`);
+      });
     }
 
     // Send push notification to relevant drivers about new order

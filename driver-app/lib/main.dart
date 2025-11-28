@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:delivery_driver_app/firebase_options.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
 import 'view_models/auth_view_model.dart';
@@ -23,7 +24,9 @@ import 'services/fcm_service.dart';
 // MUST be registered BEFORE Firebase.initializeApp() for terminated app state
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   firebaseMessagingBackgroundHandler(message);
 }
 
@@ -35,11 +38,11 @@ void main() async {
   // This ensures notifications work when app is terminated
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   
-  // Initialize Firebase (driver app needs Firebase configured)
-  // Note: You'll need to add firebase_options.dart for driver app
-  // Run: flutterfire configure --project=your-project-id
+  // Initialize Firebase with platform-specific options
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     
     // Initialize FCM service for push notifications
     // CRITICAL: This is called on every app start to ensure FCM token is always available

@@ -947,6 +947,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
       key: ValueKey('saved_addresses_$selectedSavedAddressId'),
       future: SavedAddressService.getSavedAddresses(),
       builder: (context, snapshot) {
+        final theme = Theme.of(context);
         final savedAddresses = snapshot.data ?? [];
         
         // Access controller properties here to ensure rebuild when they change

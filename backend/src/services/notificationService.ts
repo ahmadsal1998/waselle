@@ -16,18 +16,28 @@ export interface NotificationPayload {
  */
 export const sendNotificationToUser = async (
   userId: string,
-  payload: NotificationPayload
+  payload: NotificationPayload,
+  options?: { skipLogging?: boolean }
 ): Promise<void> => {
   try {
     const user = await User.findById(userId);
     if (!user) {
-      console.log(`❌ User ${userId} not found, skipping notification`);
+      if (!options?.skipLogging) {
+        console.log(`❌ User ${userId} not found, skipping notification`);
+      }
       return;
     }
     
     if (!user.fcmToken || user.fcmToken.trim() === '') {
-      console.log(`❌ User ${userId} has no FCM token, skipping notification`);
-      console.log(`   User role: ${user.role}, isAvailable: ${user.isAvailable}, isActive: ${user.isActive}`);
+      // For customers, this is optional - don't log as error
+      if (user.role === 'customer') {
+        if (!options?.skipLogging) {
+          console.log(`ℹ️  Customer ${userId} has no FCM token, skipping notification (optional for customers)`);
+        }
+      } else {
+        console.log(`❌ User ${userId} has no FCM token, skipping notification`);
+        console.log(`   User role: ${user.role}, isAvailable: ${user.isAvailable}, isActive: ${user.isActive}`);
+      }
       return;
     }
 
@@ -141,6 +151,7 @@ export const sendOrderStatusNotification = async (
   // Get language-specific message
   const message = getOrderStatusMessage(status, language, false);
 
+  // For customers, skip error logging if they don't have FCM token (it's optional)
   await sendNotificationToUser(customerId, {
     title: message.title,
     body: message.body,
@@ -150,7 +161,7 @@ export const sendOrderStatusNotification = async (
       status: status,
       ...(orderData && { orderData: JSON.stringify(orderData) }),
     },
-  });
+  }, { skipLogging: true });
 };
 
 /**
@@ -193,6 +204,49 @@ export const sendNewOrderNotificationToDrivers = async (
   orderData?: any
 ): Promise<{ notified: number; skipped: number }> => {
   try {
+    // Diagnostic: Check total drivers of this vehicle type
+    const totalDriversOfType = await User.countDocuments({
+      role: 'driver',
+      vehicleType: vehicleType,
+    });
+    
+    const activeDriversOfType = await User.countDocuments({
+      role: 'driver',
+      vehicleType: vehicleType,
+      isActive: true,
+    });
+    
+    const availableDriversOfType = await User.countDocuments({
+      role: 'driver',
+      vehicleType: vehicleType,
+      isAvailable: true,
+      isActive: true,
+    });
+    
+    const driversWithLocation = await User.countDocuments({
+      role: 'driver',
+      vehicleType: vehicleType,
+      isAvailable: true,
+      isActive: true,
+      location: { $exists: true, $ne: null },
+    });
+    
+    const driversWithFCMToken = await User.countDocuments({
+      role: 'driver',
+      vehicleType: vehicleType,
+      isAvailable: true,
+      isActive: true,
+      location: { $exists: true, $ne: null },
+      fcmToken: { $exists: true, $ne: null, $type: 'string' },
+    });
+    
+    console.log(`[sendNewOrderNotificationToDrivers] Diagnostic for vehicle type ${vehicleType}:`);
+    console.log(`   Total drivers: ${totalDriversOfType}`);
+    console.log(`   Active drivers: ${activeDriversOfType}`);
+    console.log(`   Available & active: ${availableDriversOfType}`);
+    console.log(`   With location: ${driversWithLocation}`);
+    console.log(`   With FCM token: ${driversWithFCMToken}`);
+    
     // Find all available drivers with matching vehicle type
     // CRITICAL: Only include drivers with valid FCM tokens (not empty strings)
     const allDrivers = await User.find({
@@ -215,7 +269,13 @@ export const sendNewOrderNotificationToDrivers = async (
     }
 
     if (drivers.length === 0) {
-      console.log(`No available drivers found for vehicle type ${vehicleType} with valid FCM tokens`);
+      console.log(`❌ No available drivers found for vehicle type ${vehicleType} with valid FCM tokens`);
+      console.log(`   This could mean:`);
+      console.log(`   - No drivers registered with vehicle type ${vehicleType}`);
+      console.log(`   - Drivers are not marked as available (isAvailable=false)`);
+      console.log(`   - Drivers are not active (isActive=false)`);
+      console.log(`   - Drivers don't have location set`);
+      console.log(`   - Drivers don't have valid FCM tokens registered`);
       return { notified: 0, skipped: 0 };
     }
 

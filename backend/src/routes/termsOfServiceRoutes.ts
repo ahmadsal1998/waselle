@@ -12,3 +12,4 @@ router.put('/', authenticate, updateTermsOfService);
 
 export default router;
 
+

@@ -27,3 +27,4 @@ export const updateTermsOfService = async (
   return data.termsOfService;
 };
 
+
