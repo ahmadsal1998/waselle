@@ -49,33 +49,7 @@ class FCMService {
         await _retrieveAndroidToken();
       } else if (Platform.isIOS) {
         // iOS: Handle APNS token first, then get FCM token
-        try {
-          // On iOS, ensure APNS token is available first
-          try {
-            final apnsToken = await _firebaseMessaging.getAPNSToken();
-            if (apnsToken == null) {
-              debugPrint('⚠️ APNS token not available yet on iOS, will retry later');
-              // Still try to get FCM token
-            } else {
-              debugPrint('✅ APNS token available on iOS');
-            }
-          } catch (e) {
-            debugPrint('⚠️ Error getting APNS token on iOS: $e');
-            // Continue anyway - might work without it
-          }
-          
-          _fcmToken = await _firebaseMessaging.getToken();
-          if (_fcmToken != null) {
-            debugPrint('📱 FCM Token retrieved (iOS): ${_fcmToken!.substring(0, 20)}...');
-            debugPrint('📱 Full FCM Token: $_fcmToken');
-            await _saveTokenToBackend(_fcmToken!);
-          } else {
-            debugPrint('⚠️ FCM Token is null on iOS - Firebase may not be properly configured');
-          }
-        } catch (e) {
-          debugPrint('❌ Error getting FCM token on iOS: $e');
-          // Don't rethrow - allow initialization to continue
-        }
+        await _retrieveIOSToken();
       } else {
         // Other platforms (Web, Desktop, etc.)
         try {
@@ -169,14 +143,7 @@ class FCMService {
         if (Platform.isAndroid) {
           await _retrieveAndroidToken(retryCount: 0, maxRetries: 2);
         } else if (Platform.isIOS) {
-          try {
-            _fcmToken = await _firebaseMessaging.getToken();
-            if (_fcmToken != null) {
-              await _saveTokenToBackend(_fcmToken!);
-            }
-          } catch (e) {
-            debugPrint('❌ Error retrieving iOS token: $e');
-          }
+          await _retrieveIOSToken(retryCount: 0, maxRetries: 2);
         }
       }
     } catch (e) {
@@ -319,6 +286,84 @@ class FCMService {
     }
   }
 
+  /// Retrieve iOS FCM token with APNS token handling and retry logic
+  Future<void> _retrieveIOSToken({int retryCount = 0, int maxRetries = 5}) async {
+    try {
+      debugPrint('📱 Attempting to retrieve FCM token on iOS (attempt ${retryCount + 1}/$maxRetries)...');
+      
+      // CRITICAL: On iOS, we MUST get APNS token first before getting FCM token
+      // Wait for APNS token with retry logic
+      String? apnsToken;
+      int apnsRetryCount = 0;
+      const maxApnsRetries = 10;
+      
+      while (apnsToken == null && apnsRetryCount < maxApnsRetries) {
+        try {
+          apnsToken = await _firebaseMessaging.getAPNSToken();
+          if (apnsToken != null) {
+            debugPrint('✅ APNS token retrieved on iOS: ${apnsToken.substring(0, 20)}...');
+            break;
+          } else {
+            apnsRetryCount++;
+            if (apnsRetryCount < maxApnsRetries) {
+              debugPrint('⏳ APNS token not available yet, waiting 1 second... (attempt $apnsRetryCount/$maxApnsRetries)');
+              await Future.delayed(const Duration(seconds: 1));
+            }
+          }
+        } catch (e) {
+          apnsRetryCount++;
+          if (apnsRetryCount < maxApnsRetries) {
+            debugPrint('⚠️ Error getting APNS token, retrying... (attempt $apnsRetryCount/$maxApnsRetries): $e');
+            await Future.delayed(const Duration(seconds: 1));
+          } else {
+            debugPrint('❌ Failed to get APNS token after $maxApnsRetries attempts: $e');
+            // Still try to get FCM token - sometimes it works without APNS token
+          }
+        }
+      }
+      
+      if (apnsToken == null && apnsRetryCount >= maxApnsRetries) {
+        debugPrint('⚠️ APNS token not available after $maxApnsRetries attempts, trying FCM token anyway...');
+      }
+      
+      // Now try to get FCM token
+      _fcmToken = await _firebaseMessaging.getToken();
+      
+      if (_fcmToken != null && _fcmToken!.isNotEmpty) {
+        debugPrint('✅ FCM Token retrieved successfully (iOS): ${_fcmToken!.substring(0, 20)}...');
+        debugPrint('📱 Full FCM Token: $_fcmToken');
+        await _saveTokenToBackend(_fcmToken!);
+      } else {
+        debugPrint('⚠️ FCM Token is null or empty on iOS');
+        if (retryCount < maxRetries) {
+          final delaySeconds = (retryCount + 1) * 2; // Exponential backoff: 2s, 4s, 6s, 8s, 10s
+          debugPrint('🔄 Retrying FCM token retrieval in $delaySeconds seconds...');
+          await Future.delayed(Duration(seconds: delaySeconds));
+          await _retrieveIOSToken(retryCount: retryCount + 1, maxRetries: maxRetries);
+        } else {
+          debugPrint('❌ Failed to retrieve FCM token after $maxRetries attempts');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error getting FCM token on iOS: $e');
+      
+      // Check if it's the APNS token error
+      if (e.toString().contains('apns-token-not-set')) {
+        if (retryCount < maxRetries) {
+          final delaySeconds = (retryCount + 1) * 2;
+          debugPrint('🔄 APNS token not set, retrying in $delaySeconds seconds...');
+          await Future.delayed(Duration(seconds: delaySeconds));
+          await _retrieveIOSToken(retryCount: retryCount + 1, maxRetries: maxRetries);
+        } else {
+          debugPrint('❌ Failed to retrieve FCM token after $maxRetries attempts (APNS token issue)');
+        }
+      } else {
+        // Other errors - don't retry indefinitely
+        debugPrint('❌ Non-APNS error getting FCM token: $e');
+      }
+    }
+  }
+
   /// Retrieve Android FCM token with retry logic
   Future<void> _retrieveAndroidToken({int retryCount = 0, int maxRetries = 3}) async {
     try {
@@ -374,16 +419,8 @@ class FCMService {
       await _retrieveAndroidToken();
       return _fcmToken;
     } else if (Platform.isIOS) {
-      try {
-        _fcmToken = await _firebaseMessaging.getToken();
-        if (_fcmToken != null) {
-          await _saveTokenToBackend(_fcmToken!);
-        }
-        return _fcmToken;
-      } catch (e) {
-        debugPrint('❌ Error retrying FCM token on iOS: $e');
-        return null;
-      }
+      await _retrieveIOSToken(retryCount: 0, maxRetries: 3);
+      return _fcmToken;
     }
     return null;
   }
@@ -484,12 +521,9 @@ class FCMService {
         await _retrieveAndroidToken(retryCount: 0, maxRetries: 5);
         newToken = _fcmToken;
       } else if (Platform.isIOS) {
-        // Force retrieve iOS token with retry
-        try {
-          newToken = await _firebaseMessaging.getToken();
-        } catch (e) {
-          debugPrint('❌ Error retrieving FCM token on iOS: $e');
-        }
+        // Force retrieve iOS token with retry and APNS handling
+        await _retrieveIOSToken(retryCount: 0, maxRetries: 5);
+        newToken = _fcmToken;
       }
       
       if (newToken != null && newToken.isNotEmpty) {
@@ -556,14 +590,7 @@ class FCMService {
         if (Platform.isAndroid) {
           await _retrieveAndroidToken(retryCount: 0, maxRetries: 2);
         } else if (Platform.isIOS) {
-          try {
-            _fcmToken = await _firebaseMessaging.getToken();
-            if (_fcmToken != null) {
-              await _saveTokenToBackend(_fcmToken!);
-            }
-          } catch (e) {
-            debugPrint('❌ Error retrieving iOS token: $e');
-          }
+          await _retrieveIOSToken(retryCount: 0, maxRetries: 2);
         }
       }
     } catch (e) {
@@ -582,14 +609,8 @@ class FCMService {
         await _retrieveAndroidToken(retryCount: 0, maxRetries: 5);
         newToken = _fcmToken;
       } else if (Platform.isIOS) {
-        try {
-          newToken = await _firebaseMessaging.getToken();
-          if (newToken != null) {
-            _fcmToken = newToken;
-          }
-        } catch (e) {
-          debugPrint('❌ Error retrieving FCM token: $e');
-        }
+        await _retrieveIOSToken(retryCount: 0, maxRetries: 3);
+        newToken = _fcmToken;
       }
       
       if (newToken != null && newToken.isNotEmpty) {

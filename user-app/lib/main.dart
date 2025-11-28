@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -66,49 +67,56 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(androidChannel);
   
-  // Show local notification if notification payload exists
+  // CRITICAL FIX: On iOS, if the message has a notification field,
+  // iOS will automatically show the notification via APNS when app is in background.
+  // We should NOT show a local notification in this case to avoid duplicates.
+  // Only show local notifications for data-only messages or on Android.
+  // Note: When app is terminated, iOS won't show notification automatically,
+  // but Firebase handles this case, so we still skip to avoid duplicates.
   if (message.notification != null) {
-    final notification = message.notification!;
-    final title = notification.title ?? 'Order Update';
-    final body = notification.body ?? '';
-    
-    const androidDetails = AndroidNotificationDetails(
-      'order_updates',
-      'Order Updates',
-      channelDescription: 'Notifications for order status updates',
-      importance: Importance.high,
-      priority: Priority.high,
-      showWhen: true,
-      playSound: true,
-    );
-    
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
-    
-    const details = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
-    
-    // Create payload string from data
-    String? payload;
-    if (message.data['orderId'] != null) {
-      payload = 'orderId=${message.data['orderId']}';
-    }
-    
-    await localNotifications.show(
-      DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      title,
-      body,
-      details,
-      payload: payload,
-    );
-    
-    if (kDebugMode) {
-      print('✅ Local notification shown in background handler');
+    // On iOS, skip showing local notification if notification field exists
+    // iOS will show it automatically via APNS
+    if (Platform.isIOS) {
+      if (kDebugMode) {
+        print('📱 iOS: Notification field present in background handler, iOS will show automatically. Skipping local notification to avoid duplicate.');
+      }
+    } else {
+      // On Android, show local notification
+      final notification = message.notification!;
+      final title = notification.title ?? 'Order Update';
+      final body = notification.body ?? '';
+      
+      const androidDetails = AndroidNotificationDetails(
+        'order_updates',
+        'Order Updates',
+        channelDescription: 'Notifications for order status updates',
+        importance: Importance.high,
+        priority: Priority.high,
+        showWhen: true,
+        playSound: true,
+      );
+      
+      const details = NotificationDetails(
+        android: androidDetails,
+      );
+      
+      // Create payload string from data
+      String? payload;
+      if (message.data['orderId'] != null) {
+        payload = 'orderId=${message.data['orderId']}';
+      }
+      
+      await localNotifications.show(
+        DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title,
+        body,
+        details,
+        payload: payload,
+      );
+      
+      if (kDebugMode) {
+        print('✅ Local notification shown in background handler (Android)');
+      }
     }
   }
   

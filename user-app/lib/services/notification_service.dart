@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -156,7 +157,20 @@ class NotificationService {
     final notification = message.notification;
     final data = message.data;
 
-    // Show local notification when app is in foreground
+    // CRITICAL FIX: On iOS, if the message has a notification field,
+    // iOS will automatically show the notification via APNS.
+    // We should NOT show a local notification in this case to avoid duplicates.
+    // Only show local notifications for data-only messages or on Android.
+    if (Platform.isIOS && notification != null) {
+      // iOS will show the notification automatically via APNS
+      // Just process the data, don't show local notification
+      if (kDebugMode) {
+        print('📱 iOS: Notification field present, iOS will show automatically. Skipping local notification to avoid duplicate.');
+      }
+      return;
+    }
+
+    // Show local notification when app is in foreground (Android or data-only messages)
     // Use notification payload if available, otherwise use data
     String title = 'Order Update';
     String body = '';
