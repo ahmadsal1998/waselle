@@ -35,6 +35,14 @@
       "destination": "/delete-account.html"
     },
     {
+      "source": "/delete-account-user",
+      "destination": "/delete-account-user.html"
+    },
+    {
+      "source": "/delete-account-user/",
+      "destination": "/delete-account-user.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
