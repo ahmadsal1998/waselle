@@ -16,6 +16,7 @@ import 'view_models/order_view_model.dart';
 import 'view_models/region_view_model.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/suspended_account_screen.dart';
+import 'screens/auth/terms_acceptance_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'services/app_lifecycle_service.dart';
 import 'services/fcm_service.dart';
@@ -126,9 +127,41 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _hasCheckedFCMToken = false;
+  bool _hasCheckedTerms = false;
+  bool _termsAccepted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkTermsAcceptance();
+  }
+
+  Future<void> _checkTermsAcceptance() async {
+    final prefs = await SharedPreferences.getInstance();
+    final accepted = prefs.getBool('terms_accepted') ?? false;
+    if (mounted) {
+      setState(() {
+        _termsAccepted = accepted;
+        _hasCheckedTerms = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Check terms acceptance first
+    if (!_hasCheckedTerms) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // Show terms acceptance screen if not accepted
+    if (!_termsAccepted) {
+      return const TermsAcceptanceScreen();
+    }
     return Consumer2<AuthViewModel, LocaleViewModel>(
       builder: (context, authViewModel, localeViewModel, _) {
         // Sync language preference when user data is available

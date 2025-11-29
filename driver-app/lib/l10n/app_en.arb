@@ -782,6 +782,30 @@
   "checking": "Checking...",
   "@checking": {
     "description": "Checking status message"
+  },
+  "welcomeToApp": "Welcome to Wassle Driver",
+  "@welcomeToApp": {
+    "description": "Welcome message on terms acceptance screen"
+  },
+  "termsAcceptanceDescription": "Please read and accept our Terms of Service and Privacy Policy to continue using the app.",
+  "@termsAcceptanceDescription": {
+    "description": "Description text on terms acceptance screen"
+  },
+  "readTermsOfService": "Read our Terms of Service",
+  "@readTermsOfService": {
+    "description": "Text for Terms of Service card"
+  },
+  "readPrivacyPolicy": "Read our Privacy Policy",
+  "@readPrivacyPolicy": {
+    "description": "Text for Privacy Policy card"
+  },
+  "acceptAndContinue": "Accept and Continue",
+  "@acceptAndContinue": {
+    "description": "Accept button text on terms acceptance screen"
+  },
+  "termsAcceptanceInfo": "By tapping Accept, you agree to our Terms of Service and Privacy Policy.",
+  "@termsAcceptanceInfo": {
+    "description": "Info text below accept button"
   }
 }
 

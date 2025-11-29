@@ -43,3 +43,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android signing (keystore files - NEVER commit these!)
+android/key.properties
+*.jks
+*.keystore
+
+# Google Play assets (build files should not be committed)
+google-play-assets/*.aab
+google-play-assets/*.apk

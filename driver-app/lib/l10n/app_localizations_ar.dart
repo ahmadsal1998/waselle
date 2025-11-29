@@ -565,4 +565,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get checking => 'جارٍ التحقق...';
+
+  @override
+  String get welcomeToApp => 'مرحباً بك في Wassle Driver';
+
+  @override
+  String get termsAcceptanceDescription => 'يرجى قراءة والموافقة على شروط الخدمة وسياسة الخصوصية للمتابعة في استخدام التطبيق.';
+
+  @override
+  String get readTermsOfService => 'اقرأ شروط الخدمة';
+
+  @override
+  String get readPrivacyPolicy => 'اقرأ سياسة الخصوصية';
+
+  @override
+  String get acceptAndContinue => 'قبول والمتابعة';
+
+  @override
+  String get termsAcceptanceInfo => 'بالضغط على قبول، أنت توافق على شروط الخدمة وسياسة الخصوصية.';
 }

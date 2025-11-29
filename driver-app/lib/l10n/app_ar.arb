@@ -281,6 +281,12 @@
     }
   },
   "checkAccountStatus": "التحقق من حالة الحساب",
-  "checking": "جارٍ التحقق..."
+  "checking": "جارٍ التحقق...",
+  "welcomeToApp": "مرحباً بك في Wassle Driver",
+  "termsAcceptanceDescription": "يرجى قراءة والموافقة على شروط الخدمة وسياسة الخصوصية للمتابعة في استخدام التطبيق.",
+  "readTermsOfService": "اقرأ شروط الخدمة",
+  "readPrivacyPolicy": "اقرأ سياسة الخصوصية",
+  "acceptAndContinue": "قبول والمتابعة",
+  "termsAcceptanceInfo": "بالضغط على قبول، أنت توافق على شروط الخدمة وسياسة الخصوصية."
 }
 

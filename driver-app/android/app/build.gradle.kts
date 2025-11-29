@@ -44,14 +44,10 @@ android {
         versionName = flutter.versionName
     }
 
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("armeabi-v7a", "arm64-v8a", "x86_64")
-            isUniversalApk = false
-        }
-    }
+    // ABI splits are not needed for AAB builds
+    // AAB (Android App Bundle) automatically handles ABI splits
+    // This configuration is only needed if building APK files with splits
+    // For AAB builds, remove or disable splits to avoid conflicts
 
     signingConfigs {
         create("release") {

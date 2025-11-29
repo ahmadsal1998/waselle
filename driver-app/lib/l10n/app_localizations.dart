@@ -1150,6 +1150,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Checking...'**
   String get checking;
+
+  /// Welcome message on terms acceptance screen
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Wassle Driver'**
+  String get welcomeToApp;
+
+  /// Description text on terms acceptance screen
+  ///
+  /// In en, this message translates to:
+  /// **'Please read and accept our Terms of Service and Privacy Policy to continue using the app.'**
+  String get termsAcceptanceDescription;
+
+  /// Text for Terms of Service card
+  ///
+  /// In en, this message translates to:
+  /// **'Read our Terms of Service'**
+  String get readTermsOfService;
+
+  /// Text for Privacy Policy card
+  ///
+  /// In en, this message translates to:
+  /// **'Read our Privacy Policy'**
+  String get readPrivacyPolicy;
+
+  /// Accept button text on terms acceptance screen
+  ///
+  /// In en, this message translates to:
+  /// **'Accept and Continue'**
+  String get acceptAndContinue;
+
+  /// Info text below accept button
+  ///
+  /// In en, this message translates to:
+  /// **'By tapping Accept, you agree to our Terms of Service and Privacy Policy.'**
+  String get termsAcceptanceInfo;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
