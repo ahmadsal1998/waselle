@@ -26,5 +26,9 @@ export default defineConfig({
     },
     // Clear output directory on each build
     emptyOutDir: true,
+    // Copy delete-account.html to dist (Vite automatically copies public/ folder)
+    copyPublicDir: true,
   },
+  // Public directory - files here are copied to dist root during build
+  publicDir: 'public',
 });
