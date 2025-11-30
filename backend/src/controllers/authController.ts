@@ -8,6 +8,24 @@ import { AuthRequest } from '../middleware/auth';
 import { normalizePhoneNumber } from '../utils/phone';
 import { sendSMSOTP } from '../utils/smsProvider';
 
+// Reviewer test phone number and OTP for Google Play & App Store review
+const REVIEWER_TEST_PHONE = '0593202026';
+const REVIEWER_TEST_OTP = '311000';
+
+/**
+ * Check if a phone number is the reviewer test number
+ * Handles both original format (0593202026) and normalized format (+9720593202026)
+ */
+const isReviewerTestPhone = (phoneNumber: string): boolean => {
+  if (!phoneNumber) return false;
+  const normalized = normalizePhoneNumber(phoneNumber);
+  const originalNormalized = normalizePhoneNumber(REVIEWER_TEST_PHONE);
+  return phoneNumber === REVIEWER_TEST_PHONE || 
+         normalized === originalNormalized ||
+         normalized === `+${REVIEWER_TEST_PHONE}` ||
+         phoneNumber === originalNormalized;
+};
+
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password, role, phoneNumber, vehicleType } = req.body;
@@ -579,8 +597,11 @@ export const sendPhoneOTP = async (req: Request | AuthRequest, res: Response): P
       return;
     }
 
-    // Generate 6-digit OTP
-    const otp = generateOTP();
+    // Check if this is the reviewer test phone number
+    const isReviewerPhone = isReviewerTestPhone(phoneNumber);
+    
+    // Generate 6-digit OTP (use test OTP for reviewer, otherwise generate random)
+    const otp = isReviewerPhone ? REVIEWER_TEST_OTP : generateOTP();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Check if user is authenticated (for account deletion flow)
@@ -640,27 +661,32 @@ export const sendPhoneOTP = async (req: Request | AuthRequest, res: Response): P
       }
     }
 
-    // Send OTP via SMS provider
-    try {
-      await sendSMSOTP(normalizedPhone, otp, validLanguage);
-    } catch (error: any) {
-      console.error('Error sending SMS OTP:', error);
-      // In development, return OTP in response if SMS fails
-      const isDevelopment = process.env.NODE_ENV !== 'production';
-      if (isDevelopment) {
-        console.warn(`⚠️  SMS sending failed. OTP for ${normalizedPhone}: ${otp}`);
-        res.status(200).json({
-          message: 'OTP generated. Check console for OTP code (SMS sending failed).',
-          phone: normalizedPhone,
-          otp: otp, // Only in development
+    // Send OTP via SMS provider (skip for reviewer test number)
+    if (!isReviewerPhone) {
+      try {
+        await sendSMSOTP(normalizedPhone, otp, validLanguage);
+      } catch (error: any) {
+        console.error('Error sending SMS OTP:', error);
+        // In development, return OTP in response if SMS fails
+        const isDevelopment = process.env.NODE_ENV !== 'production';
+        if (isDevelopment) {
+          console.warn(`⚠️  SMS sending failed. OTP for ${normalizedPhone}: ${otp}`);
+          res.status(200).json({
+            message: 'OTP generated. Check console for OTP code (SMS sending failed).',
+            phone: normalizedPhone,
+            otp: otp, // Only in development
+          });
+          return;
+        }
+        // In production, return error
+        res.status(500).json({ 
+          message: 'Failed to send OTP. Please try again later.' 
         });
         return;
       }
-      // In production, return error
-      res.status(500).json({ 
-        message: 'Failed to send OTP. Please try again later.' 
-      });
-      return;
+    } else {
+      // For reviewer test number, log but don't send SMS
+      console.log(`📱 Reviewer test phone detected: ${normalizedPhone}. OTP: ${otp} (not sent via SMS)`);
     }
 
     // Success response (don't include OTP in production)
@@ -701,6 +727,9 @@ export const verifyPhoneOTP = async (req: Request, res: Response): Promise<void>
       return;
     }
 
+    // Check if this is the reviewer test phone number
+    const isReviewerPhone = isReviewerTestPhone(phoneNumber);
+
     // Find user by phone number
     const user = await User.findOne({ 
       $or: [
@@ -716,22 +745,40 @@ export const verifyPhoneOTP = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Check if OTP exists
-    if (!user.otpCode) {
-      res.status(400).json({ message: 'No OTP found. Please request a new OTP.' });
-      return;
-    }
+    // For reviewer test phone, auto-approve OTP "311000"
+    if (isReviewerPhone && otp === REVIEWER_TEST_OTP) {
+      console.log(`✅ Reviewer test phone OTP auto-approved: ${normalizedPhone}`);
+      // Mark user as verified and clear OTP
+      user.isEmailVerified = true;
+      user.otpCode = undefined;
+      user.otpExpires = undefined;
+      await user.save();
+    } else {
+      // Normal OTP verification flow
+      // Check if OTP exists
+      if (!user.otpCode) {
+        res.status(400).json({ message: 'No OTP found. Please request a new OTP.' });
+        return;
+      }
 
-    // Verify OTP
-    if (user.otpCode !== otp) {
-      res.status(400).json({ message: 'Invalid OTP' });
-      return;
-    }
+      // Verify OTP
+      if (user.otpCode !== otp) {
+        res.status(400).json({ message: 'Invalid OTP' });
+        return;
+      }
 
-    // Check if OTP expired
-    if (user.otpExpires && new Date() > user.otpExpires) {
-      res.status(400).json({ message: 'OTP expired. Please request a new OTP.' });
-      return;
+      // Check if OTP expired
+      if (user.otpExpires && new Date() > user.otpExpires) {
+        res.status(400).json({ message: 'OTP expired. Please request a new OTP.' });
+        return;
+      }
+
+      // OTP verified successfully
+      // Mark user as verified and clear OTP
+      user.isEmailVerified = true;
+      user.otpCode = undefined;
+      user.otpExpires = undefined;
+      await user.save();
     }
 
     // OTP verified successfully
@@ -813,8 +860,11 @@ export const sendDeleteAccountOTP = async (
       return;
     }
 
-    // Generate 6-digit OTP
-    const otp = generateOTP();
+    // Check if this is the reviewer test phone number
+    const isReviewerPhone = isReviewerTestPhone(phoneNumber);
+
+    // Generate 6-digit OTP (use test OTP for reviewer, otherwise generate random)
+    const otp = isReviewerPhone ? REVIEWER_TEST_OTP : generateOTP();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Store OTP on authenticated user's record
@@ -822,27 +872,32 @@ export const sendDeleteAccountOTP = async (
     user.otpExpires = otpExpires;
     await user.save();
 
-    // Send OTP via SMS provider
-    try {
-      await sendSMSOTP(normalizedPhone, otp, validLanguage);
-    } catch (error: any) {
-      console.error('Error sending SMS OTP:', error);
-      // In development, return OTP in response if SMS fails
-      const isDevelopment = process.env.NODE_ENV !== 'production';
-      if (isDevelopment) {
-        console.warn(`⚠️  SMS sending failed. OTP for ${normalizedPhone}: ${otp}`);
-        res.status(200).json({
-          message: 'OTP generated. Check console for OTP code (SMS sending failed).',
-          phone: normalizedPhone,
-          otp: otp, // Only in development
+    // Send OTP via SMS provider (skip for reviewer test number)
+    if (!isReviewerPhone) {
+      try {
+        await sendSMSOTP(normalizedPhone, otp, validLanguage);
+      } catch (error: any) {
+        console.error('Error sending SMS OTP:', error);
+        // In development, return OTP in response if SMS fails
+        const isDevelopment = process.env.NODE_ENV !== 'production';
+        if (isDevelopment) {
+          console.warn(`⚠️  SMS sending failed. OTP for ${normalizedPhone}: ${otp}`);
+          res.status(200).json({
+            message: 'OTP generated. Check console for OTP code (SMS sending failed).',
+            phone: normalizedPhone,
+            otp: otp, // Only in development
+          });
+          return;
+        }
+        // In production, return error
+        res.status(500).json({ 
+          message: 'Failed to send OTP. Please try again later.' 
         });
         return;
       }
-      // In production, return error
-      res.status(500).json({ 
-        message: 'Failed to send OTP. Please try again later.' 
-      });
-      return;
+    } else {
+      // For reviewer test number, log but don't send SMS
+      console.log(`📱 Reviewer test phone detected: ${normalizedPhone}. OTP: ${otp} (not sent via SMS)`);
     }
 
     // Success response (don't include OTP in production)
@@ -906,22 +961,31 @@ export const deleteAccount = async (
       return;
     }
 
-    // Check if OTP exists
-    if (!user.otpCode) {
-      res.status(400).json({ message: 'No OTP found. Please request a new OTP.' });
-      return;
-    }
+    // Check if this is the reviewer test phone number
+    const isReviewerPhone = isReviewerTestPhone(phoneNumber);
 
-    // Verify OTP
-    if (user.otpCode !== otp) {
-      res.status(400).json({ message: 'Invalid OTP' });
-      return;
-    }
+    // For reviewer test phone, auto-approve OTP "311000"
+    if (isReviewerPhone && otp === REVIEWER_TEST_OTP) {
+      console.log(`✅ Reviewer test phone OTP auto-approved for account deletion: ${normalizedPhone}`);
+    } else {
+      // Normal OTP verification flow
+      // Check if OTP exists
+      if (!user.otpCode) {
+        res.status(400).json({ message: 'No OTP found. Please request a new OTP.' });
+        return;
+      }
 
-    // Check if OTP expired
-    if (user.otpExpires && new Date() > user.otpExpires) {
-      res.status(400).json({ message: 'OTP expired. Please request a new OTP.' });
-      return;
+      // Verify OTP
+      if (user.otpCode !== otp) {
+        res.status(400).json({ message: 'Invalid OTP' });
+        return;
+      }
+
+      // Check if OTP expired
+      if (user.otpExpires && new Date() > user.otpExpires) {
+        res.status(400).json({ message: 'OTP expired. Please request a new OTP.' });
+        return;
+      }
     }
 
     // OTP verified successfully - delete the user account

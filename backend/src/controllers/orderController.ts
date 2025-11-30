@@ -28,6 +28,24 @@ import { admin } from '../utils/firebase';
 import { normalizePhoneNumber, splitPhoneNumber } from '../utils/phone';
 import { checkAndSuspendDriverIfNeeded, addCommissionToBalance, calculateDriverBalance } from '../utils/balance';
 import { sendSMSOTP } from '../utils/smsProvider';
+
+// Reviewer test phone number and OTP for Google Play & App Store review
+const REVIEWER_TEST_PHONE = '0593202026';
+const REVIEWER_TEST_OTP = '311000';
+
+/**
+ * Check if a phone number is the reviewer test number
+ * Handles both original format (0593202026) and normalized format (+9720593202026)
+ */
+const isReviewerTestPhone = (phoneNumber: string): boolean => {
+  if (!phoneNumber) return false;
+  const normalized = normalizePhoneNumber(phoneNumber);
+  const originalNormalized = normalizePhoneNumber(REVIEWER_TEST_PHONE);
+  return phoneNumber === REVIEWER_TEST_PHONE || 
+         normalized === originalNormalized ||
+         normalized === `+${REVIEWER_TEST_PHONE}` ||
+         phoneNumber === originalNormalized;
+};
 import { generateOTP } from '../utils/otp';
 
 const escapeRegExp = (value: string): string =>
@@ -932,8 +950,11 @@ export const sendOrderOTP = async (
       return;
     }
 
-    // Generate OTP
-    const otp = generateOTP();
+    // Check if this is the reviewer test phone number
+    const isReviewerPhone = isReviewerTestPhone(phone || rawFullPhoneNumber);
+
+    // Generate OTP (use test OTP for reviewer, otherwise generate random)
+    const otp = isReviewerPhone ? REVIEWER_TEST_OTP : generateOTP();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Find or create user by phone number (check both normalized and raw formats)
@@ -965,27 +986,32 @@ export const sendOrderOTP = async (
       });
     }
 
-    // Send OTP via SMS provider
-    try {
-      await sendSMSOTP(fullPhoneNumber, otp);
-    } catch (error: any) {
-      console.error('Error sending SMS OTP:', error);
-      // In development, return OTP in response if SMS fails
-      const isDevelopment = process.env.NODE_ENV !== 'production';
-      if (isDevelopment) {
-        console.warn(`⚠️  SMS sending failed. OTP for ${fullPhoneNumber}: ${otp}`);
-        res.status(200).json({
-          message: 'OTP generated. Check console for OTP code (SMS sending failed).',
-          phone: fullPhoneNumber,
-          otp: otp, // Only in development
+    // Send OTP via SMS provider (skip for reviewer test number)
+    if (!isReviewerPhone) {
+      try {
+        await sendSMSOTP(fullPhoneNumber, otp);
+      } catch (error: any) {
+        console.error('Error sending SMS OTP:', error);
+        // In development, return OTP in response if SMS fails
+        const isDevelopment = process.env.NODE_ENV !== 'production';
+        if (isDevelopment) {
+          console.warn(`⚠️  SMS sending failed. OTP for ${fullPhoneNumber}: ${otp}`);
+          res.status(200).json({
+            message: 'OTP generated. Check console for OTP code (SMS sending failed).',
+            phone: fullPhoneNumber,
+            otp: otp, // Only in development
+          });
+          return;
+        }
+        // In production, return error
+        res.status(500).json({
+          message: 'Failed to send OTP. Please try again later.',
         });
         return;
       }
-      // In production, return error
-      res.status(500).json({
-        message: 'Failed to send OTP. Please try again later.',
-      });
-      return;
+    } else {
+      // For reviewer test number, log but don't send SMS
+      console.log(`📱 Reviewer test phone detected: ${fullPhoneNumber}. OTP: ${otp} (not sent via SMS)`);
     }
 
     // Success response (don't include OTP in production)
@@ -1070,19 +1096,28 @@ export const verifyOTPAndCreateOrder = async (
       return;
     }
 
-    // Verify OTP
-    if (user.otpCode !== otp) {
-      res.status(400).json({
-        message: 'Invalid OTP code',
-      });
-      return;
-    }
+    // Check if this is the reviewer test phone number
+    const isReviewerPhone = isReviewerTestPhone(phone || rawFullPhoneNumber);
 
-    if (user.otpExpires && new Date() > user.otpExpires) {
-      res.status(400).json({
-        message: 'OTP has expired. Please request a new OTP.',
-      });
-      return;
+    // For reviewer test phone, auto-approve OTP "311000"
+    if (isReviewerPhone && otp === REVIEWER_TEST_OTP) {
+      console.log(`✅ Reviewer test phone OTP auto-approved for order creation: ${fullPhoneNumber}`);
+    } else {
+      // Normal OTP verification flow
+      // Verify OTP
+      if (user.otpCode !== otp) {
+        res.status(400).json({
+          message: 'Invalid OTP code',
+        });
+        return;
+      }
+
+      if (user.otpExpires && new Date() > user.otpExpires) {
+        res.status(400).json({
+          message: 'OTP has expired. Please request a new OTP.',
+        });
+        return;
+      }
     }
 
     // Clear OTP and mark as verified (phone-based customers are verified)
