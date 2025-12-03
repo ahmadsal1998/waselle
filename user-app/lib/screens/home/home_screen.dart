@@ -16,7 +16,6 @@ import '../../services/socket_service.dart';
 import '../../widgets/responsive_button.dart';
 import '../../repositories/api_service.dart';
 import '../../theme/app_theme.dart';
-import 'delivery_price_offers_screen.dart';
 import 'order_tracking_screen.dart';
 import 'profile_screen.dart';
 import 'receive_request_screen.dart';
@@ -30,7 +29,6 @@ class HomeScreen extends StatelessWidget {
     return [
       l10n.discover,
       l10n.trackOrder,
-      l10n.deliveryPriceOffers,
       l10n.profile,
     ];
   }
@@ -66,22 +64,7 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPendingNavigation();
       _initializeCallListener();
-      _checkInitialOffersCount();
     });
-  }
-
-  Future<void> _checkInitialOffersCount() async {
-    // Check offers count on app start to update green dot indicator
-    try {
-      final response = await ApiService.getPriceOffers();
-      final offers = List<Map<String, dynamic>>.from(
-        response['orders'] ?? [],
-      );
-      offersCountNotifier.value = offers.length;
-    } catch (e) {
-      // Silently fail - offers will be checked when user navigates to offers screen
-      debugPrint('Failed to check initial offers count: $e');
-    }
   }
 
   Future<void> _checkPendingNavigation() async {
@@ -167,7 +150,6 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
             children: [
               _MapTab(viewModel: viewModel),
               const OrderTrackingScreen(showAppBar: false),
-              const DeliveryPriceOffersScreen(),
               const ProfileScreen(showAppBar: false),
                 ],
               ),
@@ -299,24 +281,11 @@ class _HomeNavigationBar extends StatelessWidget {
                 hasActiveOrder: hasActiveOrder,
                 onTap: () => onDestinationSelected(1),
               ),
-              ValueListenableBuilder<int>(
-                valueListenable: offersCountNotifier,
-                builder: (context, offersCount, _) {
-                  return _ModernNavItem(
-                    icon: Icons.local_offer_outlined,
-                    activeIcon: Icons.local_offer,
-                    label: l10n.deliveryPriceOffers,
-                    isActive: currentIndex == 2,
-                    hasOffers: offersCount > 0,
-                    onTap: () => onDestinationSelected(2),
-                  );
-                },
-              ),
               _ModernNavItem(
                 icon: Icons.person_outline_rounded,
                 activeIcon: Icons.person_rounded,
                 label: l10n.profile,
-                isActive: currentIndex == 3,
+                isActive: currentIndex == 2,
                 onTap: () => onDestinationSelected(3),
               ),
             ],
@@ -527,37 +496,151 @@ class _MapTab extends StatelessWidget {
   Widget _buildContent(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     
-    if (viewModel.isInitialLoading) {
-      return _CenteredStatusCard(
-        icon: Icons.explore,
-        title: l10n.initializing,
-        subtitle: l10n.initializingSubtitle,
-        showLoader: true,
-      );
-    }
-
-    if (viewModel.hasBlockingLocationError) {
-      return _CenteredStatusCard(
-        icon: Icons.location_off_rounded,
-        title: l10n.locationDisabled,
-        subtitle: viewModel.locationErrorMessage ?? l10n.locationDisabledSubtitle,
-        primaryActionLabel: l10n.tryAgain,
-        onPrimaryAction: viewModel.retryLocation,
-      );
-    }
-
-    if (viewModel.showNoLocationState) {
-      return _CenteredStatusCard(
-        icon: Icons.my_location,
-        title: l10n.locationNotFound,
-        subtitle: l10n.locationNotFoundSubtitle,
-        primaryActionLabel: l10n.getLocation,
-        onPrimaryAction: viewModel.retryLocation,
-      );
-    }
-
-    final location = viewModel.currentLocation!;
+    // Always show the map immediately - use default location if user location is unavailable
+    // Default to a reasonable location for map display (Palestine center)
+    const defaultLocation = LatLng(31.9522, 35.2332);
+    final location = viewModel.currentLocation ?? defaultLocation;
     final driverMarkers = viewModel.driverMarkers;
+    final hasLocation = viewModel.currentLocation != null;
+    final isLocationError = viewModel.hasBlockingLocationError || viewModel.showNoLocationState;
+    
+    return Stack(
+      children: [
+        // Always show the map immediately - never block it
+        _buildMap(context, location, driverMarkers),
+        // Show location info overlay if available
+        if (hasLocation && !viewModel.isLocationLoading)
+          _MapTopOverlay(
+            address: viewModel.currentAddress,
+            onLocateMe: () {
+              viewModel.recenterMap();
+              viewModel.retryLocation();
+            },
+            isUpdating: viewModel.isLocationLoading,
+          ),
+        // Show loading overlay only during initial location fetch (non-blocking)
+        if (viewModel.isInitialLoading && !hasLocation)
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: CircularProgressIndicator(),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n.initializing,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.initializingSubtitle,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        // Show location error overlay if location is unavailable (non-blocking)
+        if (isLocationError && !viewModel.isLocationLoading)
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          viewModel.hasBlockingLocationError 
+                              ? Icons.location_off_rounded 
+                              : Icons.my_location,
+                          size: 48,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          viewModel.hasBlockingLocationError 
+                              ? l10n.locationDisabled 
+                              : l10n.locationNotFound,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.canStillCreateOrderWithoutLocation,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: viewModel.retryLocation,
+                          icon: const Icon(Icons.refresh),
+                          label: Text(l10n.tryAgain),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        // Always show action buttons at bottom
+        _MapBottomActions(
+          onSendRequest: () => _navigateTo(context, const SendRequestScreen()),
+          onReceiveRequest: () => _navigateTo(context, const ReceiveRequestScreen()),
+          onDriversRefresh: viewModel.refreshDrivers,
+          isRefreshingDrivers: viewModel.isDriverLoading,
+        ),
+      ],
+    );
 
     return Stack(
       children: [

@@ -32,7 +32,7 @@ export interface IOrder extends Document {
   priceStatus: 'pending' | 'proposed' | 'accepted' | 'rejected'; // Price confirmation status
   priceProposedAt?: Date; // When the driver proposed the final price
   priceRespondedAt?: Date; // When the user accepted/rejected the price
-  status: 'pending' | 'accepted' | 'on_the_way' | 'delivered' | 'cancelled' | 'new_price_pending' | 'price_rejected';
+  status: 'pending' | 'accepted' | 'on_the_way' | 'delivered' | 'cancelled';
   estimatedTime?: number;
   distance?: number;
   createdAt: Date;
@@ -155,7 +155,7 @@ const OrderSchema: Schema = new Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'accepted', 'on_the_way', 'delivered', 'cancelled', 'new_price_pending', 'price_rejected'],
+      enum: ['pending', 'accepted', 'on_the_way', 'delivered', 'cancelled'],
       default: 'pending',
     },
     estimatedTime: {

@@ -291,12 +291,6 @@ class _TrackedOrderCardState extends State<_TrackedOrderCard> {
             ),
           ),
 
-          // Price Proposal Section (shown when driver has proposed a price)
-          _PriceProposalSection(
-            order: latestOrder,
-            orderId: orderId,
-          ),
-
           // Map Section (Collapsible) - Directly below order number
           Column(
             children: [
@@ -1648,14 +1642,10 @@ class _OrderDetailsPanel extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    // Price - show finalPrice if proposed/accepted, otherwise show estimated price
+                    // Price
                     Builder(
                       builder: (context) {
-                        final priceStatus = order['priceStatus']?.toString().toLowerCase();
-                        final finalPrice = order['finalPrice'];
-                        final displayPrice = (priceStatus == 'proposed' || priceStatus == 'accepted') && finalPrice != null
-                            ? finalPrice
-                            : order['price'] ?? order['estimatedPrice'];
+                        final displayPrice = order['price'] ?? order['estimatedPrice'];
                         if (displayPrice == null) {
                           return const SizedBox.shrink();
                         }
@@ -1665,9 +1655,7 @@ class _OrderDetailsPanel extends StatelessWidget {
                               context: context,
                               icon: Icons.attach_money,
                               iconColor: Colors.green,
-                              label: (priceStatus == 'proposed' || priceStatus == 'accepted') && finalPrice != null
-                                  ? l10n.finalPrice
-                                  : l10n.price,
+                              label: l10n.price,
                               value: '₪${displayPrice}',
                             ),
                             const SizedBox(height: 12),
