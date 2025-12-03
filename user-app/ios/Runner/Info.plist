@@ -39,9 +39,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs access to your location to help you find nearby delivery services and track your orders.</string>
+	<string>Location access is optional and only used to show your location on the map and help you find nearby delivery services. You can still use the app and create orders without location by selecting addresses manually.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to your location to help you find nearby delivery services and track your orders.</string>
+	<string>Location access is optional and only used to show your location on the map and help you find nearby delivery services. You can still use the app and create orders without location by selecting addresses manually.</string>
 	<key>NSPrivacyPolicyURL</key>
 	<string>https://wassle.ps/privacy-policy</string>
 	<key>NSTermsOfServiceURL</key>

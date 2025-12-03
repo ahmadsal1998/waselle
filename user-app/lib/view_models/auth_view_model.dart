@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/api_service.dart';
 import '../services/socket_service.dart';
 import '../services/fcm_service.dart';
+import '../services/review_mode_service.dart';
+import '../services/review_mode_mock_data.dart';
 import '../utils/phone_utils.dart';
 
 class AuthViewModel with ChangeNotifier {
@@ -23,6 +25,21 @@ class AuthViewModel with ChangeNotifier {
   Future<void> _checkAuthStatus() async {
     _isLoading = true;
     notifyListeners();
+
+    // Check if Review Mode is active
+    final isReviewMode = await ReviewModeService.isReviewModeActive();
+    if (isReviewMode) {
+      // In Review Mode, use mock user data
+      _user = ReviewModeMockData.testUser;
+      _isAuthenticated = true;
+      // Store a mock token for Review Mode
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', 'review_mode_mock_token');
+      debugPrint('🍎 Review Mode: Using mock user');
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');

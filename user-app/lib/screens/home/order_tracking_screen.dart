@@ -11,6 +11,7 @@ import '../../view_models/order_tracking_view_model.dart';
 import '../../view_models/locale_view_model.dart';
 import '../../widgets/responsive_button.dart';
 import '../../theme/app_theme.dart';
+import '../../services/osm_geocoding_service.dart';
 import 'order_map_view_screen.dart';
 
 class OrderTrackingScreen extends StatelessWidget {
@@ -1098,22 +1099,36 @@ class _StageDetailSheet extends StatelessWidget {
                 if (order['pickupLocation'] != null ||
                     order['dropoffLocation'] != null) ...[
                   const SizedBox(height: 24),
-                  _DetailSection(
-                    title: 'Location Details',
-                    items: [
-                      if (order['pickupLocation'] != null)
-                        _DetailItem(
-                          label: 'Pickup Location',
-                          value: _formatLocation(order['pickupLocation'], l10n),
-                          icon: Icons.location_on_rounded,
-                        ),
-                      if (order['dropoffLocation'] != null)
-                        _DetailItem(
-                          label: 'Drop-off Location',
-                          value: _formatLocation(order['dropoffLocation'], l10n),
-                          icon: Icons.flag_rounded,
-                        ),
-                    ],
+                  FutureBuilder<Map<String, String>>(
+                    future: _getLocationDetails(order, l10n, context),
+                    builder: (context, snapshot) {
+                      final items = <_DetailItem>[];
+                      
+                      if (order['pickupLocation'] != null) {
+                        items.add(
+                          _DetailItem(
+                            label: 'Pickup Location',
+                            value: snapshot.data?['pickup'] ?? l10n.notAvailable,
+                            icon: Icons.location_on_rounded,
+                          ),
+                        );
+                      }
+                      
+                      if (order['dropoffLocation'] != null) {
+                        items.add(
+                          _DetailItem(
+                            label: 'Drop-off Location',
+                            value: snapshot.data?['dropoff'] ?? l10n.notAvailable,
+                            icon: Icons.flag_rounded,
+                          ),
+                        );
+                      }
+                      
+                      return _DetailSection(
+                        title: 'Location Details',
+                        items: items,
+                      );
+                    },
                   ),
                 ],
 
@@ -1513,22 +1528,32 @@ class _OrderDetailsPanel extends StatelessWidget {
                 if (order['deliveryType'] != null) const SizedBox(height: 12),
                 // From (Pickup Location)
                 if (order['pickupLocation'] != null)
-                  _buildDetailRow(
-                    context: context,
-                    icon: Icons.call_made,
-                    iconColor: Colors.blue,
-                    label: l10n.from,
-                    value: _formatLocationShort(order['pickupLocation'], l10n),
+                  FutureBuilder<String>(
+                    future: _formatLocationShort(order['pickupLocation'], l10n, context),
+                    builder: (context, snapshot) {
+                      return _buildDetailRow(
+                        context: context,
+                        icon: Icons.call_made,
+                        iconColor: Colors.blue,
+                        label: l10n.from,
+                        value: snapshot.data ?? l10n.notAvailable,
+                      );
+                    },
                   ),
                 if (order['pickupLocation'] != null) const SizedBox(height: 12),
                 // To (Dropoff Location)
                 if (order['dropoffLocation'] != null)
-                  _buildDetailRow(
-                    context: context,
-                    icon: Icons.call_received,
-                    iconColor: Colors.green,
-                    label: l10n.to,
-                    value: _formatLocationShort(order['dropoffLocation'], l10n),
+                  FutureBuilder<String>(
+                    future: _formatLocationShort(order['dropoffLocation'], l10n, context),
+                    builder: (context, snapshot) {
+                      return _buildDetailRow(
+                        context: context,
+                        icon: Icons.call_received,
+                        iconColor: Colors.green,
+                        label: l10n.to,
+                        value: snapshot.data ?? l10n.notAvailable,
+                      );
+                    },
                   ),
               ],
             ),
@@ -1747,21 +1772,39 @@ class _OrderDetailsPanel extends StatelessWidget {
     );
   }
 
-  String _formatLocationShort(Map<String, dynamic>? location, AppLocalizations l10n) {
+  Future<String> _formatLocationShort(
+    Map<String, dynamic>? location,
+    AppLocalizations l10n,
+    BuildContext context,
+  ) async {
     if (location == null || location.isEmpty) return l10n.notAvailable;
-    if (location['address'] != null &&
-        location['address'].toString().isNotEmpty) {
-      final address = location['address'].toString();
-      // Show first 50 characters if address is long
-      return address.length > 50 ? '${address.substring(0, 50)}...' : address;
-    }
+    
     final lat = location['lat'];
     final lng = location['lng'];
-    if (lat == null || lng == null) return l10n.notAvailable;
+    final storedAddress = location['address']?.toString().trim();
+    
+    if (lat == null || lng == null) {
+      return storedAddress ?? l10n.notAvailable;
+    }
+    
     final latValue = lat is num ? lat.toDouble() : double.tryParse('$lat');
     final lngValue = lng is num ? lng.toDouble() : double.tryParse('$lng');
-    if (latValue == null || lngValue == null) return l10n.notAvailable;
-    return '${latValue.toStringAsFixed(4)}, ${lngValue.toStringAsFixed(4)}';
+    if (latValue == null || lngValue == null) {
+      return storedAddress ?? l10n.notAvailable;
+    }
+    
+    // Use OSM geocoding for language-aware location name
+    final locationName = await OSMGeocodingService.getLocationName(
+      lat: latValue,
+      lng: lngValue,
+      storedAddress: storedAddress,
+      context: context,
+    );
+    
+    // Show first 50 characters if address is long
+    return locationName.length > 50 
+        ? '${locationName.substring(0, 50)}...' 
+        : locationName;
   }
 
   String _getVehicleTypeText(String vehicleType, AppLocalizations l10n) {
@@ -1806,19 +1849,60 @@ String? _formatDate(dynamic value) {
       '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
 }
 
-String _formatLocation(Map<String, dynamic>? location, AppLocalizations l10n) {
-  if (location == null || location.isEmpty) return l10n.notAvailable;
-  if (location['address'] != null &&
-      location['address'].toString().isNotEmpty) {
-    return location['address'].toString();
+Future<Map<String, String>> _getLocationDetails(
+  Map<String, dynamic> order,
+  AppLocalizations l10n,
+  BuildContext context,
+) async {
+  final Map<String, String> locations = {};
+  
+  if (order['pickupLocation'] != null) {
+    locations['pickup'] = await _formatLocation(
+      order['pickupLocation'],
+      l10n,
+      context,
+    );
   }
+  
+  if (order['dropoffLocation'] != null) {
+    locations['dropoff'] = await _formatLocation(
+      order['dropoffLocation'],
+      l10n,
+      context,
+    );
+  }
+  
+  return locations;
+}
+
+Future<String> _formatLocation(
+  Map<String, dynamic>? location,
+  AppLocalizations l10n,
+  BuildContext context,
+) async {
+  if (location == null || location.isEmpty) return l10n.notAvailable;
+  
   final lat = location['lat'];
   final lng = location['lng'];
-  if (lat == null || lng == null) return l10n.notAvailable;
+  final storedAddress = location['address']?.toString().trim();
+  
+  if (lat == null || lng == null) {
+    return storedAddress ?? l10n.notAvailable;
+  }
+  
   final latValue = lat is num ? lat.toDouble() : double.tryParse('$lat');
   final lngValue = lng is num ? lng.toDouble() : double.tryParse('$lng');
-  if (latValue == null || lngValue == null) return l10n.notAvailable;
-  return '${latValue.toStringAsFixed(5)}, ${lngValue.toStringAsFixed(5)}';
+  if (latValue == null || lngValue == null) {
+    return storedAddress ?? l10n.notAvailable;
+  }
+  
+  // Use OSM geocoding for language-aware location name
+  return await OSMGeocodingService.getLocationName(
+    lat: latValue,
+    lng: lngValue,
+    storedAddress: storedAddress,
+    context: context,
+  );
 }
 
 String? _formatPhone(dynamic phone) {

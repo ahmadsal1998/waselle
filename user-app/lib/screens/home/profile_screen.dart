@@ -10,7 +10,6 @@ import '../../repositories/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/delete_account_otp_dialog.dart';
 import 'saved_addresses_screen.dart';
-import 'order_history_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   final bool showAppBar;
@@ -324,20 +323,6 @@ class _ProfileContentState extends State<_ProfileContent> {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => const SavedAddressesScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  _ModernProfileTile(
-                    icon: Icons.history_rounded,
-                    iconColor: AppTheme.textSecondary,
-                    title: l10n.orderHistory,
-                    subtitle: l10n.viewOrderHistory,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const OrderHistoryScreen(),
                         ),
                       );
                     },

@@ -80,8 +80,11 @@ class HomeViewModel extends ChangeNotifier {
 
   List<DriverMarkerData> get driverMarkers => List.unmodifiable(_driverMarkers);
 
+  // Only show initial loading briefly during bootstrapping
+  // This prevents blocking the map - location errors are handled gracefully
+  // We only show loading overlay for a very short time during actual bootstrap
   bool get isInitialLoading =>
-      (isBootstrapping || repository.isLocationLoading) &&
+      isBootstrapping &&
       _currentLocation == null &&
       _locationErrorMessage == null;
 
@@ -143,20 +146,38 @@ class HomeViewModel extends ChangeNotifier {
 
   Future<void> _bootstrap() async {
     _setBootstrapping(true);
+    // Sync location state immediately (before waiting for location fetch)
+    // This ensures we can show the map even if location is unavailable
+    _syncLocationState();
+    _notifySafely();
+    
     try {
-      await repository.initializeHome();
+      // Start initialization in background - don't block on location
+      // This allows the map to render immediately while location is being fetched
+      unawaited(
+        repository.initializeHome().catchError((error) {
+          debugPrint('HomeViewModel initialization error: $error');
+          // Don't set initialization error for location issues - they're non-blocking
+          // Location errors are handled gracefully by showing default map location
+        }),
+      );
       _initializationError = null;
     } catch (error, stackTrace) {
       debugPrint('HomeViewModel bootstrap error: $error\n$stackTrace');
-      _initializationError =
-          'Failed to initialize home screen. Please try again.';
-    } finally {
-      _setBootstrapping(false);
-      _syncLocationState();
-      _syncDriverState();
-      _syncOrderState();
-      _notifySafely();
+      // Only set initialization error for critical failures, not location issues
+      if (!error.toString().toLowerCase().contains('location')) {
+        _initializationError =
+            'Failed to initialize home screen. Please try again.';
+      }
     }
+    
+    // Mark bootstrapping as done immediately - don't wait for location
+    // Location will update via listeners when it becomes available or fails
+    _setBootstrapping(false);
+    _syncLocationState();
+    _syncDriverState();
+    _syncOrderState();
+    _notifySafely();
   }
 
   void _registerListeners() {

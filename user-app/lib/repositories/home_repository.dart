@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../services/socket_service.dart';
@@ -20,8 +21,14 @@ class HomeRepository {
   });
 
   Future<void> initializeHome() async {
-    // Get location (doesn't require auth)
-    await locationViewModel.getCurrentLocation();
+    // Start location fetch in background (non-blocking)
+    // Don't await - allow the app to continue while location is being fetched
+    locationViewModel.getCurrentLocation().catchError((error) {
+      // Location errors are non-blocking - just log them
+      debugPrint('Location fetch error (non-blocking): $error');
+    });
+    
+    // Start location updates (also non-blocking)
     locationViewModel.startLocationUpdates();
 
     // Only fetch orders and drivers if authenticated

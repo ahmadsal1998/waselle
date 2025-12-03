@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/order_category.dart';
 import '../repositories/api_service.dart';
 import '../services/socket_service.dart';
+import '../services/review_mode_service.dart';
+import '../services/review_mode_mock_data.dart';
 
 class OrderViewModel with ChangeNotifier {
   OrderViewModel() {
@@ -237,6 +239,17 @@ class OrderViewModel with ChangeNotifier {
 
   Future<void> fetchOrders() async {
     try {
+      // Check if Review Mode is active
+      final isReviewMode = await ReviewModeService.isReviewModeActive();
+      if (isReviewMode) {
+        // Use mock orders for Review Mode
+        _orders = List<Map<String, dynamic>>.from(ReviewModeMockData.sampleOrders);
+        _syncActiveOrders();
+        notifyListeners();
+        debugPrint('🍎 Review Mode: Using mock orders');
+        return;
+      }
+      
       // Check if authenticated before fetching orders
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -272,6 +285,36 @@ class OrderViewModel with ChangeNotifier {
     double? estimatedPrice,
   }) async {
     try {
+      // Check if Review Mode is active
+      final isReviewMode = await ReviewModeService.isReviewModeActive();
+      if (isReviewMode) {
+        // In Review Mode, create a mock order instead of calling the API
+        final mockOrder = Map<String, dynamic>.from(ReviewModeMockData.sampleOrders.first);
+        mockOrder['_id'] = 'review_order_${DateTime.now().millisecondsSinceEpoch}';
+        mockOrder['type'] = type;
+        mockOrder['deliveryType'] = deliveryType;
+        mockOrder['pickupLocation'] = pickupLocation;
+        mockOrder['dropoffLocation'] = dropoffLocation;
+        mockOrder['vehicleType'] = vehicleType;
+        mockOrder['orderCategory'] = orderCategory;
+        mockOrder['senderName'] = senderName;
+        mockOrder['senderCity'] = senderCity;
+        mockOrder['senderVillage'] = senderVillage;
+        mockOrder['senderStreetDetails'] = senderStreetDetails;
+        mockOrder['senderPhoneNumber'] = senderPhoneNumber;
+        mockOrder['deliveryNotes'] = deliveryNotes;
+        mockOrder['estimatedPrice'] = estimatedPrice;
+        mockOrder['status'] = 'pending';
+        mockOrder['createdAt'] = DateTime.now().toIso8601String();
+        mockOrder['updatedAt'] = DateTime.now().toIso8601String();
+        
+        _updateOrderInList(mockOrder);
+        _syncActiveOrders(mockOrder);
+        await fetchOrders();
+        debugPrint('🍎 Review Mode: Created mock order');
+        return true;
+      }
+      
       final response = await ApiService.createOrder(
         type: type,
         deliveryType: deliveryType,

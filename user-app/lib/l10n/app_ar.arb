@@ -213,6 +213,7 @@
   "pleaseEnterLabel": "الرجاء إدخال تسمية",
   "useCurrentLocation": "استخدام الموقع الحالي",
   "gettingLocation": "جاري الحصول على الموقع...",
+  "usingCurrentLocation": "استخدام الموقع الحالي",
   "villageArea": "القرية/المنطقة",
   "saveAddress": "حفظ العنوان",
   "updateAddress": "تحديث العنوان",
@@ -314,6 +315,22 @@
   "verifyAndSubmitOrder": "التحقق وإرسال الطلب",
   "resendCode": "إعادة إرسال الرمز",
   "pleaseEnter6DigitCode": "الرجاء إدخال رمز مكون من 6 أرقام",
-  "locationNotAvailable": "الموقع غير متاح"
+  "locationNotAvailable": "الموقع غير متاح",
+  "canStillCreateOrderWithoutLocation": "لا يزال بإمكانك إنشاء طلب من خلال اختيار عنوان محفوظ أو إدخال تفاصيل الموقع يدويًا أدناه.",
+  "locationPermissionTitle": "الوصول إلى الموقع مطلوب",
+  "locationPermissionMessage": "نحتاج إلى الوصول إلى موقعك الحالي لإكمال طلبك وعرض العناوين المحفوظة القريبة. يمكنك رفض هذا الإذن، لكن العناوين المحفوظة لن تكون متاحة.",
+  "allowLocation": "السماح",
+  "denyLocation": "رفض",
+  "locationDeniedMessage": "لا يمكن استخدام العناوين المحفوظة دون تفعيل الموقع. لا يزال بإمكانك إدخال العنوان يدويًا لإكمال طلبك.",
+  "locationPermissionGranted": "تم منح إذن الموقع",
+  "locationPermissionDenied": "تم رفض إذن الموقع",
+  "locationPermissionGrantedMessage": "يمكنك الآن استخدام ميزات الموقع والعناوين المحفوظة لطلباتك.",
+  "locationPermissionDeniedMessage": "الوصول إلى الموقع مطلوب لاستخدام العناوين المحفوظة وعرض موقعك الحالي. لا يزال بإمكانك إنشاء الطلبات بإدخال العناوين يدويًا.",
+  "notificationPermissionGranted": "تم منح إذن الإشعارات",
+  "notificationPermissionDenied": "تم رفض إذن الإشعارات",
+  "notificationPermissionDeniedMessage": "لن تتلقى إشعارات فورية لتحديثات الطلبات. يمكنك تفعيل الإشعارات لاحقًا من الإعدادات.",
+  "notificationPermissionProvisionalMessage": "ستتلقى الإشعارات بهدوء. يمكنك تغيير هذا من الإعدادات.",
+  "notificationPermissionGrantedMessage": "ستتلقى إشعارات فورية لتحديثات الطلبات.",
+  "ok": "موافق"
 }
 

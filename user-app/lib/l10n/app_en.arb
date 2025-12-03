@@ -714,6 +714,10 @@
   "@gettingLocation": {
     "description": "Getting location status message"
   },
+  "usingCurrentLocation": "Using Current Location",
+  "@usingCurrentLocation": {
+    "description": "Label for current location option"
+  },
   "villageArea": "Village/Area",
   "@villageArea": {
     "description": "Village/Area field label"
@@ -1052,6 +1056,70 @@
   "locationNotAvailable": "Location not available",
   "@locationNotAvailable": {
     "description": "Error message when location is not available"
+  },
+  "canStillCreateOrderWithoutLocation": "You can still create an order by selecting a saved address or entering location details manually below.",
+  "@canStillCreateOrderWithoutLocation": {
+    "description": "Message explaining users can create orders without location services"
+  },
+  "locationPermissionTitle": "Location Access Needed",
+  "@locationPermissionTitle": {
+    "description": "Title for location permission dialog"
+  },
+  "locationPermissionMessage": "We need access to your current location to complete your order and show nearby saved addresses. You can deny this permission, but saved addresses will not be available.",
+  "@locationPermissionMessage": {
+    "description": "Message explaining why location is needed before requesting permission"
+  },
+  "allowLocation": "Allow",
+  "@allowLocation": {
+    "description": "Button to allow location permission"
+  },
+  "denyLocation": "Deny",
+  "@denyLocation": {
+    "description": "Button to deny location permission"
+  },
+  "locationDeniedMessage": "Saved addresses cannot be used without enabling location. You can still enter the address manually to complete your order.",
+  "@locationDeniedMessage": {
+    "description": "Message shown when user denies location permission"
+  },
+  "locationPermissionGranted": "Location permission granted",
+  "@locationPermissionGranted": {
+    "description": "Message shown when location permission is granted"
+  },
+  "locationPermissionDenied": "Location permission denied",
+  "@locationPermissionDenied": {
+    "description": "Message shown when location permission is denied"
+  },
+  "locationPermissionGrantedMessage": "You can now use location features and saved addresses for your orders.",
+  "@locationPermissionGrantedMessage": {
+    "description": "Message when location permission is granted"
+  },
+  "locationPermissionDeniedMessage": "Location access is required to use saved addresses and show your current position. You can still create orders by entering addresses manually.",
+  "@locationPermissionDeniedMessage": {
+    "description": "Detailed message when location permission is denied"
+  },
+  "notificationPermissionGranted": "Notification permission granted",
+  "@notificationPermissionGranted": {
+    "description": "Message shown when notification permission is granted"
+  },
+  "notificationPermissionDenied": "Notification permission denied",
+  "@notificationPermissionDenied": {
+    "description": "Message shown when notification permission is denied"
+  },
+  "notificationPermissionDeniedMessage": "You won't receive push notifications for order updates. You can enable notifications later in Settings.",
+  "@notificationPermissionDeniedMessage": {
+    "description": "Detailed message when notification permission is denied"
+  },
+  "notificationPermissionProvisionalMessage": "You will receive notifications quietly. You can change this in Settings.",
+  "@notificationPermissionProvisionalMessage": {
+    "description": "Message when notification permission is granted provisionally"
+  },
+  "notificationPermissionGrantedMessage": "You will receive push notifications for order updates.",
+  "@notificationPermissionGrantedMessage": {
+    "description": "Message when notification permission is fully granted"
+  },
+  "ok": "OK",
+  "@ok": {
+    "description": "OK button text"
   }
 }
 

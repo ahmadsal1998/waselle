@@ -121,32 +121,117 @@ class _ExpandableOrderCardState extends State<_ExpandableOrderCard> {
     final isSendOrder = rawOrderType == 'send';
     final isPickupOrder = rawOrderType == 'receive';
     
-    // Format addresses
-    final pickupAddress = isPickupOrder 
-        ? '-' 
-        : (pickup != null && pickup is Map<String, dynamic> 
-            ? (pickup['address']?.toString().trim() ?? '-')
-            : '-');
-    final dropoffAddress = isSendOrder 
-        ? '-' 
-        : (dropoff != null && dropoff is Map<String, dynamic>
-            ? (dropoff['address']?.toString().trim() ?? AddressFormatter.formatReceiverAddress(order))
-            : AddressFormatter.formatReceiverAddress(order));
+    // Format addresses - use FutureBuilder for async OSM geocoding
+    return FutureBuilder<Map<String, String>>(
+      future: _getOrderAddresses(order, isPickupOrder, isSendOrder, pickup, dropoff),
+      builder: (context, snapshot) {
+        final pickupAddress = snapshot.data?['pickup'] ?? 
+            (isPickupOrder ? '-' : (pickup != null && pickup is Map<String, dynamic> 
+                ? (pickup['address']?.toString().trim() ?? '-')
+                : '-'));
+        final dropoffAddress = snapshot.data?['dropoff'] ?? 
+            (isSendOrder ? '-' : (dropoff != null && dropoff is Map<String, dynamic>
+                ? (dropoff['address']?.toString().trim() ?? '-')
+                : '-'));
+        
+        return _buildOrderCard(
+          context: context,
+          l10n: l10n,
+          order: order,
+          orderId: orderId,
+          formattedDate: formattedDate,
+          status: status,
+          isOnTheWay: isOnTheWay,
+          isArabic: isArabic,
+          senderName: AddressFormatter.getCustomerName(order),
+          senderPhone: _getSenderPhone(order),
+          distanceText: _getDistanceText(order),
+          pickupAddress: pickupAddress,
+          dropoffAddress: dropoffAddress,
+        );
+      },
+    );
+  }
+  
+  Future<Map<String, String>> _getOrderAddresses(
+    Map<String, dynamic> order,
+    bool isPickupOrder,
+    bool isSendOrder,
+    dynamic pickup,
+    dynamic dropoff,
+  ) async {
+    String pickupAddress = '-';
+    String dropoffAddress = '-';
     
-    // Get sender info
-    final senderName = AddressFormatter.getCustomerName(order);
-    // Try to get phone from order directly first, then use AddressFormatter
+    if (isPickupOrder) {
+      pickupAddress = '-';
+    } else if (pickup != null && pickup is Map<String, dynamic>) {
+      final storedAddress = pickup['address']?.toString().trim();
+      final lat = pickup['lat'];
+      final lng = pickup['lng'];
+      
+      if (lat != null && lng != null) {
+        final latValue = lat is num ? lat.toDouble() : double.tryParse(lat.toString());
+        final lngValue = lng is num ? lng.toDouble() : double.tryParse(lng.toString());
+        
+        if (latValue != null && lngValue != null) {
+          pickupAddress = await AddressFormatter.formatPickupAddress(
+            pickup,
+            context: context,
+          );
+        } else {
+          pickupAddress = storedAddress ?? '-';
+        }
+      } else {
+        pickupAddress = storedAddress ?? '-';
+      }
+    }
+    
+    if (isSendOrder) {
+      dropoffAddress = '-';
+    } else {
+      dropoffAddress = await AddressFormatter.formatReceiverAddress(
+        order,
+        context: context,
+      );
+    }
+    
+    return {
+      'pickup': pickupAddress,
+      'dropoff': dropoffAddress,
+    };
+  }
+  
+  String _getSenderPhone(Map<String, dynamic> order) {
     String senderPhone = order['phone']?.toString().trim() ?? '';
     if (senderPhone.isEmpty) {
       senderPhone = AddressFormatter.getCustomerPhone(order);
     }
-    
-    // Get distance
+    return senderPhone;
+  }
+  
+  String? _getDistanceText(Map<String, dynamic> order) {
     final distance = order['distance'];
-    final distanceText = distance != null 
+    return distance != null 
         ? 'km ${(distance is num ? distance / 1000 : double.tryParse(distance.toString()) ?? 0).toStringAsFixed(2)}'
         : null;
-
+  }
+  
+  Widget _buildOrderCard({
+    required BuildContext context,
+    required AppLocalizations l10n,
+    required Map<String, dynamic> order,
+    required String? orderId,
+    required String? formattedDate,
+    required String status,
+    required bool isOnTheWay,
+    required bool isArabic,
+    required String senderName,
+    required String senderPhone,
+    required String? distanceText,
+    required String pickupAddress,
+    required String dropoffAddress,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(

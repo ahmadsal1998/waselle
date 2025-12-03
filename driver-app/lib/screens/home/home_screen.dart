@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../view_models/auth_view_model.dart';
+import '../../view_models/balance_view_model.dart';
 import '../../view_models/location_view_model.dart';
 import '../../view_models/order_view_model.dart';
 import '../../services/socket_service.dart';
@@ -65,9 +66,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return;
     final orderViewModel = Provider.of<OrderViewModel>(context, listen: false);
+    final balanceViewModel = Provider.of<BalanceViewModel>(context, listen: false);
     
     // Setup socket listeners after socket is initialized
     orderViewModel.setupSocketListeners();
+    balanceViewModel.setupSocketListeners();
     
     // Setup call listener
     _setupCallListener();

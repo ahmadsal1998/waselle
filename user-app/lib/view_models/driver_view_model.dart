@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../repositories/api_service.dart';
 import '../services/socket_service.dart';
+import '../services/review_mode_service.dart';
+import '../services/review_mode_mock_data.dart';
 
 class DriverViewModel with ChangeNotifier {
   List<Map<String, dynamic>> _drivers = [];
@@ -13,19 +15,29 @@ class DriverViewModel with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Future<void> fetchDrivers() async {
-    // Check if authenticated before fetching drivers
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    if (token == null) {
-      // Not authenticated, don't fetch drivers
-      _isLoading = false;
-      return;
-    }
-    
     _isLoading = true;
     notifyListeners();
 
     try {
+      // Check if Review Mode is active
+      final isReviewMode = await ReviewModeService.isReviewModeActive();
+      if (isReviewMode) {
+        // Use mock drivers for Review Mode
+        _drivers = List<Map<String, dynamic>>.from(ReviewModeMockData.testDriverLocations);
+        debugPrint('🍎 Review Mode: Using mock drivers');
+        return;
+      }
+      
+      // Check if authenticated before fetching drivers
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) {
+        // Not authenticated, don't fetch drivers
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+      
       final response = await ApiService.getAvailableDrivers();
       if (response['drivers'] != null) {
         _drivers = List<Map<String, dynamic>>.from(response['drivers']);

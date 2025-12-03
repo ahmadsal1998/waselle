@@ -1,7 +1,12 @@
+import 'package:flutter/material.dart';
+import 'package:delivery_driver_app/l10n/app_localizations.dart';
+import '../services/osm_geocoding_service.dart';
+
 /// Utility functions for formatting addresses
 class AddressFormatter {
   /// Format address from separate components (City-Village-StreetDetails)
   /// Falls back to old senderAddress format if components are not available
+  /// This is a synchronous version for backward compatibility
   static String formatAddress(Map<String, dynamic> order) {
     // Try to get new format components
     final city = order['senderCity']?.toString().trim();
@@ -23,6 +28,47 @@ class AddressFormatter {
 
     // If no address is available, return N/A or empty string
     return 'N/A';
+  }
+
+  /// Format sender/pickup address with language awareness using OSM reverse geocoding
+  /// Tries OSM geocoding first if coordinates are available, then falls back to formatAddress
+  static Future<String> formatSenderAddress(
+    Map<String, dynamic> order, {
+    BuildContext? context,
+  }) async {
+    // Try to get from pickup location using OSM reverse geocoding
+    final pickup = order['pickupLocation'];
+    if (pickup is Map<String, dynamic> && context != null) {
+      final lat = pickup['lat'];
+      final lng = pickup['lng'];
+      final storedAddress = pickup['address']?.toString().trim();
+      
+      // Use OSM reverse geocoding for language-aware location name
+      if (lat != null && lng != null) {
+        final latValue = lat is num ? lat.toDouble() : double.tryParse(lat.toString());
+        final lngValue = lng is num ? lng.toDouble() : double.tryParse(lng.toString());
+        
+        if (latValue != null && lngValue != null) {
+          final locationName = await OSMGeocodingService.getLocationName(
+            lat: latValue,
+            lng: lngValue,
+            storedAddress: storedAddress,
+            context: context,
+          );
+          if (locationName != 'N/A') {
+            return locationName;
+          }
+        }
+      }
+      
+      // Fallback to stored address if geocoding fails
+      if (storedAddress != null && storedAddress.isNotEmpty) {
+        return storedAddress;
+      }
+    }
+
+    // Fall back to formatAddress (synchronous version)
+    return formatAddress(order);
   }
 
   /// Get customer name from order (from populated customerId or senderName)
@@ -78,8 +124,12 @@ class AddressFormatter {
   }
 
   /// Format receiver/delivery address from separate components or dropoff location
-  static String formatReceiverAddress(Map<String, dynamic> order) {
-    // Try to get receiver address components
+  /// Uses OSM reverse geocoding for language-aware location names
+  static Future<String> formatReceiverAddress(
+    Map<String, dynamic> order, {
+    BuildContext? context,
+  }) async {
+    // Try to get receiver address components (these are stored in Arabic)
     final receiverCity = order['receiverCity']?.toString().trim();
     final receiverVillage = order['receiverVillage']?.toString().trim();
     final receiverStreetDetails = order['receiverStreetDetails']?.toString().trim();
@@ -97,12 +147,34 @@ class AddressFormatter {
       }
     }
 
-    // Try to get from dropoff location
+    // Try to get from dropoff location using OSM reverse geocoding
     final dropoff = order['dropoffLocation'];
-    if (dropoff is Map<String, dynamic>) {
-      final address = dropoff['address']?.toString().trim();
-      if (address != null && address.isNotEmpty) {
-        return address;
+    if (dropoff is Map<String, dynamic> && context != null) {
+      final lat = dropoff['lat'];
+      final lng = dropoff['lng'];
+      final storedAddress = dropoff['address']?.toString().trim();
+      
+      // Use OSM reverse geocoding for language-aware location name
+      if (lat != null && lng != null) {
+        final latValue = lat is num ? lat.toDouble() : double.tryParse(lat.toString());
+        final lngValue = lng is num ? lng.toDouble() : double.tryParse(lng.toString());
+        
+        if (latValue != null && lngValue != null) {
+          final locationName = await OSMGeocodingService.getLocationName(
+            lat: latValue,
+            lng: lngValue,
+            storedAddress: storedAddress,
+            context: context,
+          );
+          if (locationName != 'N/A') {
+            return locationName;
+          }
+        }
+      }
+      
+      // Fallback to stored address if geocoding fails
+      if (storedAddress != null && storedAddress.isNotEmpty) {
+        return storedAddress;
       }
     }
 
@@ -112,6 +184,42 @@ class AddressFormatter {
       return receiverAddress;
     }
 
+    return 'N/A';
+  }
+
+  /// Format pickup address with language awareness using OSM reverse geocoding
+  static Future<String> formatPickupAddress(
+    Map<String, dynamic> pickup, {
+    BuildContext? context,
+  }) async {
+    if (pickup is Map<String, dynamic> && context != null) {
+      final lat = pickup['lat'];
+      final lng = pickup['lng'];
+      final storedAddress = pickup['address']?.toString().trim();
+      
+      // Use OSM reverse geocoding for language-aware location name
+      if (lat != null && lng != null) {
+        final latValue = lat is num ? lat.toDouble() : double.tryParse(lat.toString());
+        final lngValue = lng is num ? lng.toDouble() : double.tryParse(lng.toString());
+        
+        if (latValue != null && lngValue != null) {
+          final locationName = await OSMGeocodingService.getLocationName(
+            lat: latValue,
+            lng: lngValue,
+            storedAddress: storedAddress,
+            context: context,
+          );
+          if (locationName != 'N/A') {
+            return locationName;
+          }
+        }
+      }
+      
+      // Fallback to stored address if geocoding fails
+      if (storedAddress != null && storedAddress.isNotEmpty) {
+        return storedAddress;
+      }
+    }
     return 'N/A';
   }
 }

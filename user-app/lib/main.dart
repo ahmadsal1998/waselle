@@ -155,7 +155,11 @@ void main() async {
   // Initialize FCM service for push notifications
   // CRITICAL: This is called on every app start to ensure FCM token is always available
   // Even if user is not logged in yet, token will be generated and stored for later sync
-  await FCMService().initialize();
+  // IMPORTANT: Don't await this to avoid blocking app startup when notification permission is denied
+  // The service will continue token registration in the background
+  FCMService().initialize().catchError((e) {
+    debugPrint('⚠️ FCM initialization error (non-blocking): $e');
+  });
   
   // Start periodic token sync check (every hour)
   // This ensures token is synced even if initial sync failed

@@ -1,7 +1,7 @@
 name: delivery_user_app
 description: Wassle - Customer App
 publish_to: 'none'
-version: 1.0.1+2
+version: 1.0.1+6
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

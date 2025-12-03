@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../view_models/order_view_model.dart';
+import '../../view_models/balance_view_model.dart';
 import '../../widgets/empty_state.dart';
-import '../../repositories/user_repository.dart';
 import '../../utils/address_formatter.dart';
 import 'package:intl/intl.dart';
 
@@ -20,45 +20,15 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   bool _isTodayFilter = false;
   List<Map<String, dynamic>> _filteredOrders = [];
   double _totalDeliveryFees = 0.0;
-  double? _driverBalance;
-  double? _maxAllowedBalance;
-  bool _isLoadingBalance = false;
-  final UserRepository _userRepository = UserRepository();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadDriverBalance();
+      // Load balance using BalanceViewModel
+      final balanceViewModel = Provider.of<BalanceViewModel>(context, listen: false);
+      balanceViewModel.loadBalance();
     });
-  }
-
-  Future<void> _loadDriverBalance() async {
-    setState(() {
-      _isLoadingBalance = true;
-    });
-    try {
-      final response = await _userRepository.getMyBalance();
-      if (mounted && response['balanceInfo'] != null) {
-        final balanceInfo = response['balanceInfo'] as Map<String, dynamic>;
-        setState(() {
-          _driverBalance = (balanceInfo['currentBalance'] as num?)?.toDouble();
-          _maxAllowedBalance = (balanceInfo['maxAllowedBalance'] as num?)?.toDouble();
-          _isLoadingBalance = false;
-        });
-      } else {
-        setState(() {
-          _isLoadingBalance = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading driver balance: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingBalance = false;
-        });
-      }
-    }
   }
 
   /// Filter orders to show only completed (delivered) orders
@@ -175,8 +145,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       final orderViewModel = Provider.of<OrderViewModel>(this.context, listen: false);
       final deliveredOrders = _filterDeliveredOrders(orderViewModel.myOrders);
       _applyFiltersSync(deliveredOrders);
-      // Refresh balance when filter changes
-      _loadDriverBalance();
+      // Balance will auto-update via BalanceViewModel
     }
   }
 
@@ -189,8 +158,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     final orderViewModel = Provider.of<OrderViewModel>(context, listen: false);
     final deliveredOrders = _filterDeliveredOrders(orderViewModel.myOrders);
     _applyFiltersSync(deliveredOrders);
-    // Refresh balance when filters are cleared
-    _loadDriverBalance();
+    // Balance will auto-update via BalanceViewModel
   }
 
   void _showOrderDetailsModal(Map<String, dynamic> order) {
@@ -208,8 +176,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Consumer<OrderViewModel>(
-      builder: (context, orderViewModel, _) {
+    return Consumer2<OrderViewModel, BalanceViewModel>(
+      builder: (context, orderViewModel, balanceViewModel, _) {
         final allOrders = orderViewModel.myOrders;
         
         // Filter to show only completed (delivered) orders
@@ -218,8 +186,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         // Apply filters on initial load or when orders change
         // Only apply if filteredOrders is empty (initial load) or if orders list changed
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          final previousOrdersCount = _filteredOrders.length;
           if (orders.isNotEmpty && (_filteredOrders.isEmpty || _filteredOrders.length != orders.length)) {
             _applyFilters(orders);
+            // If new delivered orders appeared, refresh balance
+            if (_filteredOrders.length > previousOrdersCount) {
+              balanceViewModel.refreshBalance();
+            }
           } else if (orders.isEmpty) {
             // Clear filtered orders if no orders available
             setState(() {
@@ -346,10 +319,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: _buildBalanceCard(
-                        balance: _driverBalance,
-                        maxAllowedBalance: _maxAllowedBalance,
-                        isLoading: _isLoadingBalance,
-                        onRefresh: _loadDriverBalance,
+                        balance: balanceViewModel.driverBalance,
+                        maxAllowedBalance: balanceViewModel.maxAllowedBalance,
+                        isLoading: balanceViewModel.isLoading,
+                        onRefresh: () => balanceViewModel.refreshBalance(),
                       ),
                     ),
                   ],
@@ -372,7 +345,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                         final deliveredOrders = _filterDeliveredOrders(orderViewModel.myOrders);
                         _applyFilters(deliveredOrders);
                         // Refresh balance when pulling to refresh
-                        _loadDriverBalance();
+                        final balanceViewModel = Provider.of<BalanceViewModel>(context, listen: false);
+                        balanceViewModel.refreshBalance();
                       },
                       child: ListView.builder(
                         padding: const EdgeInsets.all(20),
@@ -679,7 +653,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           final deliveredOrders = _filterDeliveredOrders(orderViewModel.myOrders);
                           // Apply filters synchronously to ensure immediate update
                           _applyFiltersSync(deliveredOrders);
-                          _loadDriverBalance();
+                          final balanceViewModel = Provider.of<BalanceViewModel>(context, listen: false);
+                          balanceViewModel.refreshBalance();
                           Navigator.pop(context);
                         },
                         borderRadius: BorderRadius.circular(12),
@@ -1214,15 +1189,9 @@ class _OrderDetailsModalState extends State<_OrderDetailsModal> {
     final receiverName = order['receiverName']?.toString() ?? l10n.nA;
     final receiverPhone = order['receiverPhoneNumber']?.toString() ?? l10n.nA;
 
-    // Get addresses
+    // Get addresses - use FutureBuilder for async OSM geocoding
     final rawOrderType = order['type']?.toString().toLowerCase().trim() ?? '';
     final isSend = rawOrderType == 'send';
-    final pickupAddress = isSend
-        ? AddressFormatter.formatAddress(order)
-        : '—';
-    final deliveryAddress = isSend
-        ? '—'
-        : AddressFormatter.formatReceiverAddress(order);
 
     // Status color
     final isDelivered = status == 'delivered';
@@ -1233,7 +1202,14 @@ class _OrderDetailsModalState extends State<_OrderDetailsModal> {
             ? AppTheme.errorColor
             : AppTheme.warningColor;
 
-    return Container(
+    return FutureBuilder<Map<String, String>>(
+      future: _getOrderAddresses(order, isSend),
+      builder: (context, snapshot) {
+        // Use language-aware address formatting - fallback handled in _getOrderAddresses
+        final pickupAddress = snapshot.data?['pickup'] ?? '—';
+        final deliveryAddress = snapshot.data?['delivery'] ?? (isSend ? '—' : '—');
+
+        return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
@@ -1459,6 +1435,8 @@ class _OrderDetailsModalState extends State<_OrderDetailsModal> {
         ],
       ),
     );
+      },
+    );
   }
 
   Widget _buildSectionHeader(String title) {
@@ -1558,5 +1536,22 @@ class _OrderDetailsModalState extends State<_OrderDetailsModal> {
     if (dateTime == null) return null;
 
     return DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
+  }
+
+  Future<Map<String, String>> _getOrderAddresses(Map<String, dynamic> order, bool isSend) async {
+    String pickupAddress = '—';
+    String deliveryAddress = '—';
+    
+    if (isSend) {
+      // Use language-aware sender address formatting with OSM geocoding
+      pickupAddress = await AddressFormatter.formatSenderAddress(order, context: context);
+    } else {
+      deliveryAddress = await AddressFormatter.formatReceiverAddress(order, context: context);
+    }
+    
+    return {
+      'pickup': pickupAddress,
+      'delivery': deliveryAddress,
+    };
   }
 }

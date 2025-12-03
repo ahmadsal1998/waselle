@@ -742,31 +742,100 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     // - Send: User Location (pick-up) = address, Delivery Location = "—"
     final isSendOrder = rawOrderType == 'send';
     final isPickupOrder = rawOrderType == 'receive';
-    final pickupAddress = isPickupOrder 
-        ? '—' 
-        : (pickup != null ? _formatPickupAddress(pickup) : l10n.nA);
-    final deliveryAddress = isSendOrder 
-        ? '—' 
-        : AddressFormatter.formatReceiverAddress(_order!);
-
-    // Get delivery type (internal/external) or fall back to order type (send/receive)
+    
+    // Use FutureBuilder for async address formatting
+    return FutureBuilder<Map<String, String>>(
+      future: _getAddresses(isPickupOrder, isSendOrder, pickup, dropoff),
+      builder: (context, snapshot) {
+        final pickupAddress = snapshot.data?['pickup'] ?? '—';
+        final deliveryAddress = snapshot.data?['delivery'] ?? '—';
+        
+        return _buildCompactDetailsContent(
+          theme: theme,
+          l10n: l10n,
+          orderStatus: orderStatus,
+          orderPrice: orderPrice,
+          orderCategory: orderCategory,
+          orderType: orderType,
+          customerName: customerName,
+          customerPhone: customerPhone,
+          formattedDate: formattedDate,
+          deliveryTypeText: _getDeliveryTypeText(l10n, rawOrderType),
+          pickupAddress: pickupAddress,
+          deliveryAddress: deliveryAddress,
+        );
+      },
+    );
+  }
+  
+  Future<Map<String, String>> _getAddresses(
+    bool isPickupOrder,
+    bool isSendOrder,
+    dynamic pickup,
+    dynamic dropoff,
+  ) async {
+    String pickupAddress = '—';
+    String deliveryAddress = '—';
+    
+    if (isPickupOrder) {
+      pickupAddress = '—';
+    } else if (pickup != null) {
+      pickupAddress = await AddressFormatter.formatPickupAddress(
+        pickup,
+        context: context,
+      );
+    }
+    
+    if (isSendOrder) {
+      deliveryAddress = '—';
+    } else {
+      deliveryAddress = await AddressFormatter.formatReceiverAddress(
+        _order!,
+        context: context,
+      );
+    }
+    
+    return {
+      'pickup': pickupAddress,
+      'delivery': deliveryAddress,
+    };
+  }
+  
+  String _getDeliveryTypeText(AppLocalizations l10n, String? rawOrderType) {
     final deliveryTypeRaw = _order!['deliveryType']?.toString().toLowerCase().trim();
-    String deliveryTypeText;
     if (deliveryTypeRaw == 'internal') {
-      deliveryTypeText = l10n.internalDelivery ?? 'Internal Delivery';
+      return l10n.internalDelivery ?? 'Internal Delivery';
     } else if (deliveryTypeRaw == 'external') {
-      deliveryTypeText = l10n.externalDelivery ?? 'External Delivery';
+      return l10n.externalDelivery ?? 'External Delivery';
     } else {
       // Fall back to order type if deliveryType is not available
-      deliveryTypeText = orderType;
+      final orderType = rawOrderType != null
+          ? _translateOrderType(l10n, rawOrderType)
+          : l10n.nA;
+      return orderType;
     }
-
+  }
+  
+  Widget _buildCompactDetailsContent({
+    required ThemeData theme,
+    required AppLocalizations l10n,
+    required String orderStatus,
+    required String orderPrice,
+    required String orderCategory,
+    required String orderType,
+    required String customerName,
+    required String customerPhone,
+    required String? formattedDate,
+    required String deliveryTypeText,
+    required String pickupAddress,
+    required String deliveryAddress,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Delivery Type, From, To
+          // Delivery Type, From, To - Horizontal Layout
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
@@ -777,108 +846,167 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 width: 1,
               ),
             ),
-            child: Column(
+            child: Row(
               children: [
                 // Delivery Type
-                Row(
-                  children: [
-                    Icon(Icons.local_shipping, size: 18, color: theme.colorScheme.primary),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
                         children: [
-                          Text(
-                            l10n.deliveryType ?? 'Delivery Type',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          Icon(Icons.local_shipping, size: 16, color: theme.colorScheme.primary),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              l10n.deliveryType ?? 'Delivery Type',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                fontSize: 10,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            deliveryTypeText,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        deliveryTypeText,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                const Divider(height: 1),
-                const SizedBox(height: 12),
+                // Divider
+                Container(
+                  width: 1,
+                  height: 40,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  color: theme.colorScheme.outline.withOpacity(0.2),
+                ),
                 // From (Pickup)
-                Row(
-                  children: [
-                    Icon(Icons.call_made, size: 18, color: Colors.blue),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
                         children: [
-                          Text(
-                            l10n.from ?? 'From',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          Icon(Icons.call_made, size: 16, color: Colors.blue),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              l10n.from ?? 'From',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                fontSize: 10,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            pickupAddress,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        pickupAddress,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                const Divider(height: 1),
-                const SizedBox(height: 12),
+                // Divider
+                Container(
+                  width: 1,
+                  height: 40,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  color: theme.colorScheme.outline.withOpacity(0.2),
+                ),
                 // To (Dropoff)
-                Row(
-                  children: [
-                    Icon(
-                      Icons.call_received,
-                      size: 18,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
                         children: [
-                          Text(
-                            l10n.to ?? 'To',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
-                            ),
+                          Icon(
+                            Icons.call_received,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            deliveryAddress,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              l10n.to ?? 'To',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                fontSize: 10,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        deliveryAddress,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
+          // Change Order Status Button - Always Visible
+          const SizedBox(height: 12),
+          if (orderStatus == 'accepted')
+            ResponsiveButton.elevated(
+              context: context,
+              onPressed: () => _updateStatus('on_the_way'),
+              icon: Icons.directions_car,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              child: Text(
+                l10n.startDelivery,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          if (orderStatus == 'on_the_way')
+            ResponsiveButton.elevated(
+              context: context,
+              onPressed: () => _updateStatus('delivered'),
+              icon: Icons.check_circle,
+              backgroundColor: theme.colorScheme.secondary,
+              foregroundColor: theme.colorScheme.onSecondary,
+              child: Text(
+                l10n.markAsDelivered,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+              ),
+            ),
         ],
       ),
     );
@@ -898,12 +1026,44 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     // - Send: User Location (pick-up) = address, Delivery Location = "—"
     final isSendOrder = rawOrderType == 'send';
     final isPickupOrder = rawOrderType == 'receive';
-    final pickupAddress = isPickupOrder 
-        ? '—' 
-        : _formatPickupAddress(pickup);
-    final deliveryAddress = isSendOrder 
-        ? '—' 
-        : AddressFormatter.formatReceiverAddress(_order!);
+    
+    // Use FutureBuilder for async address formatting
+    return FutureBuilder<Map<String, String>>(
+      future: _getAddresses(isPickupOrder, isSendOrder, pickup, dropoff),
+      builder: (context, snapshot) {
+        final pickupAddress = snapshot.data?['pickup'] ?? '—';
+        final deliveryAddress = snapshot.data?['delivery'] ?? '—';
+        
+        return _buildExpandedDetailsContent(
+          theme: theme,
+          l10n: l10n,
+          orderStatus: orderStatus,
+          orderPrice: orderPrice,
+          orderCategory: orderCategory,
+          orderType: orderType,
+          formattedDate: formattedDate,
+          pickupAddress: pickupAddress,
+          deliveryAddress: deliveryAddress,
+          pickup: pickup,
+          dropoff: dropoff,
+        );
+      },
+    );
+  }
+  
+  Widget _buildExpandedDetailsContent({
+    required ThemeData theme,
+    required AppLocalizations l10n,
+    required String orderStatus,
+    required String orderPrice,
+    required String orderCategory,
+    required String orderType,
+    required String? formattedDate,
+    required String pickupAddress,
+    required String deliveryAddress,
+    required Map<String, dynamic> pickup,
+    required Map<String, dynamic> dropoff,
+  }) {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -1140,36 +1300,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               },
             ),
             
-            // Action Buttons
-            const SizedBox(height: 16),
-            if (orderStatus == 'accepted')
-              ResponsiveButton.elevated(
-                context: context,
-                onPressed: () => _updateStatus('on_the_way'),
-                icon: Icons.directions_car,
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: theme.colorScheme.onPrimary,
-                child: Text(
-                  l10n.startDelivery,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            if (orderStatus == 'on_the_way')
-              ResponsiveButton.elevated(
-                context: context,
-                onPressed: () => _updateStatus('delivered'),
-                icon: Icons.check_circle,
-                backgroundColor: theme.colorScheme.secondary,
-                foregroundColor: theme.colorScheme.onSecondary,
-                child: Text(
-                  l10n.markAsDelivered,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  textAlign: TextAlign.center,
-                ),
-              ),
+            // Note: Action buttons are now in compact details (always visible)
         ],
       ),
     );
@@ -1216,15 +1347,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  String _formatPickupAddress(Map<String, dynamic> pickup) {
-    if (pickup is Map<String, dynamic>) {
-      final address = pickup['address']?.toString().trim();
-      if (address != null && address.isNotEmpty) {
-        return address;
-      }
-    }
-    return 'N/A';
-  }
 
   Widget _buildInfoRow({
     required ThemeData theme,

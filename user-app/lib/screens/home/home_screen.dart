@@ -17,6 +17,7 @@ import '../../widgets/responsive_button.dart';
 import '../../repositories/api_service.dart';
 import '../../theme/app_theme.dart';
 import 'order_tracking_screen.dart';
+import 'order_history_screen.dart';
 import 'profile_screen.dart';
 import 'receive_request_screen.dart';
 import 'send_request_screen.dart';
@@ -29,6 +30,7 @@ class HomeScreen extends StatelessWidget {
     return [
       l10n.discover,
       l10n.trackOrder,
+      l10n.orderHistory,
       l10n.profile,
     ];
   }
@@ -135,21 +137,30 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
     return Consumer<HomeViewModel>(
       builder: (context, viewModel, _) {
         final tabTitles = HomeScreen._tabTitles(context);
+        // Clamp tab index to valid range (in case it was set to removed price offers tab)
+        final safeTabIndex = viewModel.currentTabIndex.clamp(0, tabTitles.length - 1);
+        if (viewModel.currentTabIndex != safeTabIndex) {
+          // Reset to valid tab if current index is out of bounds
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            viewModel.onTabSelected(safeTabIndex);
+          });
+        }
         return Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
           body: Column(
             children: [
               // Modern Header matching driver app
               _HomeAppBar(
-                title: tabTitles[viewModel.currentTabIndex],
+                title: tabTitles[safeTabIndex],
               ),
               // Body Content
               Expanded(
                 child: IndexedStack(
-            index: viewModel.currentTabIndex,
+            index: safeTabIndex,
             children: [
               _MapTab(viewModel: viewModel),
               const OrderTrackingScreen(showAppBar: false),
+              const OrderHistoryScreen(showAppBar: false),
               const ProfileScreen(showAppBar: false),
                 ],
               ),
@@ -157,7 +168,7 @@ class _HomeScreenViewState extends State<_HomeScreenView> {
           ],
           ),
           bottomNavigationBar: _HomeNavigationBar(
-            currentIndex: viewModel.currentTabIndex,
+            currentIndex: safeTabIndex,
             onDestinationSelected: viewModel.onTabSelected,
             hasActiveOrder: viewModel.hasActiveOrder,
           ),
@@ -282,10 +293,17 @@ class _HomeNavigationBar extends StatelessWidget {
                 onTap: () => onDestinationSelected(1),
               ),
               _ModernNavItem(
+                icon: Icons.history_rounded,
+                activeIcon: Icons.history,
+                label: l10n.orderHistory,
+                isActive: currentIndex == 2,
+                onTap: () => onDestinationSelected(2),
+              ),
+              _ModernNavItem(
                 icon: Icons.person_outline_rounded,
                 activeIcon: Icons.person_rounded,
                 label: l10n.profile,
-                isActive: currentIndex == 2,
+                isActive: currentIndex == 3,
                 onTap: () => onDestinationSelected(3),
               ),
             ],

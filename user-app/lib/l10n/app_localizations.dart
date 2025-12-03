@@ -1115,6 +1115,12 @@ abstract class AppLocalizations {
   /// **'Getting location...'**
   String get gettingLocation;
 
+  /// Label for current location option
+  ///
+  /// In en, this message translates to:
+  /// **'Using Current Location'**
+  String get usingCurrentLocation;
+
   /// Village/Area field label
   ///
   /// In en, this message translates to:
@@ -1594,6 +1600,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Location not available'**
   String get locationNotAvailable;
+
+  /// Message explaining users can create orders without location services
+  ///
+  /// In en, this message translates to:
+  /// **'You can still create an order by selecting a saved address or entering location details manually below.'**
+  String get canStillCreateOrderWithoutLocation;
+
+  /// Title for location permission dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Location Access Needed'**
+  String get locationPermissionTitle;
+
+  /// Message explaining why location is needed before requesting permission
+  ///
+  /// In en, this message translates to:
+  /// **'We need access to your current location to complete your order and show nearby saved addresses. You can deny this permission, but saved addresses will not be available.'**
+  String get locationPermissionMessage;
+
+  /// Button to allow location permission
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get allowLocation;
+
+  /// Button to deny location permission
+  ///
+  /// In en, this message translates to:
+  /// **'Deny'**
+  String get denyLocation;
+
+  /// Message shown when user denies location permission
+  ///
+  /// In en, this message translates to:
+  /// **'Saved addresses cannot be used without enabling location. You can still enter the address manually to complete your order.'**
+  String get locationDeniedMessage;
+
+  /// Message shown when location permission is granted
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission granted'**
+  String get locationPermissionGranted;
+
+  /// Message shown when location permission is denied
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission denied'**
+  String get locationPermissionDenied;
+
+  /// Message when location permission is granted
+  ///
+  /// In en, this message translates to:
+  /// **'You can now use location features and saved addresses for your orders.'**
+  String get locationPermissionGrantedMessage;
+
+  /// Detailed message when location permission is denied
+  ///
+  /// In en, this message translates to:
+  /// **'Location access is required to use saved addresses and show your current position. You can still create orders by entering addresses manually.'**
+  String get locationPermissionDeniedMessage;
+
+  /// Message shown when notification permission is granted
+  ///
+  /// In en, this message translates to:
+  /// **'Notification permission granted'**
+  String get notificationPermissionGranted;
+
+  /// Message shown when notification permission is denied
+  ///
+  /// In en, this message translates to:
+  /// **'Notification permission denied'**
+  String get notificationPermissionDenied;
+
+  /// Detailed message when notification permission is denied
+  ///
+  /// In en, this message translates to:
+  /// **'You won\'t receive push notifications for order updates. You can enable notifications later in Settings.'**
+  String get notificationPermissionDeniedMessage;
+
+  /// Message when notification permission is granted provisionally
+  ///
+  /// In en, this message translates to:
+  /// **'You will receive notifications quietly. You can change this in Settings.'**
+  String get notificationPermissionProvisionalMessage;
+
+  /// Message when notification permission is fully granted
+  ///
+  /// In en, this message translates to:
+  /// **'You will receive push notifications for order updates.'**
+  String get notificationPermissionGrantedMessage;
+
+  /// OK button text
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ok;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

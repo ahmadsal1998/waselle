@@ -531,6 +531,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gettingLocation => 'Getting location...';
 
   @override
+  String get usingCurrentLocation => 'Using Current Location';
+
+  @override
   String get villageArea => 'Village/Area';
 
   @override
@@ -775,4 +778,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get locationNotAvailable => 'Location not available';
+
+  @override
+  String get canStillCreateOrderWithoutLocation => 'You can still create an order by selecting a saved address or entering location details manually below.';
+
+  @override
+  String get locationPermissionTitle => 'Location Access Needed';
+
+  @override
+  String get locationPermissionMessage => 'We need access to your current location to complete your order and show nearby saved addresses. You can deny this permission, but saved addresses will not be available.';
+
+  @override
+  String get allowLocation => 'Allow';
+
+  @override
+  String get denyLocation => 'Deny';
+
+  @override
+  String get locationDeniedMessage => 'Saved addresses cannot be used without enabling location. You can still enter the address manually to complete your order.';
+
+  @override
+  String get locationPermissionGranted => 'Location permission granted';
+
+  @override
+  String get locationPermissionDenied => 'Location permission denied';
+
+  @override
+  String get locationPermissionGrantedMessage => 'You can now use location features and saved addresses for your orders.';
+
+  @override
+  String get locationPermissionDeniedMessage => 'Location access is required to use saved addresses and show your current position. You can still create orders by entering addresses manually.';
+
+  @override
+  String get notificationPermissionGranted => 'Notification permission granted';
+
+  @override
+  String get notificationPermissionDenied => 'Notification permission denied';
+
+  @override
+  String get notificationPermissionDeniedMessage => 'You won\'t receive push notifications for order updates. You can enable notifications later in Settings.';
+
+  @override
+  String get notificationPermissionProvisionalMessage => 'You will receive notifications quietly. You can change this in Settings.';
+
+  @override
+  String get notificationPermissionGrantedMessage => 'You will receive push notifications for order updates.';
+
+  @override
+  String get ok => 'OK';
 }

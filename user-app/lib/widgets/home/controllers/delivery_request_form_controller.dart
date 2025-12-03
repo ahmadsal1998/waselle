@@ -175,8 +175,12 @@ class DeliveryRequestFormController extends ChangeNotifier {
       _notifyListenersSafely();
     }
 
+    // On initialization, only get location if permission is already granted
+    // Don't show dialog on initialization - user hasn't explicitly requested location yet
+    // Dialog will be shown when user clicks refresh or tries to use location features
     if (locationProvider.currentPosition == null &&
         !locationProvider.isLoading) {
+      // Get location without dialog (silent check for already-granted permission)
       locationProvider.getCurrentLocation();
     }
 
@@ -214,9 +218,9 @@ class DeliveryRequestFormController extends ChangeNotifier {
     }
   }
 
-  void refreshLocation(LocationViewModel locationProvider) {
+  void refreshLocation(LocationViewModel locationProvider, {BuildContext? context}) {
     if (locationProvider.isLoading) return;
-    locationProvider.getCurrentLocation();
+    locationProvider.getCurrentLocation(context: context);
   }
 
   void syncOrderCategorySelection(OrderViewModel orderProvider) {
@@ -560,6 +564,7 @@ class DeliveryRequestFormController extends ChangeNotifier {
     required RegionViewModel regionProvider,
     required LocationViewModel locationProvider,
     required OrderViewModel orderProvider,
+    BuildContext? context,
   }) {
     _useCurrentLocation = true;
     _selectedSavedAddressId = null;
@@ -567,6 +572,12 @@ class DeliveryRequestFormController extends ChangeNotifier {
     _selectedCityId = null;
     _selectedVillageId = null;
     _notifyListenersSafely();
+    
+    // Request location with dialog if context is provided and location is not available
+    if (context != null && locationProvider.currentPosition == null && !locationProvider.isLoading) {
+      locationProvider.getCurrentLocation(context: context);
+    }
+    
     scheduleEstimate(
       regionProvider: regionProvider,
       locationProvider: locationProvider,

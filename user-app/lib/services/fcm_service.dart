@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../repositories/api_service.dart';
 import '../main.dart'; // For GlobalNavigatorKey
+import '../l10n/app_localizations.dart';
 
 /// Firebase Cloud Messaging service for handling push notifications
 class FCMService {
@@ -49,7 +50,20 @@ class FCMService {
         await _retrieveAndroidToken();
       } else if (Platform.isIOS) {
         // iOS: Handle APNS token first, then get FCM token
-        await _retrieveIOSToken();
+        // Check permission status first - if denied, retrieve token in background to avoid blocking
+        NotificationSettings settings = await _firebaseMessaging.getNotificationSettings();
+        bool permissionDenied = settings.authorizationStatus == AuthorizationStatus.denied;
+        
+        if (permissionDenied) {
+          // Permission denied - retrieve token in background without blocking app startup
+          debugPrint('⚠️ Notification permission denied. Retrieving FCM token in background...');
+          _retrieveIOSToken(skipApnsWait: true).catchError((e) {
+            debugPrint('⚠️ Background FCM token retrieval failed: $e');
+          });
+        } else {
+          // Permission granted or provisional - retrieve token normally
+          await _retrieveIOSToken();
+        }
       } else {
         // Other platforms (Web, Desktop, etc.)
         try {
@@ -143,7 +157,18 @@ class FCMService {
         if (Platform.isAndroid) {
           await _retrieveAndroidToken(retryCount: 0, maxRetries: 2);
         } else if (Platform.isIOS) {
-          await _retrieveIOSToken(retryCount: 0, maxRetries: 2);
+          // Check permission - if denied, retrieve in background
+          NotificationSettings settings = await _firebaseMessaging.getNotificationSettings();
+          bool permissionDenied = settings.authorizationStatus == AuthorizationStatus.denied;
+          
+          if (permissionDenied) {
+            // Retrieve in background without blocking
+            _retrieveIOSToken(retryCount: 0, maxRetries: 2, skipApnsWait: true).catchError((e) {
+              debugPrint('⚠️ Background token retrieval in sync check failed: $e');
+            });
+          } else {
+            await _retrieveIOSToken(retryCount: 0, maxRetries: 2);
+          }
         }
       }
     } catch (e) {
@@ -193,6 +218,9 @@ class FCMService {
             sound: true,
             provisional: false,
           );
+
+          // Show feedback to user about permission result
+          _showNotificationPermissionResult(settings.authorizationStatus);
 
           if (settings.authorizationStatus == AuthorizationStatus.authorized) {
             debugPrint('✅ iOS notification permission granted');
@@ -287,43 +315,58 @@ class FCMService {
   }
 
   /// Retrieve iOS FCM token with APNS token handling and retry logic
-  Future<void> _retrieveIOSToken({int retryCount = 0, int maxRetries = 5}) async {
+  Future<void> _retrieveIOSToken({int retryCount = 0, int maxRetries = 5, bool skipApnsWait = false}) async {
     try {
       debugPrint('📱 Attempting to retrieve FCM token on iOS (attempt ${retryCount + 1}/$maxRetries)...');
       
-      // CRITICAL: On iOS, we MUST get APNS token first before getting FCM token
-      // Wait for APNS token with retry logic
-      String? apnsToken;
-      int apnsRetryCount = 0;
-      const maxApnsRetries = 10;
+      // Check notification permission status first
+      // If permission is denied, skip APNS waiting to avoid blocking app startup
+      NotificationSettings settings = await _firebaseMessaging.getNotificationSettings();
+      bool permissionDenied = settings.authorizationStatus == AuthorizationStatus.denied;
       
-      while (apnsToken == null && apnsRetryCount < maxApnsRetries) {
-        try {
-          apnsToken = await _firebaseMessaging.getAPNSToken();
-          if (apnsToken != null) {
-            debugPrint('✅ APNS token retrieved on iOS: ${apnsToken.substring(0, 20)}...');
-            break;
-          } else {
+      if (permissionDenied) {
+        debugPrint('⚠️ Notification permission denied on iOS. Skipping APNS token wait to avoid blocking app startup.');
+        debugPrint('⚠️ App will continue to function normally. Token registration will continue in background.');
+        // Skip APNS waiting and proceed directly to FCM token retrieval
+        // This allows the app to start immediately even without notifications
+      } else if (!skipApnsWait) {
+        // CRITICAL: On iOS, we MUST get APNS token first before getting FCM token
+        // Wait for APNS token with retry logic (only if permission is not denied)
+        String? apnsToken;
+        int apnsRetryCount = 0;
+        const maxApnsRetries = 3; // Reduced from 10 to 3 to minimize delay
+        
+        // Only wait for APNS token if permission is granted or provisional
+        while (apnsToken == null && apnsRetryCount < maxApnsRetries) {
+          try {
+            apnsToken = await _firebaseMessaging.getAPNSToken();
+            if (apnsToken != null) {
+              debugPrint('✅ APNS token retrieved on iOS: ${apnsToken.substring(0, 20)}...');
+              break;
+            } else {
+              apnsRetryCount++;
+              if (apnsRetryCount < maxApnsRetries) {
+                debugPrint('⏳ APNS token not available yet, waiting 1 second... (attempt $apnsRetryCount/$maxApnsRetries)');
+                await Future.delayed(const Duration(seconds: 1));
+              }
+            }
+          } catch (e) {
             apnsRetryCount++;
             if (apnsRetryCount < maxApnsRetries) {
-              debugPrint('⏳ APNS token not available yet, waiting 1 second... (attempt $apnsRetryCount/$maxApnsRetries)');
+              debugPrint('⚠️ Error getting APNS token, retrying... (attempt $apnsRetryCount/$maxApnsRetries): $e');
               await Future.delayed(const Duration(seconds: 1));
+            } else {
+              debugPrint('⚠️ Failed to get APNS token after $maxApnsRetries attempts: $e');
+              debugPrint('⚠️ Continuing without APNS token to avoid blocking app startup...');
+              // Don't block - continue to FCM token retrieval
+              break;
             }
           }
-        } catch (e) {
-          apnsRetryCount++;
-          if (apnsRetryCount < maxApnsRetries) {
-            debugPrint('⚠️ Error getting APNS token, retrying... (attempt $apnsRetryCount/$maxApnsRetries): $e');
-            await Future.delayed(const Duration(seconds: 1));
-          } else {
-            debugPrint('❌ Failed to get APNS token after $maxApnsRetries attempts: $e');
-            // Still try to get FCM token - sometimes it works without APNS token
-          }
         }
-      }
-      
-      if (apnsToken == null && apnsRetryCount >= maxApnsRetries) {
-        debugPrint('⚠️ APNS token not available after $maxApnsRetries attempts, trying FCM token anyway...');
+        
+        if (apnsToken == null && apnsRetryCount >= maxApnsRetries) {
+          debugPrint('⚠️ APNS token not available after $maxApnsRetries attempts, trying FCM token anyway...');
+        }
       }
       
       // Now try to get FCM token
@@ -335,13 +378,30 @@ class FCMService {
         await _saveTokenToBackend(_fcmToken!);
       } else {
         debugPrint('⚠️ FCM Token is null or empty on iOS');
+        // Check permission status - if denied, retry in background without blocking
+        NotificationSettings settings = await _firebaseMessaging.getNotificationSettings();
+        bool permissionDenied = settings.authorizationStatus == AuthorizationStatus.denied;
+        
         if (retryCount < maxRetries) {
           final delaySeconds = (retryCount + 1) * 2; // Exponential backoff: 2s, 4s, 6s, 8s, 10s
-          debugPrint('🔄 Retrying FCM token retrieval in $delaySeconds seconds...');
-          await Future.delayed(Duration(seconds: delaySeconds));
-          await _retrieveIOSToken(retryCount: retryCount + 1, maxRetries: maxRetries);
+          
+          if (permissionDenied) {
+            // Permission denied - retry in background without blocking
+            debugPrint('🔄 Retrying FCM token retrieval in background (permission denied)...');
+            Future.delayed(Duration(seconds: delaySeconds), () {
+              _retrieveIOSToken(retryCount: retryCount + 1, maxRetries: maxRetries, skipApnsWait: true);
+            });
+          } else {
+            // Permission granted - retry normally
+            debugPrint('🔄 Retrying FCM token retrieval in $delaySeconds seconds...');
+            await Future.delayed(Duration(seconds: delaySeconds));
+            await _retrieveIOSToken(retryCount: retryCount + 1, maxRetries: maxRetries);
+          }
         } else {
-          debugPrint('❌ Failed to retrieve FCM token after $maxRetries attempts');
+          debugPrint('⚠️ Failed to retrieve FCM token after $maxRetries attempts');
+          if (permissionDenied) {
+            debugPrint('⚠️ Notification permission denied. App will continue to function normally.');
+          }
         }
       }
     } catch (e) {
@@ -349,17 +409,32 @@ class FCMService {
       
       // Check if it's the APNS token error
       if (e.toString().contains('apns-token-not-set')) {
+        // Check if permission is denied - if so, don't retry to avoid blocking
+        NotificationSettings settings = await _firebaseMessaging.getNotificationSettings();
+        bool permissionDenied = settings.authorizationStatus == AuthorizationStatus.denied;
+        
+        if (permissionDenied) {
+          debugPrint('⚠️ APNS token not set and notification permission denied. Skipping retry to avoid blocking app startup.');
+          debugPrint('⚠️ App will continue to function normally. Token registration will continue in background.');
+          // Don't retry if permission is denied - allow app to proceed
+          return;
+        }
+        
         if (retryCount < maxRetries) {
           final delaySeconds = (retryCount + 1) * 2;
-          debugPrint('🔄 APNS token not set, retrying in $delaySeconds seconds...');
-          await Future.delayed(Duration(seconds: delaySeconds));
-          await _retrieveIOSToken(retryCount: retryCount + 1, maxRetries: maxRetries);
+          debugPrint('🔄 APNS token not set, retrying in $delaySeconds seconds... (background)');
+          // Retry in background without blocking
+          Future.delayed(Duration(seconds: delaySeconds), () {
+            _retrieveIOSToken(retryCount: retryCount + 1, maxRetries: maxRetries, skipApnsWait: true);
+          });
         } else {
-          debugPrint('❌ Failed to retrieve FCM token after $maxRetries attempts (APNS token issue)');
+          debugPrint('⚠️ Failed to retrieve FCM token after $maxRetries attempts (APNS token issue)');
+          debugPrint('⚠️ App will continue to function normally without push notifications.');
         }
       } else {
         // Other errors - don't retry indefinitely
         debugPrint('❌ Non-APNS error getting FCM token: $e');
+        debugPrint('⚠️ App will continue to function normally.');
       }
     }
   }
@@ -522,8 +597,21 @@ class FCMService {
         newToken = _fcmToken;
       } else if (Platform.isIOS) {
         // Force retrieve iOS token with retry and APNS handling
-        await _retrieveIOSToken(retryCount: 0, maxRetries: 5);
-        newToken = _fcmToken;
+        // Check permission - if denied, retrieve in background
+        NotificationSettings settings = await _firebaseMessaging.getNotificationSettings();
+        bool permissionDenied = settings.authorizationStatus == AuthorizationStatus.denied;
+        
+        if (permissionDenied) {
+          // Retrieve in background without blocking
+          _retrieveIOSToken(retryCount: 0, maxRetries: 5, skipApnsWait: true).catchError((e) {
+            debugPrint('⚠️ Background token refresh failed: $e');
+          });
+          // Don't wait for token - allow app to continue
+          return;
+        } else {
+          await _retrieveIOSToken(retryCount: 0, maxRetries: 5);
+          newToken = _fcmToken;
+        }
       }
       
       if (newToken != null && newToken.isNotEmpty) {
@@ -590,7 +678,18 @@ class FCMService {
         if (Platform.isAndroid) {
           await _retrieveAndroidToken(retryCount: 0, maxRetries: 2);
         } else if (Platform.isIOS) {
-          await _retrieveIOSToken(retryCount: 0, maxRetries: 2);
+          // Check permission - if denied, retrieve in background
+          NotificationSettings settings = await _firebaseMessaging.getNotificationSettings();
+          bool permissionDenied = settings.authorizationStatus == AuthorizationStatus.denied;
+          
+          if (permissionDenied) {
+            // Retrieve in background without blocking
+            _retrieveIOSToken(retryCount: 0, maxRetries: 2, skipApnsWait: true).catchError((e) {
+              debugPrint('⚠️ Background token retrieval in periodic check failed: $e');
+            });
+          } else {
+            await _retrieveIOSToken(retryCount: 0, maxRetries: 2);
+          }
         }
       }
     } catch (e) {
@@ -609,8 +708,21 @@ class FCMService {
         await _retrieveAndroidToken(retryCount: 0, maxRetries: 5);
         newToken = _fcmToken;
       } else if (Platform.isIOS) {
-        await _retrieveIOSToken(retryCount: 0, maxRetries: 3);
-        newToken = _fcmToken;
+        // Check permission - if denied, retrieve in background
+        NotificationSettings settings = await _firebaseMessaging.getNotificationSettings();
+        bool permissionDenied = settings.authorizationStatus == AuthorizationStatus.denied;
+        
+        if (permissionDenied) {
+          // Retrieve in background without blocking
+          _retrieveIOSToken(retryCount: 0, maxRetries: 3, skipApnsWait: true).catchError((e) {
+            debugPrint('⚠️ Background force refresh failed: $e');
+          });
+          // Return false since we can't get token synchronously
+          return false;
+        } else {
+          await _retrieveIOSToken(retryCount: 0, maxRetries: 3);
+          newToken = _fcmToken;
+        }
       }
       
       if (newToken != null && newToken.isNotEmpty) {
@@ -661,6 +773,80 @@ class FCMService {
     }
     
     return diagnostics;
+  }
+
+  /// Show notification permission result dialog to user
+  void _showNotificationPermissionResult(AuthorizationStatus status) {
+    final context = GlobalNavigatorKey.navigatorKey.currentContext;
+    if (context == null) {
+      debugPrint('⚠️ No context available to show permission result dialog');
+      return;
+    }
+
+    // Get localization
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) {
+      debugPrint('⚠️ Localization not available');
+      return;
+    }
+
+    // Show dialog after a short delay to ensure system dialog is dismissed
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (GlobalNavigatorKey.navigatorKey.currentContext == null) return;
+      
+      final currentContext = GlobalNavigatorKey.navigatorKey.currentContext!;
+      final currentL10n = AppLocalizations.of(currentContext);
+      if (currentL10n == null) return;
+
+      if (status == AuthorizationStatus.authorized ||
+          status == AuthorizationStatus.provisional) {
+        // Permission granted - show success message
+        showDialog(
+          context: currentContext,
+          barrierDismissible: true,
+          builder: (context) => AlertDialog(
+            title: Text(currentL10n.notificationPermissionGranted),
+            content: SingleChildScrollView(
+              child: Text(
+                status == AuthorizationStatus.provisional
+                    ? currentL10n.notificationPermissionProvisionalMessage
+                    : currentL10n.notificationPermissionGrantedMessage,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(currentL10n.ok),
+              ),
+            ],
+          ),
+        );
+      } else {
+        // Permission denied - show informative message
+        showDialog(
+          context: currentContext,
+          barrierDismissible: true,
+          builder: (context) => AlertDialog(
+            title: Text(currentL10n.notificationPermissionDenied),
+            content: SingleChildScrollView(
+              child: Text(
+                currentL10n.notificationPermissionDeniedMessage,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(currentL10n.ok),
+              ),
+            ],
+          ),
+        );
+      }
+    });
   }
 }
 

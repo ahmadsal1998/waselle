@@ -167,7 +167,9 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
     final orderProvider = widget.orderProvider;
     final position = locationProvider.currentPosition;
 
-    if (position == null) {
+    // Only show loader if we're using current location and it's actively loading
+    // Allow form to display even without location (user can use saved addresses)
+    if (controller.useCurrentLocation && position == null && locationProvider.isLoading) {
       return _buildInitialLoader(context, controller, locationProvider);
     }
 
@@ -190,13 +192,25 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildHeader(
-              context,
-              controller,
-              locationProvider,
-              position,
-            ),
-            const SizedBox(height: 24),
+            // Only show location header when using current location
+            if (controller.useCurrentLocation && position != null)
+              _buildHeader(
+                context,
+                controller,
+                locationProvider,
+                position,
+              ),
+            if (controller.useCurrentLocation && position != null)
+              const SizedBox(height: 24),
+            // Show location unavailable message if using current location but position is null
+            if (controller.useCurrentLocation && position == null && !locationProvider.isLoading)
+              _buildLocationUnavailableCard(
+                context,
+                controller,
+                locationProvider,
+              ),
+            if (controller.useCurrentLocation && position == null && !locationProvider.isLoading)
+              const SizedBox(height: 24),
             _SectionCard(
               icon: Icons.local_shipping_outlined,
               title: l10n.deliveryDetails,
@@ -364,7 +378,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
             OutlinedButton.icon(
               onPressed: isLoading
                   ? null
-                  : () => controller.refreshLocation(locationProvider),
+                  : () => controller.refreshLocation(locationProvider, context: context),
               icon: const Icon(Icons.refresh),
               label: Text(
                 isLoading ? l10n.fetchingLocation : l10n.retryLocation,
@@ -372,6 +386,73 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLocationUnavailableCard(
+    BuildContext context,
+    DeliveryRequestFormController controller,
+    LocationViewModel locationProvider,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.error.withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.location_off_rounded,
+                color: theme.colorScheme.error,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.locationNotAvailable,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.canStillCreateOrderWithoutLocation,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => controller.refreshLocation(locationProvider, context: context),
+                  icon: const Icon(Icons.my_location_outlined),
+                  label: Text(l10n.tryAgain),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -385,7 +466,9 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final displayAddress = locationProvider.currentAddress ??
-        '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
+        (position != null 
+          ? '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}'
+          : l10n.locationNotAvailable);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -455,7 +538,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                 child: ElevatedButton.icon(
                   onPressed: locationProvider.isLoading
                       ? null
-                      : () => controller.refreshLocation(locationProvider),
+                      : () => controller.refreshLocation(locationProvider, context: context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: theme.colorScheme.primary,
@@ -948,6 +1031,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
       future: SavedAddressService.getSavedAddresses(),
       builder: (context, snapshot) {
         final theme = Theme.of(context);
+        final l10n = AppLocalizations.of(context)!;
         final savedAddresses = snapshot.data ?? [];
         
         // Access controller properties here to ensure rebuild when they change
@@ -980,7 +1064,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Using Current Location',
+                        l10n.usingCurrentLocation,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: theme.colorScheme.primary,
@@ -988,7 +1072,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        locationProvider.currentAddress ?? 'Getting location...',
+                        locationProvider.currentAddress ?? l10n.gettingLocation,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -1022,6 +1106,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                   regionProvider: regionProvider,
                   locationProvider: locationProvider,
                   orderProvider: orderProvider,
+                  context: context,
                 );
               },
               borderRadius: BorderRadius.circular(14),
@@ -1054,7 +1139,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Current Location',
+                            l10n.currentLocation,
                             style: theme.textTheme.bodyLarge?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: currentUseCurrentLocation
@@ -1064,7 +1149,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            locationProvider.currentAddress ?? 'Getting location...',
+                            locationProvider.currentAddress ?? l10n.gettingLocation,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),

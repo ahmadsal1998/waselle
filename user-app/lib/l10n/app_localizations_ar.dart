@@ -531,6 +531,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gettingLocation => 'جاري الحصول على الموقع...';
 
   @override
+  String get usingCurrentLocation => 'استخدام الموقع الحالي';
+
+  @override
   String get villageArea => 'القرية/المنطقة';
 
   @override
@@ -775,4 +778,52 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get locationNotAvailable => 'الموقع غير متاح';
+
+  @override
+  String get canStillCreateOrderWithoutLocation => 'لا يزال بإمكانك إنشاء طلب من خلال اختيار عنوان محفوظ أو إدخال تفاصيل الموقع يدويًا أدناه.';
+
+  @override
+  String get locationPermissionTitle => 'الوصول إلى الموقع مطلوب';
+
+  @override
+  String get locationPermissionMessage => 'نحتاج إلى الوصول إلى موقعك الحالي لإكمال طلبك وعرض العناوين المحفوظة القريبة. يمكنك رفض هذا الإذن، لكن العناوين المحفوظة لن تكون متاحة.';
+
+  @override
+  String get allowLocation => 'السماح';
+
+  @override
+  String get denyLocation => 'رفض';
+
+  @override
+  String get locationDeniedMessage => 'لا يمكن استخدام العناوين المحفوظة دون تفعيل الموقع. لا يزال بإمكانك إدخال العنوان يدويًا لإكمال طلبك.';
+
+  @override
+  String get locationPermissionGranted => 'تم منح إذن الموقع';
+
+  @override
+  String get locationPermissionDenied => 'تم رفض إذن الموقع';
+
+  @override
+  String get locationPermissionGrantedMessage => 'يمكنك الآن استخدام ميزات الموقع والعناوين المحفوظة لطلباتك.';
+
+  @override
+  String get locationPermissionDeniedMessage => 'الوصول إلى الموقع مطلوب لاستخدام العناوين المحفوظة وعرض موقعك الحالي. لا يزال بإمكانك إنشاء الطلبات بإدخال العناوين يدويًا.';
+
+  @override
+  String get notificationPermissionGranted => 'تم منح إذن الإشعارات';
+
+  @override
+  String get notificationPermissionDenied => 'تم رفض إذن الإشعارات';
+
+  @override
+  String get notificationPermissionDeniedMessage => 'لن تتلقى إشعارات فورية لتحديثات الطلبات. يمكنك تفعيل الإشعارات لاحقًا من الإعدادات.';
+
+  @override
+  String get notificationPermissionProvisionalMessage => 'ستتلقى الإشعارات بهدوء. يمكنك تغيير هذا من الإعدادات.';
+
+  @override
+  String get notificationPermissionGrantedMessage => 'ستتلقى إشعارات فورية لتحديثات الطلبات.';
+
+  @override
+  String get ok => 'موافق';
 }

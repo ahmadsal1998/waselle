@@ -9,6 +9,7 @@ import 'package:delivery_driver_app/firebase_options.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
 import 'view_models/auth_view_model.dart';
+import 'view_models/balance_view_model.dart';
 import 'view_models/location_view_model.dart';
 import 'view_models/locale_view_model.dart';
 import 'view_models/map_style_view_model.dart';
@@ -80,6 +81,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
         ChangeNotifierProvider(create: (_) => LocationViewModel()),
         ChangeNotifierProvider(create: (_) => OrderViewModel()),
+        ChangeNotifierProvider(create: (_) => BalanceViewModel()),
         ChangeNotifierProvider(create: (_) => MapStyleViewModel()),
         ChangeNotifierProvider(create: (_) => RegionViewModel()),
       ],

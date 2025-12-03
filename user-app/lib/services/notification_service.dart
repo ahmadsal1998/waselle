@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/api_service.dart';
+import '../main.dart'; // For GlobalNavigatorKey
+import '../l10n/app_localizations.dart';
 
 // Note: Background handler is now registered in main.dart BEFORE Firebase.initializeApp()
 // This ensures it works when the app is terminated
@@ -33,6 +36,9 @@ class NotificationService {
         sound: true,
         provisional: false,
       );
+
+      // Show feedback to user about permission result
+      _showNotificationPermissionResult(settings.authorizationStatus);
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
@@ -297,5 +303,89 @@ class NotificationService {
 
   /// Get current FCM token
   String? get fcmToken => _fcmToken;
+
+  /// Show notification permission result dialog to user
+  void _showNotificationPermissionResult(AuthorizationStatus status) {
+    final context = GlobalNavigatorKey.navigatorKey.currentContext;
+    if (context == null) {
+      if (kDebugMode) {
+        print('⚠️ No context available to show permission result dialog');
+      }
+      return;
+    }
+
+    // Get localization
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) {
+      if (kDebugMode) {
+        print('⚠️ Localization not available');
+      }
+      return;
+    }
+
+    // Show dialog after a short delay to ensure system dialog is dismissed
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (GlobalNavigatorKey.navigatorKey.currentContext == null) return;
+      
+      final currentContext = GlobalNavigatorKey.navigatorKey.currentContext!;
+      final currentL10n = AppLocalizations.of(currentContext);
+      if (currentL10n == null) return;
+
+      if (status == AuthorizationStatus.authorized ||
+          status == AuthorizationStatus.provisional) {
+        // Permission granted - show success message
+        showDialog(
+          context: currentContext,
+          barrierDismissible: true,
+          builder: (context) => AlertDialog(
+            title: Text(currentL10n.notificationPermissionGranted),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200),
+              child: SingleChildScrollView(
+                child: Text(
+                  status == AuthorizationStatus.provisional
+                      ? currentL10n.notificationPermissionProvisionalMessage
+                      : currentL10n.notificationPermissionGrantedMessage,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(currentL10n.ok),
+              ),
+            ],
+          ),
+        );
+      } else {
+        // Permission denied - show informative message
+        showDialog(
+          context: currentContext,
+          barrierDismissible: true,
+          builder: (context) => AlertDialog(
+            title: Text(currentL10n.notificationPermissionDenied),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200),
+              child: SingleChildScrollView(
+                child: Text(
+                  currentL10n.notificationPermissionDeniedMessage,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(currentL10n.ok),
+              ),
+            ],
+          ),
+        );
+      }
+    });
+  }
 }
 

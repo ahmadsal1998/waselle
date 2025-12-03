@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/api_service.dart';
+import '../services/review_mode_service.dart';
+import '../services/review_mode_mock_data.dart';
+import '../utils/location_permission_helper.dart';
 
 class LocationViewModel with ChangeNotifier {
   Position? _currentPosition;
@@ -46,16 +50,106 @@ class LocationViewModel with ChangeNotifier {
     }
   }
 
-  Future<void> getCurrentLocation() async {
+  /// Requests location permission with user-friendly dialog
+  /// Shows dialog before requesting permission and handles denial gracefully
+  Future<bool> requestLocationPermissionWithDialog(BuildContext context) async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('Location services are disabled');
+        return false;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      // If permission is already granted, return true (no need to show dialog)
+      if (permission == LocationPermission.whileInUse || 
+          permission == LocationPermission.always) {
+        return true;
+      }
+
+      // If permission is denied, show dialog first
+      if (permission == LocationPermission.denied) {
+        final shouldProceed = await LocationPermissionHelper.showLocationPermissionDialog(context);
+        
+        if (!shouldProceed) {
+          // User chose to deny in the dialog
+          LocationPermissionHelper.showLocationDeniedMessage(context);
+          return false;
+        }
+        
+        // User chose to allow - now request the actual permission
+        permission = await Geolocator.requestPermission();
+        
+        // Show result dialog after iOS system dialog is dismissed
+        LocationPermissionHelper.showLocationPermissionResult(context, permission);
+        
+        if (permission == LocationPermission.denied) {
+          return false;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        debugPrint('Location permission denied forever');
+        // Show result dialog for denied forever
+        LocationPermissionHelper.showLocationPermissionResult(context, permission);
+        return false;
+      }
+      
+      // If we reach here, permission was granted
+      return true;
+
+      return true;
+    } catch (e) {
+      debugPrint('Error requesting location permission: $e');
+      return false;
+    }
+  }
+
+  Future<void> getCurrentLocation({BuildContext? context}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final hasPermission = await requestLocationPermission();
+      // Check if Review Mode is active
+      final isReviewMode = await ReviewModeService.isReviewModeActive();
+      if (isReviewMode) {
+        // Use mock location for Review Mode
+        final mockLocation = ReviewModeMockData.defaultLocation;
+        _currentPosition = Position(
+          latitude: mockLocation.latitude,
+          longitude: mockLocation.longitude,
+          timestamp: DateTime.now(),
+          accuracy: 10.0,
+          altitude: 0.0,
+          heading: 0.0,
+          speed: 0.0,
+          speedAccuracy: 0.0,
+          altitudeAccuracy: 0.0,
+          headingAccuracy: 0.0,
+        );
+        _currentAddress = ReviewModeMockData.defaultAddress;
+        _errorMessage = null;
+        _isLoading = false;
+        debugPrint('🍎 Review Mode: Using mock location');
+        notifyListeners();
+        return;
+      }
+      
+      // Use dialog-based permission request if context is provided
+      final hasPermission = context != null
+          ? await requestLocationPermissionWithDialog(context)
+          : await requestLocationPermission();
+      
       if (!hasPermission) {
-        _errorMessage =
-            'Please enable location access to display your current position on the map.';
+        // Error message is already shown by the helper if context was provided
+        if (context == null) {
+          _errorMessage =
+              'Please enable location access to display your current position on the map.';
+        } else {
+          _errorMessage = null; // Message already shown via helper
+        }
         _isLoading = false;
         notifyListeners();
         return;

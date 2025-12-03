@@ -4,6 +4,7 @@ import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../view_models/auth_view_model.dart';
 import '../../view_models/order_view_model.dart';
+import '../../view_models/balance_view_model.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/responsive_button.dart';
 import 'order_details_screen.dart';
@@ -24,6 +25,9 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshOrders();
+      // Load balance in background for automatic updates (not displayed on this screen)
+      final balanceViewModel = Provider.of<BalanceViewModel>(context, listen: false);
+      balanceViewModel.loadBalance();
     });
   }
 
