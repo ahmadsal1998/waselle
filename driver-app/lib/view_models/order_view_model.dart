@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../repositories/order_repository.dart';
 import '../services/socket_service.dart';
-import '../services/review_mode_service.dart';
 
 class OrderViewModel with ChangeNotifier {
   OrderViewModel({OrderRepository? orderRepository})
@@ -296,18 +295,6 @@ class OrderViewModel with ChangeNotifier {
     try {
       debugPrint('OrderViewModel: Fetching available orders...');
       debugPrint('OrderViewModel: Driver vehicle type: $_driverVehicleType');
-      
-      // Check if in review mode - use mock data
-      if (ReviewModeService.isReviewMode) {
-        debugPrint('OrderViewModel: Review mode active - using mock orders');
-        final mockOrders = ReviewModeService.getMockOrders();
-        // Filter by vehicle type if driver has a vehicle type
-        final filteredMockOrders = mockOrders.where(_shouldIncludeOrder).toList();
-        _availableOrders = filteredMockOrders;
-        debugPrint('OrderViewModel: Mock orders loaded: ${_availableOrders.length}');
-        notifyListeners();
-        return;
-      }
       
       final response = await _orderRepository.getAvailableOrders();
       debugPrint('OrderViewModel: Received response keys: ${response.keys}');

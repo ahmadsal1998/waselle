@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:delivery_driver_app/l10n/app_localizations.dart';
 import '../../view_models/auth_view_model.dart';
 import '../../widgets/responsive_button.dart';
-import '../../services/review_mode_service.dart';
 import '../home/home_screen.dart';
 import 'suspended_account_screen.dart';
 
@@ -23,14 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Auto-fill review credentials if in review mode
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (ReviewModeService.isReviewMode) {
-        final credentials = ReviewModeService.getReviewCredentials();
-        _emailController.text = credentials['email'] ?? '';
-        _passwordController.text = credentials['password'] ?? '';
-      }
-    });
   }
 
   @override

@@ -19,7 +19,6 @@ import paymentRoutes from './routes/paymentRoutes';
 import zegoRoutes from './routes/zegoRoutes';
 import privacyPolicyRoutes from './routes/privacyPolicyRoutes';
 import termsOfServiceRoutes from './routes/termsOfServiceRoutes';
-import reviewModeRoutes from './routes/reviewModeRoutes';
 import { initializeSocket } from './services/socketService';
 
 // Initialize Firebase Admin SDK
@@ -87,7 +86,6 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/zego', zegoRoutes);
 app.use('/api/privacy-policy', privacyPolicyRoutes);
 app.use('/api/terms-of-service', termsOfServiceRoutes);
-app.use('/api/review-mode', reviewModeRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
