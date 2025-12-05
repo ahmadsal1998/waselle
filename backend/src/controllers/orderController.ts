@@ -26,6 +26,7 @@ import { admin } from '../utils/firebase';
 import { normalizePhoneNumber, splitPhoneNumber } from '../utils/phone';
 import { checkAndSuspendDriverIfNeeded, addCommissionToBalance, calculateDriverBalance } from '../utils/balance';
 import { sendSMSOTP } from '../utils/smsProvider';
+import { isReviewMode } from '../utils/reviewMode';
 
 // Reviewer test phone number and OTP for Google Play & App Store review
 const REVIEWER_TEST_PHONE = '0593202026';
@@ -451,6 +452,66 @@ export const getAvailableOrders = async (
     const driver = await User.findById(req.user.userId);
     if (!driver) {
       res.status(404).json({ message: 'Driver not found' });
+      return;
+    }
+
+    // Check if in review mode - return mock data for Apple reviewers
+    if (isReviewMode(req)) {
+      console.log('[getAvailableOrders] Review mode detected - returning mock orders');
+      const vehicleType = driver.vehicleType || 'bike';
+      const mockOrders = [
+        {
+          _id: 'TEST1',
+          id: 'TEST1',
+          pickup: 'Demo Restaurant',
+          dropoff: 'Demo Area 1',
+          price: 5,
+          estimatedPrice: 5,
+          distance: 2.4,
+          distanceFromDriver: 2.4,
+          status: 'pending',
+          type: 'send',
+          vehicleType: vehicleType,
+          deliveryType: 'internal',
+          orderCategory: 'Food',
+          senderName: 'Demo Customer 1',
+          pickupLocation: {
+            lat: 31.9522,
+            lng: 35.2332,
+          },
+          dropoffLocation: {
+            lat: 31.9622,
+            lng: 35.2432,
+          },
+          createdAt: new Date().toISOString(),
+        },
+        {
+          _id: 'TEST2',
+          id: 'TEST2',
+          pickup: 'Demo Market',
+          dropoff: 'Demo Neighborhood',
+          price: 7,
+          estimatedPrice: 7,
+          distance: 3.1,
+          distanceFromDriver: 3.1,
+          status: 'pending',
+          type: 'send',
+          vehicleType: vehicleType,
+          deliveryType: 'internal',
+          orderCategory: 'Groceries',
+          senderName: 'Demo Customer 2',
+          pickupLocation: {
+            lat: 31.9522,
+            lng: 35.2332,
+          },
+          dropoffLocation: {
+            lat: 31.9722,
+            lng: 35.2532,
+          },
+          createdAt: new Date().toISOString(),
+        },
+      ];
+      res.status(200).json({ orders: mockOrders });
       return;
     }
 

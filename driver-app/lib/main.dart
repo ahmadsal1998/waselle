@@ -21,6 +21,7 @@ import 'screens/auth/terms_acceptance_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'services/app_lifecycle_service.dart';
 import 'services/fcm_service.dart';
+import 'services/review_mode_service.dart';
 
 // Background message handler - must be top-level function
 // MUST be registered BEFORE Firebase.initializeApp() for terminated app state
@@ -66,6 +67,9 @@ void main() async {
   
   // Initialize app lifecycle service for handling calls across all app states
   await AppLifecycleService().initialize();
+  
+  // Initialize review mode detection (for Apple App Review / TestFlight)
+  await ReviewModeService.initialize();
   
   runApp(const MyApp());
 }

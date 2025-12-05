@@ -7,6 +7,7 @@ import { verifyFirebaseToken as verifyFirebaseIdToken, admin } from '../utils/fi
 import { AuthRequest } from '../middleware/auth';
 import { normalizePhoneNumber } from '../utils/phone';
 import { sendSMSOTP } from '../utils/smsProvider';
+import { isReviewMode } from '../utils/reviewMode';
 
 // Reviewer test phone number and OTP for Google Play & App Store review
 const REVIEWER_TEST_PHONE = '0593202026';
@@ -147,6 +148,43 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
+
+    // Check if in review mode - allow fake driver account for Apple reviewers
+    if (isReviewMode(req)) {
+      console.log('[login] Review mode detected - checking for fake driver account');
+      
+      // Fake driver credentials for review mode
+      const REVIEW_DRIVER_EMAIL = 'review@driver.test';
+      const REVIEW_DRIVER_PASSWORD = 'review123';
+      
+      if (email === REVIEW_DRIVER_EMAIL && password === REVIEW_DRIVER_PASSWORD) {
+        console.log('[login] Fake driver login successful in review mode');
+        // Return a fake driver token and user data
+        const fakeDriverId = 'review-driver-id';
+        const token = generateToken({
+          userId: fakeDriverId,
+          role: 'driver',
+          email: REVIEW_DRIVER_EMAIL,
+        });
+        
+        res.status(200).json({
+          message: 'Login successful (Review Mode)',
+          token,
+          user: {
+            id: fakeDriverId,
+            name: 'Demo Driver',
+            email: REVIEW_DRIVER_EMAIL,
+            role: 'driver',
+            isAvailable: true,
+            isActive: true,
+            vehicleType: 'bike', // Default vehicle type
+            profilePicture: null,
+          },
+        });
+        return;
+      }
+      // If not the review credentials, continue with normal login flow
+    }
 
     const user = await User.findOne({ email });
     if (!user) {
