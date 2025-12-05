@@ -149,16 +149,34 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    // Check if in review mode - allow fake driver account for Apple reviewers
-    if (isReviewMode(req)) {
-      console.log('[login] Review mode detected - checking for fake driver account');
-      
-      // Fake driver credentials for review mode
-      const REVIEW_DRIVER_EMAIL = 'review@driver.test';
-      const REVIEW_DRIVER_PASSWORD = 'review123';
-      
-      if (email === REVIEW_DRIVER_EMAIL && password === REVIEW_DRIVER_PASSWORD) {
-        console.log('[login] Fake driver login successful in review mode');
+    // Fake driver credentials for review mode
+    const REVIEW_DRIVER_EMAIL = 'review@driver.test';
+    const REVIEW_DRIVER_PASSWORD = 'review123';
+    
+    // Normalize email and password (trim whitespace)
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const normalizedPassword = typeof password === 'string' ? password.trim() : '';
+    
+    // Check if review credentials are being used
+    // Allow in review mode OR in development/test environment for testing
+    // Also allow if NODE_ENV is not explicitly set to 'production' (defaults to development)
+    const nodeEnv = process.env.NODE_ENV || 'development';
+    const isDevelopment = nodeEnv !== 'production';
+    const isReviewModeActive = isReviewMode(req);
+    
+    console.log('[login] Login attempt:', {
+      email: normalizedEmail,
+      isReviewEmail: normalizedEmail === REVIEW_DRIVER_EMAIL,
+      isReviewPassword: normalizedPassword === REVIEW_DRIVER_PASSWORD,
+      isDevelopment,
+      isReviewModeActive,
+      nodeEnv,
+    });
+    
+    if (normalizedEmail === REVIEW_DRIVER_EMAIL && normalizedPassword === REVIEW_DRIVER_PASSWORD) {
+      // Only allow review credentials in review mode or development
+      if (isReviewModeActive || isDevelopment) {
+        console.log('[login] Review credentials accepted - Review mode:', isReviewModeActive, 'Development:', isDevelopment);
         // Return a fake driver token and user data
         const fakeDriverId = 'review-driver-id';
         const token = generateToken({
@@ -182,8 +200,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           },
         });
         return;
+      } else {
+        // In production, only allow if review mode is detected
+        console.log('[login] Review credentials rejected - not in review mode or development');
+        res.status(401).json({ message: 'Invalid credentials' });
+        return;
       }
-      // If not the review credentials, continue with normal login flow
     }
 
     const user = await User.findOne({ email });
