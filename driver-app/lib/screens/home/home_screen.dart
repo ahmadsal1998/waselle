@@ -46,12 +46,25 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     
+    // Try to get location, but don't block if permission is denied
     final locationViewModel =
         Provider.of<LocationViewModel>(context, listen: false);
-    await locationViewModel.getCurrentLocation();
+    try {
+      await locationViewModel.getCurrentLocation();
+    } catch (e) {
+      debugPrint('Error getting location in HomeScreen: $e');
+      // Continue without location - app should work normally
+    }
     
     if (!mounted) return;
-    locationViewModel.startLocationUpdates();
+    
+    // Start location updates, but don't block if permission is denied
+    try {
+      locationViewModel.startLocationUpdates();
+    } catch (e) {
+      debugPrint('Error starting location updates: $e');
+      // Continue without location updates - app should work normally
+    }
     
     // Initialize socket
     await SocketService.initialize();

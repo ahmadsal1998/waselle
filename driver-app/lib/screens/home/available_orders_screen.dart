@@ -70,9 +70,9 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
         if (errorString.contains('401')) {
           _errorMessage = 'Authentication required. Please log in again.';
         } else if (errorString.contains('403')) {
-          _errorMessage = 'Driver must be available and have location set';
+          _errorMessage = 'Your account may be suspended. Please contact support.';
         } else if (errorString.contains('400')) {
-          _errorMessage = 'Please ensure your vehicle type and location are set';
+          _errorMessage = 'Please ensure your vehicle type is set';
         } else {
           _errorMessage = 'Failed to load orders: ${e.toString()}';
         }

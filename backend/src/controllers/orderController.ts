@@ -461,10 +461,23 @@ export const getAvailableOrders = async (
       return;
     }
 
-    if (!driver.location || !driver.isAvailable) {
-      res.status(400).json({
-        message: 'Driver must be available and have location set',
-      });
+    // Allow driver to access orders even without location or availability
+    // If location is not available, return empty orders list instead of error
+    if (!driver.isAvailable) {
+      // Driver is not available - return empty list
+      console.log(`[getAvailableOrders] Driver ${driver._id?.toString() || 'unknown'} is not available, returning empty orders list`);
+      res.status(200).json({ orders: [] });
+      return;
+    }
+
+    // If driver doesn't have location, return empty orders list (can't calculate distances)
+    if (!driver.location || 
+        driver.location.lat === undefined || 
+        driver.location.lng === undefined ||
+        isNaN(driver.location.lat) ||
+        isNaN(driver.location.lng)) {
+      console.log(`[getAvailableOrders] Driver ${driver._id?.toString() || 'unknown'} has no valid location, returning empty orders list`);
+      res.status(200).json({ orders: [] });
       return;
     }
 
@@ -489,7 +502,8 @@ export const getAvailableOrders = async (
       })
       .lean();
     
-    console.log(`[getAvailableOrders] Found ${pendingOrders.length} pending orders with vehicleType=${driver.vehicleType}`);
+    const vehicleTypeStr = driver.vehicleType ? String(driver.vehicleType) : 'unknown';
+    console.log(`[getAvailableOrders] Found ${pendingOrders.length} pending orders with vehicleType=${vehicleTypeStr}`);
     
     // Log orders that don't have customer (filtered out by populate match)
     const ordersWithoutCustomer = await Order.find({
@@ -511,16 +525,25 @@ export const getAvailableOrders = async (
       console.log(`[getAvailableOrders] ${unverifiedOrders.length} orders filtered out (unverified customers or missing customer data)`);
       unverifiedOrders.forEach((order: any) => {
         const customer = order.customerId;
+        const orderIdStr = order._id ? (typeof order._id === 'string' ? order._id : order._id.toString()) : 'unknown';
         if (customer) {
-          console.log(`[getAvailableOrders] Order ${order._id}: Customer ${customer.name} isVerified=${customer.isEmailVerified}`);
+          const customerName = customer.name ? String(customer.name) : 'unknown';
+          const isVerified = customer.isEmailVerified !== undefined ? String(customer.isEmailVerified) : 'unknown';
+          console.log(`[getAvailableOrders] Order ${orderIdStr}: Customer ${customerName} isVerified=${isVerified}`);
         } else {
-          console.log(`[getAvailableOrders] Order ${order._id}: No customer data`);
+          console.log(`[getAvailableOrders] Order ${orderIdStr}: No customer data`);
         }
       });
     }
 
     // Get settings for radius configuration
-    const settings = await Settings.getSettings();
+    let settings;
+    try {
+      settings = await Settings.getSettings();
+    } catch (settingsError: any) {
+      console.error('[getAvailableOrders] Error getting settings:', settingsError);
+      settings = null; // Continue with defaults if settings can't be loaded
+    }
 
     // Get all active cities with service centers configured
     const citiesWithServiceCenters = await City.find({
@@ -533,44 +556,77 @@ export const getAvailableOrders = async (
     // Also filter out orders from unverified users (shouldn't happen but safety check)
     const filteredOrders = pendingOrders
       .map((order) => {
+        try {
         // Get customer location (user's location)
         const customer = order.customerId as any;
         // Skip orders without customer, customer location, or from unverified users
+        const orderIdStr = order._id ? (typeof order._id === 'string' ? order._id : order._id.toString()) : 'unknown';
         if (!customer) {
-          console.log(`[getAvailableOrders] Order ${order._id}: No customer (filtered by populate match)`);
+          console.log(`[getAvailableOrders] Order ${orderIdStr}: No customer (filtered by populate match)`);
           return null;
         }
         if (!customer.isEmailVerified) {
-          console.log(`[getAvailableOrders] Order ${order._id}: Customer ${customer.name} not verified (isEmailVerified=${customer.isEmailVerified})`);
+          const customerName = customer.name ? String(customer.name) : 'unknown';
+          const isVerified = customer.isEmailVerified !== undefined ? String(customer.isEmailVerified) : 'unknown';
+          console.log(`[getAvailableOrders] Order ${orderIdStr}: Customer ${customerName} not verified (isEmailVerified=${isVerified})`);
           return null;
         }
         
         // Try to get customer location, fallback to order location for existing orders
         let customerLocation = customer.location;
-        if (!customerLocation && order.pickupLocation) {
+        if (!customerLocation && order && order.pickupLocation) {
           // Fallback: Use order's pickupLocation (for "send" orders) or dropoffLocation (for "receive" orders)
-          if (order.type === 'send' && order.pickupLocation) {
+          const orderType = order.type ? String(order.type) : 'send';
+          if (orderType === 'send' && order.pickupLocation && 
+              order.pickupLocation.lat !== undefined && order.pickupLocation.lng !== undefined) {
             customerLocation = {
-              lat: order.pickupLocation.lat,
-              lng: order.pickupLocation.lng,
+              lat: Number(order.pickupLocation.lat),
+              lng: Number(order.pickupLocation.lng),
             };
-            console.log(`[getAvailableOrders] Order ${order._id}: Using pickupLocation as customer location fallback`);
-          } else if (order.type === 'receive' && order.dropoffLocation) {
+            console.log(`[getAvailableOrders] Order ${orderIdStr}: Using pickupLocation as customer location fallback`);
+          } else if (orderType === 'receive' && order.dropoffLocation &&
+                     order.dropoffLocation.lat !== undefined && order.dropoffLocation.lng !== undefined) {
             customerLocation = {
-              lat: order.dropoffLocation.lat,
-              lng: order.dropoffLocation.lng,
+              lat: Number(order.dropoffLocation.lat),
+              lng: Number(order.dropoffLocation.lng),
             };
-            console.log(`[getAvailableOrders] Order ${order._id}: Using dropoffLocation as customer location fallback`);
+            console.log(`[getAvailableOrders] Order ${orderIdStr}: Using dropoffLocation as customer location fallback`);
           }
         }
         
         if (!customerLocation) {
-          console.log(`[getAvailableOrders] Order ${order._id}: Customer ${customer.name} has no location and order has no location data`);
+          const customerName = customer.name ? String(customer.name) : 'unknown';
+          console.log(`[getAvailableOrders] Order ${orderIdStr}: Customer ${customerName} has no location and order has no location data`);
           return null;
         }
 
-        // Get delivery type from order
-        const deliveryType = order.deliveryType || 'internal';
+        // Validate customer location has valid lat and lng
+        if (
+          customerLocation.lat === undefined ||
+          customerLocation.lng === undefined ||
+          isNaN(customerLocation.lat) ||
+          isNaN(customerLocation.lng)
+        ) {
+          const latStr = customerLocation.lat !== undefined ? String(customerLocation.lat) : 'undefined';
+          const lngStr = customerLocation.lng !== undefined ? String(customerLocation.lng) : 'undefined';
+          console.log(`[getAvailableOrders] Order ${orderIdStr}: Customer location has invalid coordinates (lat=${latStr}, lng=${lngStr})`);
+          return null;
+        }
+
+        // Validate driver location has valid lat and lng
+        if (
+          !driver.location ||
+          driver.location.lat === undefined ||
+          driver.location.lng === undefined ||
+          isNaN(driver.location.lat) ||
+          isNaN(driver.location.lng)
+        ) {
+          console.log(`[getAvailableOrders] Driver location is invalid`);
+          return null;
+        }
+
+        // Get delivery type from order (safe access)
+        const deliveryType = (order && order.deliveryType) ? String(order.deliveryType) : 'internal';
 
         // Determine radius based on delivery type and city/global settings
         let internalRadiusKm: number;
@@ -584,25 +640,32 @@ export const getAvailableOrders = async (
           );
 
           if (cityServiceCenter) {
-            // Use city-specific radius
-            internalRadiusKm = cityServiceCenter.internalOrderRadiusKm;
-            externalMinRadiusKm = cityServiceCenter.externalOrderMinRadiusKm;
-            externalMaxRadiusKm = cityServiceCenter.externalOrderMaxRadiusKm;
+            // Use city-specific radius with defaults
+            internalRadiusKm = cityServiceCenter.internalOrderRadiusKm ?? 2;
+            externalMinRadiusKm = cityServiceCenter.externalOrderMinRadiusKm ?? 5;
+            externalMaxRadiusKm = cityServiceCenter.externalOrderMaxRadiusKm ?? 10;
           } else {
-            // Use global settings
-            internalRadiusKm = settings.internalOrderRadiusKm;
-            externalMinRadiusKm = settings.externalOrderMinRadiusKm;
-            externalMaxRadiusKm = settings.externalOrderMaxRadiusKm;
+            // Use global settings with defaults
+            internalRadiusKm = settings?.internalOrderRadiusKm ?? 2;
+            externalMinRadiusKm = settings?.externalOrderMinRadiusKm ?? 5;
+            externalMaxRadiusKm = settings?.externalOrderMaxRadiusKm ?? 10;
           }
         } else {
-          // Use global settings
-          internalRadiusKm = settings.internalOrderRadiusKm;
-          externalMinRadiusKm = settings.externalOrderMinRadiusKm;
-          externalMaxRadiusKm = settings.externalOrderMaxRadiusKm;
+          // Use global settings with defaults
+          internalRadiusKm = settings?.internalOrderRadiusKm ?? 2;
+          externalMinRadiusKm = settings?.externalOrderMinRadiusKm ?? 5;
+          externalMaxRadiusKm = settings?.externalOrderMaxRadiusKm ?? 10;
         }
 
         // Calculate distance from driver to customer location (NOT pickup location)
-        const distance = calculateDistance(driver.location!, customerLocation);
+        let distance: number;
+        try {
+          distance = calculateDistance(driver.location, customerLocation);
+        } catch (error: any) {
+          const errorMsg = error && error.message ? String(error.message) : 'unknown error';
+          console.log(`[getAvailableOrders] Order ${orderIdStr}: Error calculating distance: ${errorMsg}`);
+          return null;
+        }
 
         // Apply radius logic based on delivery type
         // Internal orders: Fixed radius (distance <= 2km)
@@ -611,40 +674,81 @@ export const getAvailableOrders = async (
         if (deliveryType === 'internal') {
           isWithinRadius = distance <= internalRadiusKm;
           if (isWithinRadius) {
-            console.log(`[getAvailableOrders] Order ${order._id}: Included (distance=${distance.toFixed(2)}km <= radius=${internalRadiusKm}km)`);
+            const distanceStr = distance.toFixed(2);
+            const radiusStr = String(internalRadiusKm);
+            console.log(`[getAvailableOrders] Order ${orderIdStr}: Included (distance=${distanceStr}km <= radius=${radiusStr}km)`);
           } else {
-            console.log(`[getAvailableOrders] Order ${order._id}: Excluded (distance=${distance.toFixed(2)}km > radius=${internalRadiusKm}km)`);
+            const distanceStr = distance.toFixed(2);
+            const radiusStr = String(internalRadiusKm);
+            console.log(`[getAvailableOrders] Order ${orderIdStr}: Excluded (distance=${distanceStr}km > radius=${radiusStr}km)`);
           }
         } else {
           isWithinRadius = distance >= externalMinRadiusKm && distance <= externalMaxRadiusKm;
           if (isWithinRadius) {
-            console.log(`[getAvailableOrders] Order ${order._id}: Included (distance=${distance.toFixed(2)}km within range ${externalMinRadiusKm}-${externalMaxRadiusKm}km)`);
+            const distanceStr = distance.toFixed(2);
+            const minRadiusStr = String(externalMinRadiusKm);
+            const maxRadiusStr = String(externalMaxRadiusKm);
+            console.log(`[getAvailableOrders] Order ${orderIdStr}: Included (distance=${distanceStr}km within range ${minRadiusStr}-${maxRadiusStr}km)`);
           } else {
-            console.log(`[getAvailableOrders] Order ${order._id}: Excluded (distance=${distance.toFixed(2)}km outside range ${externalMinRadiusKm}-${externalMaxRadiusKm}km)`);
+            const distanceStr = distance.toFixed(2);
+            const minRadiusStr = String(externalMinRadiusKm);
+            const maxRadiusStr = String(externalMaxRadiusKm);
+            console.log(`[getAvailableOrders] Order ${orderIdStr}: Excluded (distance=${distanceStr}km outside range ${minRadiusStr}-${maxRadiusStr}km)`);
           }
         }
 
         // Only include orders within the allowed radius/range
         if (isWithinRadius) {
-          return {
+          // Safely spread order and add distance
+          const orderWithDistance: any = {
             ...order,
             distanceFromDriver: distance,
           };
+          // Ensure _id is safely converted to string if it exists
+          if (order._id) {
+            orderWithDistance._id = typeof order._id === 'string' ? order._id : order._id.toString();
+          }
+          return orderWithDistance;
         }
 
         // Order is outside the allowed radius/range - exclude it
         return null;
+        } catch (orderError: any) {
+          // Log error for debugging but don't crash
+          const orderIdForError = order && order._id 
+            ? (typeof order._id === 'string' ? order._id : order._id.toString()) 
+            : 'unknown';
+          const errorMsg = orderError && orderError.message ? String(orderError.message) : 'unknown error';
+          console.error(`[getAvailableOrders] Error processing order ${orderIdForError}: ${errorMsg}`);
+          console.error(`[getAvailableOrders] Order data:`, JSON.stringify(order, null, 2));
+          return null; // Exclude this order from results
+        }
       })
       .filter((order) => order !== null) // Remove null entries (filtered out orders)
-      .sort((a: any, b: any) => a.distanceFromDriver - b.distanceFromDriver);
+      .sort((a: any, b: any) => {
+        const distA = a?.distanceFromDriver ?? Infinity;
+        const distB = b?.distanceFromDriver ?? Infinity;
+        return distA - distB;
+      });
 
-    console.log(`[getAvailableOrders] Returning ${filteredOrders.length} orders to driver ${driver._id} (vehicleType=${driver.vehicleType})`);
+    const driverIdStr = driver._id ? (typeof driver._id === 'string' ? driver._id : driver._id.toString()) : 'unknown';
+    const vehicleTypeStr = driver.vehicleType ? String(driver.vehicleType) : 'unknown';
+    console.log(`[getAvailableOrders] Returning ${filteredOrders.length} orders to driver ${driverIdStr} (vehicleType=${vehicleTypeStr})`);
     console.log(`[getAvailableOrders] Note: Push notifications for new orders are sent when orders are created, not when drivers fetch the orders list`);
     
     res.status(200).json({ orders: filteredOrders });
   } catch (error: any) {
+    console.error('[getAvailableOrders] Unexpected error:', error);
+    console.error('[getAvailableOrders] Error stack:', error.stack);
+    
+    // Provide more detailed error information for debugging
+    const errorMessage = error && error.message ? String(error.message) : 'Failed to get available orders';
+    const errorDetails = error && error.toString ? error.toString() : 'Unknown error';
+    
+    console.error(`[getAvailableOrders] Error details: ${errorDetails}`);
+    
     res.status(500).json({
-      message: error.message || 'Failed to get available orders',
+      message: errorMessage,
     });
   }
 };

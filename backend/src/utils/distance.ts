@@ -9,6 +9,20 @@ export const calculateDistance = (
   location1: Location,
   location2: Location
 ): number => {
+  // Validate that both locations have valid lat and lng
+  if (
+    location1?.lat === undefined ||
+    location1?.lng === undefined ||
+    location2?.lat === undefined ||
+    location2?.lng === undefined ||
+    isNaN(location1.lat) ||
+    isNaN(location1.lng) ||
+    isNaN(location2.lat) ||
+    isNaN(location2.lng)
+  ) {
+    throw new Error('Invalid location: lat and lng must be valid numbers');
+  }
+
   // Returns distance in kilometers
   const distanceInMeters = getDistance(
     { latitude: location1.lat, longitude: location1.lng },
@@ -23,10 +37,24 @@ export const findNearestDrivers = (
   limit: number = 5
 ): Array<{ driverId: string; distance: number }> => {
   const driversWithDistance = drivers
-    .map((driver) => ({
-      driverId: driver._id.toString(),
-      distance: calculateDistance(driver.location, targetLocation),
-    }))
+    .filter((driver) => {
+      // Filter out drivers with invalid data
+      if (!driver._id) return false;
+      if (!driver.location || driver.location.lat === undefined || driver.location.lng === undefined) return false;
+      if (targetLocation.lat === undefined || targetLocation.lng === undefined) return false;
+      return true;
+    })
+    .map((driver) => {
+      try {
+        return {
+          driverId: driver._id.toString(),
+          distance: calculateDistance(driver.location, targetLocation),
+        };
+      } catch (error) {
+        return null;
+      }
+    })
+    .filter((item): item is { driverId: string; distance: number } => item !== null)
     .sort((a, b) => a.distance - b.distance)
     .slice(0, limit);
 
@@ -74,10 +102,34 @@ export const findCityForLocation = (
       continue;
     }
 
-    const distanceFromCenter = calculateDistance(
-      location,
-      city.serviceCenter.center
-    );
+    // Skip cities without a valid _id
+    if (!city._id) {
+      continue;
+    }
+
+    // Validate location and city center have valid coordinates
+    if (
+      location?.lat === undefined ||
+      location?.lng === undefined ||
+      city.serviceCenter.center?.lat === undefined ||
+      city.serviceCenter.center?.lng === undefined ||
+      isNaN(location.lat) ||
+      isNaN(location.lng) ||
+      isNaN(city.serviceCenter.center.lat) ||
+      isNaN(city.serviceCenter.center.lng)
+    ) {
+      continue;
+    }
+
+    let distanceFromCenter: number;
+    try {
+      distanceFromCenter = calculateDistance(
+        location,
+        city.serviceCenter.center
+      );
+    } catch (error) {
+      continue; // Skip this city if distance calculation fails
+    }
 
     // Find the nearest city
     if (distanceFromCenter < minDistance) {
@@ -94,10 +146,10 @@ export const findCityForLocation = (
       }
       
       nearestCity = {
-        cityId: city._id.toString(),
-        cityName: city.name,
+        cityId: city._id ? (typeof city._id === 'string' ? city._id : city._id.toString()) : 'unknown',
+        cityName: city.name ? String(city.name) : 'unknown',
         center: city.serviceCenter.center,
-        internalOrderRadiusKm: city.serviceCenter.internalOrderRadiusKm,
+        internalOrderRadiusKm: city.serviceCenter.internalOrderRadiusKm ?? 2,
         externalOrderMinRadiusKm,
         externalOrderMaxRadiusKm,
       };

@@ -57,7 +57,9 @@ class LocationViewModel with ChangeNotifier {
     try {
       final hasPermission = await requestLocationPermission();
       if (!hasPermission || !_hasLocationPermission) {
-        debugPrint('Cannot get location: permission not granted');
+        debugPrint('Location permission not granted - app will continue without location updates');
+        // Don't block the app - just skip location updates
+        notifyListeners();
         return;
       }
 
@@ -81,28 +83,39 @@ class LocationViewModel with ChangeNotifier {
         debugPrint('Error resolving address: $e');
       }
 
-      await _userRepository.updateLocation(
-        lat: _currentPosition!.latitude,
-        lng: _currentPosition!.longitude,
-      );
+      // Only update location on backend if we have valid coordinates
+      if (_currentPosition != null) {
+        try {
+          await _userRepository.updateLocation(
+            lat: _currentPosition!.latitude,
+            lng: _currentPosition!.longitude,
+          );
+        } catch (e) {
+          debugPrint('Error updating location on backend: $e');
+          // Don't block the app if location update fails
+        }
+      }
 
       notifyListeners();
     } catch (e) {
       debugPrint('Error getting location: $e');
+      // Don't block the app - just log the error and continue
       // Handle specific location errors
       if (e.toString().contains('LocationUnknown') || 
           e.toString().contains('kCLErrorLocationUnknown')) {
-        debugPrint('Location unknown error. Please check:');
-        debugPrint('1. Location services are enabled in Settings');
-        debugPrint('2. App has location permissions');
-        debugPrint('3. If using simulator, set a location in Features > Location');
+        debugPrint('Location unknown error. App will continue without location.');
       }
+      notifyListeners();
     }
   }
 
   Future<void> startLocationUpdates() async {
     final hasPermission = await requestLocationPermission();
-    if (!hasPermission) return;
+    if (!hasPermission) {
+      debugPrint('Location permission not granted - skipping location updates');
+      // Don't block the app - just skip location updates
+      return;
+    }
 
     await _positionSubscription?.cancel();
 
@@ -114,20 +127,22 @@ class LocationViewModel with ChangeNotifier {
     ).listen(
       (position) {
         _currentPosition = position;
+        // Update location on backend, but don't block if it fails
         _userRepository.updateLocation(
           lat: position.latitude,
           lng: position.longitude,
-        );
+        ).catchError((error) {
+          debugPrint('Error updating location on backend: $error');
+          // Don't block the app if location update fails
+        });
         notifyListeners();
       },
       onError: (error) {
         debugPrint('Location stream error: $error');
+        // Don't block the app - just log the error
         if (error.toString().contains('LocationUnknown') || 
             error.toString().contains('kCLErrorLocationUnknown')) {
-          debugPrint('Location unknown error in stream. Please check:');
-          debugPrint('1. Location services are enabled in Settings');
-          debugPrint('2. App has location permissions');
-          debugPrint('3. If using simulator, set a location in Features > Location');
+          debugPrint('Location unknown error in stream. App will continue without location updates.');
         }
       },
     );
