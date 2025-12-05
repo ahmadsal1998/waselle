@@ -732,7 +732,6 @@ export const getAvailableOrders = async (
       });
 
     const driverIdStr = driver._id ? (typeof driver._id === 'string' ? driver._id : driver._id.toString()) : 'unknown';
-    const vehicleTypeStr = driver.vehicleType ? String(driver.vehicleType) : 'unknown';
     console.log(`[getAvailableOrders] Returning ${filteredOrders.length} orders to driver ${driverIdStr} (vehicleType=${vehicleTypeStr})`);
     console.log(`[getAvailableOrders] Note: Push notifications for new orders are sent when orders are created, not when drivers fetch the orders list`);
     
