@@ -25,7 +25,24 @@ class FCMService {
 
   /// Initialize FCM service
   /// This is called on every app start to ensure FCM is always ready
+  /// CRITICAL: Notifications are DISABLED in debug mode - only work in production/release builds
   Future<void> initialize() async {
+    // CRITICAL: Disable notifications in debug mode
+    // Only enable in release/production builds
+    bool isDebugMode = false;
+    assert(() {
+      isDebugMode = true;
+      return true;
+    }());
+    
+    if (isDebugMode) {
+      debugPrint('⚠️ FCM Service: Running in DEBUG mode - Push notifications are DISABLED');
+      debugPrint('   Notifications will only work in RELEASE/PRODUCTION builds');
+      debugPrint('   To test notifications, build with: flutter build ios --release');
+      _isInitialized = true;
+      return;
+    }
+    
     if (_isInitialized) {
       // Even if already initialized, verify token is synced
       // This handles cases where app was reinstalled or token became invalid

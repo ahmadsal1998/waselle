@@ -32,6 +32,8 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
   }
 
   Future<void> _refreshOrders() async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -44,41 +46,47 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
       // Check if driver is available before fetching
       final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
       if (!authViewModel.isAvailable) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Please enable availability to see orders';
-        });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = 'Please enable availability to see orders';
+          });
+        }
         return;
       }
       
       debugPrint('AvailableOrdersScreen: Fetching orders...');
       await orderViewModel.fetchAvailableOrders();
       
+      if (!mounted) return;
+      
       final ordersCount = orderViewModel.availableOrders.length;
       debugPrint('AvailableOrdersScreen: Received $ordersCount orders');
       
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } catch (e, stackTrace) {
       debugPrint('AvailableOrdersScreen: Error: $e');
       debugPrint('AvailableOrdersScreen: Stack trace: $stackTrace');
       
-      setState(() {
-        _isLoading = false;
-        final errorString = e.toString();
-        if (errorString.contains('401')) {
-          _errorMessage = 'Authentication required. Please log in again.';
-        } else if (errorString.contains('403')) {
-          _errorMessage = 'Your account may be suspended. Please contact support.';
-        } else if (errorString.contains('400')) {
-          _errorMessage = 'Please ensure your vehicle type is set';
-        } else {
-          _errorMessage = 'Failed to load orders: ${e.toString()}';
-        }
-      });
-      
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+          final errorString = e.toString();
+          if (errorString.contains('401')) {
+            _errorMessage = 'Authentication required. Please log in again.';
+          } else if (errorString.contains('403')) {
+            _errorMessage = 'Your account may be suspended. Please contact support.';
+          } else if (errorString.contains('400')) {
+            _errorMessage = 'Please ensure your vehicle type is set';
+          } else {
+            _errorMessage = 'Failed to load orders: ${e.toString()}';
+          }
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_errorMessage ?? 'An error occurred'),
@@ -731,6 +739,8 @@ class _OrderNotesDialogState extends State<_OrderNotesDialog> {
   }
 
   void _onScroll() {
+    if (!mounted) return;
+    
     final currentScroll = _scrollController.position.pixels;
     
     setState(() {

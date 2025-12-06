@@ -26,7 +26,7 @@ class OrderViewModel with ChangeNotifier {
   List<Map<String, dynamic>> get activeOrders => _myOrders
       .where((order) {
         final status = (order['status'] ?? '').toString().toLowerCase();
-        // Exclude price_rejected - those should appear in Available Orders instead
+        // Exclude price_rejected, delivered, and completed - those should appear in Available Orders or History instead
         return ['pending', 'accepted', 'on_the_way'].contains(status);
       })
       .toList();

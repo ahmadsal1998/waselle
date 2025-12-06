@@ -36,11 +36,66 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   int _currentOrderIndex = 0;
   List<Map<String, dynamic>> _activeOrders = [];
   bool _isDetailsExpanded = false;
+  OrderViewModel? _orderViewModel; // Save reference to avoid accessing Provider in dispose
 
   @override
   void initState() {
     super.initState();
     _loadOrders();
+    // Setup listener after first frame to ensure Provider is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupOrderListener();
+    });
+  }
+
+  void _setupOrderListener() {
+    if (!mounted) return;
+    // Listen to order updates from socket
+    _orderViewModel = Provider.of<OrderViewModel>(context, listen: false);
+    
+    // Since OrderViewModel uses ChangeNotifier, we can listen to it
+    _orderViewModel?.addListener(_onOrderViewModelChanged);
+  }
+
+  void _onOrderViewModelChanged() {
+    if (!mounted) return;
+    
+    try {
+      final orderViewModel = Provider.of<OrderViewModel>(context, listen: false);
+      final activeOrders = orderViewModel.activeOrders;
+      
+      if (!mounted) return;
+      
+      // Check if current order is still in active orders
+      if (_order != null && mounted) {
+        final currentOrderId = _getOrderId(_order!);
+        final isCurrentOrderActive = activeOrders.any((order) {
+          final id = _getOrderId(order);
+          return id == currentOrderId;
+        });
+        
+        // If current order is no longer active (delivered/completed), reload
+        if (!isCurrentOrderActive && mounted) {
+          _loadOrders();
+        }
+      }
+      
+      if (!mounted) return;
+      
+      // If no active orders remain, navigate away
+      if (activeOrders.isEmpty && _activeOrders.isNotEmpty && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        });
+      }
+    } catch (e) {
+      // Ignore errors if widget is disposed
+      if (mounted) {
+        debugPrint('Error in _onOrderViewModelChanged: $e');
+      }
+    }
   }
 
   Future<void> _loadOrders() async {
@@ -53,33 +108,50 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       final activeOrders = orderViewModel.activeOrders;
       
       if (activeOrders.isEmpty) {
-        setState(() {
-          _isLoading = false;
-        });
+        final hadOrdersBefore = _order != null || _activeOrders.isNotEmpty;
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _activeOrders = [];
+          });
+        }
+        // If we had orders before but now they're all completed, navigate away
+        if (hadOrdersBefore && mounted) {
+          Navigator.of(context).pop();
+        }
         return;
       }
 
-      setState(() {
-        _activeOrders = activeOrders;
-        _currentOrderIndex = 0;
-      });
+      if (mounted) {
+        setState(() {
+          _activeOrders = activeOrders;
+          // Adjust current index if it's out of bounds
+          if (_currentOrderIndex >= activeOrders.length) {
+            _currentOrderIndex = 0;
+          }
+        });
+      }
 
       // If specific orderId provided, find its index
-      if (widget.orderId != null) {
+      if (widget.orderId != null && mounted) {
         final index = activeOrders.indexWhere((o) {
           final id = _getOrderId(o);
           return id == widget.orderId;
         });
-        if (index != -1) {
+        if (index != -1 && mounted) {
           setState(() {
             _currentOrderIndex = index;
           });
         }
       }
 
-      await _loadCurrentOrder();
+      if (mounted) {
+        await _loadCurrentOrder();
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -127,7 +199,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   Future<void> _loadCurrentOrder() async {
     if (_activeOrders.isEmpty || _currentOrderIndex >= _activeOrders.length) {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
       return;
     }
 
@@ -136,7 +210,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       final orderId = _getOrderId(currentOrder);
       
       if (orderId == null) {
-        setState(() => _isLoading = false);
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
         return;
       }
 
@@ -144,24 +220,34 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           Provider.of<OrderViewModel>(context, listen: false);
       final order = await orderViewModel.fetchOrderById(orderId);
       
+      if (!mounted) return;
+      
       if (order != null) {
-        setState(() {
-          _order = order;
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _order = order;
+            _isLoading = false;
+          });
+        }
 
         // Start location updates
-        _startLocationUpdates();
+        if (mounted) {
+          _startLocationUpdates();
+        }
       } else {
-        setState(() => _isLoading = false);
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   void _switchToOrder(int index) {
-    if (index < 0 || index >= _activeOrders.length) return;
+    if (index < 0 || index >= _activeOrders.length || !mounted) return;
     
     setState(() {
       _currentOrderIndex = index;
@@ -187,12 +273,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     
     // Initial update
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateRoute();
+      if (mounted) {
+        _updateRoute();
+      }
     });
   }
 
   Future<void> _updateRoute() async {
-    if (_order == null) return;
+    if (!mounted || _order == null) return;
 
     final locationViewModel =
         Provider.of<LocationViewModel>(context, listen: false);
@@ -214,6 +302,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
     if (_driverLocation == null || _customerLocation == null) return;
 
+    if (!mounted) return;
     setState(() {
       _isLoadingRoute = true;
     });
@@ -233,7 +322,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         });
 
         // Only center map if auto-center is enabled and user hasn't interacted
-        if (_routePoints.isNotEmpty && _autoCenterEnabled && !_userHasInteracted) {
+        if (_routePoints.isNotEmpty && _autoCenterEnabled && !_userHasInteracted && mounted) {
           final center = LatLng(
             (_driverLocation!.latitude + _customerLocation!.latitude) / 2,
             (_driverLocation!.longitude + _customerLocation!.longitude) / 2,
@@ -243,7 +332,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           // Reset flag after a short delay
           Future.delayed(const Duration(milliseconds: 100), () {
             if (mounted) {
-              _isProgrammaticMove = false;
+              setState(() {
+                _isProgrammaticMove = false;
+              });
             }
           });
         }
@@ -262,10 +353,16 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   @override
   void dispose() {
     _locationUpdateTimer?.cancel();
+    // Remove listener to prevent memory leaks
+    // Use saved reference instead of accessing Provider in dispose
+    _orderViewModel?.removeListener(_onOrderViewModelChanged);
+    _orderViewModel = null;
     super.dispose();
   }
 
   Future<void> _updateStatus(String status) async {
+    if (!mounted) return;
+    
     final l10n = AppLocalizations.of(context)!;
     final orderViewModel = Provider.of<OrderViewModel>(context, listen: false);
     final orderId = _getOrderId(_order!);
@@ -280,15 +377,61 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.orderStatusUpdated(status))),
-      );
-      await _loadOrders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.orderStatusUpdated(status))),
+        );
+      }
+      
+      // Check if order is now delivered or completed
+      final isDeliveredOrCompleted = status.toLowerCase() == 'delivered' || 
+                                      status.toLowerCase() == 'completed';
+      
+      if (isDeliveredOrCompleted) {
+        // Reload orders to get updated list (delivered/completed orders will be filtered out)
+        if (mounted) {
+          await _loadOrders();
+        }
+        
+        if (!mounted) return;
+        
+        // Check if all orders are now completed
+        final activeOrders = orderViewModel.activeOrders;
+        
+        if (activeOrders.isEmpty) {
+          // All orders are completed, navigate away
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        } else {
+          // There are still active orders, switch to the first one if current was removed
+          if (_currentOrderIndex >= _activeOrders.length) {
+            if (mounted) {
+              setState(() {
+                _currentOrderIndex = 0;
+              });
+            }
+            if (mounted) {
+              await _loadCurrentOrder();
+            }
+          } else {
+            // Current order still exists, just reload it
+            if (mounted) {
+              await _loadCurrentOrder();
+            }
+          }
+        }
+      } else {
+        // Status changed but not to delivered/completed, just reload
+        if (mounted) {
+          await _loadOrders();
+        }
+      }
     }
   }
 
   void _centerOnDriver() {
-    if (_driverLocation != null) {
+    if (_driverLocation != null && mounted) {
       setState(() {
         _autoCenterEnabled = true;
         _userHasInteracted = false;
@@ -298,7 +441,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       // Reset flag after a short delay
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) {
-          _isProgrammaticMove = false;
+          setState(() {
+            _isProgrammaticMove = false;
+          });
         }
       });
     }
@@ -306,14 +451,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   void _onMapEvent(MapEvent event) {
     // Only detect user interaction, not programmatic moves
-    if (_isProgrammaticMove) return;
+    if (_isProgrammaticMove || !mounted) return;
     
     // Detect user interaction events
     // These events indicate user interaction, not programmatic moves
     if (event is MapEventScrollWheelZoom || 
         event is MapEventFlingAnimation ||
         event is MapEventTap) {
-      if (!_userHasInteracted) {
+      if (!_userHasInteracted && mounted) {
         setState(() {
           _userHasInteracted = true;
         });
@@ -410,7 +555,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               maxZoom: 18.0,
               onMapEvent: _onMapEvent,
               onPointerDown: (event, point) {
-                if (!_userHasInteracted) {
+                if (!_userHasInteracted && mounted) {
                   setState(() {
                     _userHasInteracted = true;
                   });
@@ -645,9 +790,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                       size: 20,
                                     ),
                                     onPressed: () {
-                                      setState(() {
-                                        _isDetailsExpanded = !_isDetailsExpanded;
-                                      });
+                                      if (mounted) {
+                                        setState(() {
+                                          _isDetailsExpanded = !_isDetailsExpanded;
+                                        });
+                                      }
                                     },
                                     style: IconButton.styleFrom(
                                       backgroundColor: theme.colorScheme.surface.withOpacity(0.8),
