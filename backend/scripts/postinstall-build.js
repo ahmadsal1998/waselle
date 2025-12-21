@@ -17,6 +17,34 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 if (isProduction && !distServerExists) {
   console.log('🔨 Production environment detected and dist/server.js not found');
+  
+  // Check if TypeScript and type definitions are available (needed for build)
+  const typescriptPath = path.join(backendDir, 'node_modules', '.bin', 'tsc');
+  const typesBcryptjsPath = path.join(backendDir, 'node_modules', '@types', 'bcryptjs');
+  const typescriptExists = fs.existsSync(typescriptPath);
+  const typesExist = fs.existsSync(typesBcryptjsPath);
+  
+  if (!typescriptExists || !typesExist) {
+    console.log('📦 DevDependencies missing, installing...');
+    try {
+      // Install devDependencies by running npm install without --production flag
+      // This ensures TypeScript and @types packages are available for the build
+      const installEnv = { ...process.env };
+      delete installEnv.npm_config_production; // Remove production flag if set
+      installEnv.NODE_ENV = 'production'; // Keep NODE_ENV as production
+      
+      execSync('npm install', { 
+        stdio: 'inherit', 
+        cwd: backendDir,
+        env: installEnv
+      });
+      console.log('✅ DevDependencies installed');
+    } catch (error) {
+      console.error('❌ Failed to install devDependencies:', error.message);
+      process.exit(1);
+    }
+  }
+  
   console.log('🔨 Running build...');
   try {
     execSync('npm run build', { 
