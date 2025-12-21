@@ -9,6 +9,7 @@ import '../../services/socket_service.dart';
 import '../../repositories/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/delete_account_otp_dialog.dart';
+import '../auth/phone_login_screen.dart';
 import 'saved_addresses_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -291,7 +292,7 @@ class _ProfileContentState extends State<_ProfileContent> {
 
         // Create default placeholder values when user is not logged in
         final displayUser = user ?? {
-          'name': l10n.unknown,
+          'name': l10n.guest,
           'email': l10n.notAvailable,
           'phone': l10n.notAvailable,
         };
@@ -303,7 +304,7 @@ class _ProfileContentState extends State<_ProfileContent> {
             children: [
               // Profile Header Section
               _ProfileHeader(
-                userName: displayUser['name'] ?? l10n.unknown,
+                userName: displayUser['name'] ?? l10n.guest,
                 userEmail: displayUser['email'] ?? l10n.notAvailable,
                 isLoggedIn: isLoggedIn,
               ),
@@ -314,6 +315,33 @@ class _ProfileContentState extends State<_ProfileContent> {
               _SectionCard(
                 title: null,
                 children: [
+                  if (!isLoggedIn) ...[
+                    _ModernProfileTile(
+                      icon: Icons.phone,
+                      iconColor: AppTheme.primaryColor,
+                      title: l10n.continueWithPhoneNumber,
+                      subtitle: l10n.loginToAccessAccount,
+                      onTap: () async {
+                        final loginResult = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PhoneLoginScreen(),
+                          ),
+                        );
+                        
+                        // If login was successful, the AuthViewModel will update automatically
+                        if (loginResult == true && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Logged in successfully'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   _ModernProfileTile(
                     icon: Icons.location_on_rounded,
                     iconColor: AppTheme.secondaryColor,
@@ -391,6 +419,34 @@ class _ProfileContentState extends State<_ProfileContent> {
               ),
               
               const SizedBox(height: 24),
+              
+              // Login Button (for guest users)
+              if (!isLoggedIn)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _LoginButton(
+                    label: l10n.continueWithPhoneNumber,
+                    onTap: () async {
+                      final loginResult = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PhoneLoginScreen(),
+                        ),
+                      );
+                      
+                      // If login was successful, the AuthViewModel will update automatically
+                      // and the UI will rebuild to show the logged-in state
+                      if (loginResult == true && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Logged in successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
               
               // Logout Button
               if (isLoggedIn)
@@ -819,6 +875,62 @@ class _LanguageOption extends StatelessWidget {
                   color: AppTheme.primaryColor,
                   size: 24,
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Login Button Widget
+class _LoginButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _LoginButton({
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppTheme.primaryColor.withOpacity(0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.phone,
+                color: AppTheme.primaryColor,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryColor,
+                      ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
             ],
           ),
         ),

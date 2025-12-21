@@ -5,8 +5,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/api_service.dart';
-import '../services/review_mode_service.dart';
-import '../services/review_mode_mock_data.dart';
 import '../utils/location_permission_helper.dart';
 
 class LocationViewModel with ChangeNotifier {
@@ -112,31 +110,6 @@ class LocationViewModel with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Check if Review Mode is active
-      final isReviewMode = await ReviewModeService.isReviewModeActive();
-      if (isReviewMode) {
-        // Use mock location for Review Mode
-        final mockLocation = ReviewModeMockData.defaultLocation;
-        _currentPosition = Position(
-          latitude: mockLocation.latitude,
-          longitude: mockLocation.longitude,
-          timestamp: DateTime.now(),
-          accuracy: 10.0,
-          altitude: 0.0,
-          heading: 0.0,
-          speed: 0.0,
-          speedAccuracy: 0.0,
-          altitudeAccuracy: 0.0,
-          headingAccuracy: 0.0,
-        );
-        _currentAddress = ReviewModeMockData.defaultAddress;
-        _errorMessage = null;
-        _isLoading = false;
-        debugPrint('🍎 Review Mode: Using mock location');
-        notifyListeners();
-        return;
-      }
-      
       // Use dialog-based permission request if context is provided
       final hasPermission = context != null
           ? await requestLocationPermissionWithDialog(context)

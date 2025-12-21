@@ -2,9 +2,9 @@ services:
   - type: web
     name: waselle-backend
     env: node
+    rootDir: backend
     buildCommand: npm ci && npm run build
     startCommand: npm start
-    rootDir: backend
     envVars:
       - key: NODE_ENV
         value: production

@@ -345,7 +345,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pleaseSelectYourVillage => 'Please select your village.';
 
   @override
-  String get pleaseEnterValidPhoneNumber => 'Please enter a valid 10-digit phone number.';
+  String get pleaseEnterValidPhoneNumber => 'Please enter a valid phone number (9-10 digits).';
+
+  @override
+  String get phoneNumberMustBeNumeric => 'Phone number must contain only numbers (0-9)';
 
   @override
   String get waitForEstimatedCost => 'Please wait for the estimated cost before submitting.';
@@ -826,4 +829,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ok => 'OK';
+
+  @override
+  String get welcomeToApp => 'Welcome to Wassle';
+
+  @override
+  String get chooseHowToContinue => 'Choose how to continue';
+
+  @override
+  String get continueWithPhoneNumber => 'Continue with Phone Number';
+
+  @override
+  String get continueAsGuest => 'Continue as Guest';
+
+  @override
+  String get guest => 'Guest';
+
+  @override
+  String get enterPhoneNumber => 'Enter Your Phone Number';
+
+  @override
+  String get enterPhoneNumberDescription => 'We\'ll send you a verification code to log in';
+
+  @override
+  String get phoneNumberHint => '0593202026';
+
+  @override
+  String get sendOTP => 'Send OTP';
+
+  @override
+  String get loginRequired => 'Login Required';
+
+  @override
+  String get loginRequiredMessage => 'Please log in with your phone number to submit a request';
+
+  @override
+  String get loginNow => 'Login Now';
+
+  @override
+  String get loginToAccessAccount => 'Login to access your account and order history';
 }

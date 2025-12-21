@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:delivery_user_app/l10n/app_localizations.dart';
 
 import '../../view_models/order_view_model.dart';
+import '../../view_models/auth_view_model.dart';
 import '../../view_models/locale_view_model.dart';
 import '../../theme/app_theme.dart';
 import '../../services/osm_geocoding_service.dart';
@@ -22,6 +23,7 @@ class OrderHistoryScreen extends StatefulWidget {
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   bool _isLoading = false;
   bool _isInitialized = false;
+  bool _wasAuthenticated = false;
   // Cache to store geocoded addresses by coordinate key
   final Map<String, String> _addressCache = {};
 
@@ -36,8 +38,26 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    
+    // Check authentication state
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    final isAuthenticated = authViewModel.isAuthenticated;
+    
+    // If user just logged in (wasn't authenticated before, but is now)
+    if (!_wasAuthenticated && isAuthenticated) {
+      _wasAuthenticated = true;
+      // Reload orders when user logs in
+      final orderProvider = Provider.of<OrderViewModel>(context, listen: false);
+      _loadOrders(orderProvider);
+      return;
+    }
+    
+    _wasAuthenticated = isAuthenticated;
+    
+    // Initial load
     if (!_isInitialized) {
       _isInitialized = true;
+      _wasAuthenticated = isAuthenticated;
       final orderProvider = Provider.of<OrderViewModel>(context, listen: false);
       _loadOrders(orderProvider);
     }
@@ -257,10 +277,14 @@ class _OrderHistoryItem extends StatelessWidget {
                           color: theme.colorScheme.onSurface.withOpacity(0.6),
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          createdText,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        Flexible(
+                          child: Text(
+                            createdText,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
                       ],

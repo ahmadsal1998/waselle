@@ -3,14 +3,70 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/order_category.dart';
 import '../repositories/api_service.dart';
 import '../services/socket_service.dart';
-import '../services/review_mode_service.dart';
-import '../services/review_mode_mock_data.dart';
+import 'auth_view_model.dart';
 
 class OrderViewModel with ChangeNotifier {
-  OrderViewModel() {
+  OrderViewModel({AuthViewModel? authViewModel}) {
     _setupSocketListeners();
     // Ensure listeners are attached when socket connects/reconnects
     _ensureSocketListeners();
+    
+    // Listen to authentication state changes if AuthViewModel is provided
+    if (authViewModel != null) {
+      _authViewModel = authViewModel;
+      _authViewModel!.addListener(_onAuthStateChanged);
+      _wasAuthenticated = _authViewModel!.isAuthenticated;
+      
+      // If user is already authenticated when OrderViewModel is created,
+      // fetch orders immediately (e.g., on app restart)
+      if (_wasAuthenticated) {
+        // Use a small delay to ensure everything is initialized
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!_isDisposed) {
+            debugPrint('🔐 User already authenticated - fetching orders on initialization');
+            fetchOrders();
+          }
+        });
+      }
+    }
+  }
+  
+  bool _isDisposed = false;
+  
+  AuthViewModel? _authViewModel;
+  bool _wasAuthenticated = false;
+  
+  void _onAuthStateChanged() {
+    if (_authViewModel == null || _isDisposed) return;
+    
+    final isNowAuthenticated = _authViewModel!.isAuthenticated;
+    
+    // If user just logged in (wasn't authenticated before, but is now)
+    if (!_wasAuthenticated && isNowAuthenticated) {
+      debugPrint('🔐 User authenticated - fetching orders automatically');
+      // Fetch orders when user logs in
+      fetchOrders();
+    }
+    
+    // If user logged out, clear orders
+    if (_wasAuthenticated && !isNowAuthenticated) {
+      debugPrint('🔐 User logged out - clearing orders');
+      _orders.clear();
+      _activeOrders.clear();
+      _selectedActiveOrderId = null;
+      notifyListeners();
+    }
+    
+    _wasAuthenticated = isNowAuthenticated;
+  }
+  
+  @override
+  void dispose() {
+    _isDisposed = true;
+    if (_authViewModel != null) {
+      _authViewModel!.removeListener(_onAuthStateChanged);
+    }
+    super.dispose();
   }
   
   void _ensureSocketListeners() {
@@ -239,17 +295,6 @@ class OrderViewModel with ChangeNotifier {
 
   Future<void> fetchOrders() async {
     try {
-      // Check if Review Mode is active
-      final isReviewMode = await ReviewModeService.isReviewModeActive();
-      if (isReviewMode) {
-        // Use mock orders for Review Mode
-        _orders = List<Map<String, dynamic>>.from(ReviewModeMockData.sampleOrders);
-        _syncActiveOrders();
-        notifyListeners();
-        debugPrint('🍎 Review Mode: Using mock orders');
-        return;
-      }
-      
       // Check if authenticated before fetching orders
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -285,36 +330,6 @@ class OrderViewModel with ChangeNotifier {
     double? estimatedPrice,
   }) async {
     try {
-      // Check if Review Mode is active
-      final isReviewMode = await ReviewModeService.isReviewModeActive();
-      if (isReviewMode) {
-        // In Review Mode, create a mock order instead of calling the API
-        final mockOrder = Map<String, dynamic>.from(ReviewModeMockData.sampleOrders.first);
-        mockOrder['_id'] = 'review_order_${DateTime.now().millisecondsSinceEpoch}';
-        mockOrder['type'] = type;
-        mockOrder['deliveryType'] = deliveryType;
-        mockOrder['pickupLocation'] = pickupLocation;
-        mockOrder['dropoffLocation'] = dropoffLocation;
-        mockOrder['vehicleType'] = vehicleType;
-        mockOrder['orderCategory'] = orderCategory;
-        mockOrder['senderName'] = senderName;
-        mockOrder['senderCity'] = senderCity;
-        mockOrder['senderVillage'] = senderVillage;
-        mockOrder['senderStreetDetails'] = senderStreetDetails;
-        mockOrder['senderPhoneNumber'] = senderPhoneNumber;
-        mockOrder['deliveryNotes'] = deliveryNotes;
-        mockOrder['estimatedPrice'] = estimatedPrice;
-        mockOrder['status'] = 'pending';
-        mockOrder['createdAt'] = DateTime.now().toIso8601String();
-        mockOrder['updatedAt'] = DateTime.now().toIso8601String();
-        
-        _updateOrderInList(mockOrder);
-        _syncActiveOrders(mockOrder);
-        await fetchOrders();
-        debugPrint('🍎 Review Mode: Created mock order');
-        return true;
-      }
-      
       final response = await ApiService.createOrder(
         type: type,
         deliveryType: deliveryType,

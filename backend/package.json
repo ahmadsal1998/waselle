@@ -5,7 +5,9 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc --build",
+    "postbuild": "node -e \"try { require('fs').accessSync('dist/server.js'); console.log('✓ Build successful: dist/server.js exists'); } catch(e) { console.error('✗ Build failed: dist/server.js not found'); process.exit(1); }\"",
     "start": "node dist/server.js",
     "test": "jest",
     "test:sms": "tsx test-sms-otp.ts"

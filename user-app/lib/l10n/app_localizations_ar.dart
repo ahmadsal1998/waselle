@@ -345,7 +345,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pleaseSelectYourVillage => 'الرجاء اختيار قريتك.';
 
   @override
-  String get pleaseEnterValidPhoneNumber => 'الرجاء إدخال رقم هاتف صحيح مكون من 10 أرقام.';
+  String get pleaseEnterValidPhoneNumber => 'الرجاء إدخال رقم هاتف صحيح (9-10 أرقام).';
+
+  @override
+  String get phoneNumberMustBeNumeric => 'يجب أن يحتوي رقم الهاتف على أرقام فقط (0-9)';
 
   @override
   String get waitForEstimatedCost => 'الرجاء الانتظار للحصول على التكلفة المقدرة قبل الإرسال.';
@@ -826,4 +829,43 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get ok => 'موافق';
+
+  @override
+  String get welcomeToApp => 'مرحباً بك في Wassle';
+
+  @override
+  String get chooseHowToContinue => 'اختر كيف تريد المتابعة';
+
+  @override
+  String get continueWithPhoneNumber => 'المتابعة برقم الهاتف';
+
+  @override
+  String get continueAsGuest => 'المتابعة كضيف';
+
+  @override
+  String get guest => 'ضيف';
+
+  @override
+  String get enterPhoneNumber => 'أدخل رقم هاتفك';
+
+  @override
+  String get enterPhoneNumberDescription => 'سنرسل لك رمز التحقق لتسجيل الدخول';
+
+  @override
+  String get phoneNumberHint => '0593202026';
+
+  @override
+  String get sendOTP => 'إرسال رمز التحقق';
+
+  @override
+  String get loginRequired => 'تسجيل الدخول مطلوب';
+
+  @override
+  String get loginRequiredMessage => 'الرجاء تسجيل الدخول برقم هاتفك لإرسال طلب';
+
+  @override
+  String get loginNow => 'تسجيل الدخول الآن';
+
+  @override
+  String get loginToAccessAccount => 'سجل الدخول للوصول إلى حسابك وسجل الطلبات';
 }

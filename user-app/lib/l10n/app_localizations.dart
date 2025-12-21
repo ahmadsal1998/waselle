@@ -758,8 +758,14 @@ abstract class AppLocalizations {
   /// Phone number validation error
   ///
   /// In en, this message translates to:
-  /// **'Please enter a valid 10-digit phone number.'**
+  /// **'Please enter a valid phone number (9-10 digits).'**
   String get pleaseEnterValidPhoneNumber;
+
+  /// Phone number numeric validation error
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number must contain only numbers (0-9)'**
+  String get phoneNumberMustBeNumeric;
 
   /// Wait for estimate error
   ///
@@ -1696,6 +1702,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OK'**
   String get ok;
+
+  /// Welcome screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Wassle'**
+  String get welcomeToApp;
+
+  /// Welcome screen description
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how to continue'**
+  String get chooseHowToContinue;
+
+  /// Button to continue with phone number login
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Phone Number'**
+  String get continueWithPhoneNumber;
+
+  /// Button to continue as guest
+  ///
+  /// In en, this message translates to:
+  /// **'Continue as Guest'**
+  String get continueAsGuest;
+
+  /// Guest user label
+  ///
+  /// In en, this message translates to:
+  /// **'Guest'**
+  String get guest;
+
+  /// Phone login screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Your Phone Number'**
+  String get enterPhoneNumber;
+
+  /// Phone login screen description
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll send you a verification code to log in'**
+  String get enterPhoneNumberDescription;
+
+  /// Phone number input hint
+  ///
+  /// In en, this message translates to:
+  /// **'0593202026'**
+  String get phoneNumberHint;
+
+  /// Button to send OTP
+  ///
+  /// In en, this message translates to:
+  /// **'Send OTP'**
+  String get sendOTP;
+
+  /// Title for login required dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Login Required'**
+  String get loginRequired;
+
+  /// Message for login required dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Please log in with your phone number to submit a request'**
+  String get loginRequiredMessage;
+
+  /// Button to login now
+  ///
+  /// In en, this message translates to:
+  /// **'Login Now'**
+  String get loginNow;
+
+  /// Subtitle for login option
+  ///
+  /// In en, this message translates to:
+  /// **'Login to access your account and order history'**
+  String get loginToAccessAccount;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

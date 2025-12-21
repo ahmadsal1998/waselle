@@ -834,7 +834,25 @@ class DeliveryRequestFormController extends ChangeNotifier {
 
     // Validate phone number
     final trimmedPhone = phoneNumberController.text.trim();
-    if (trimmedPhone.isEmpty || trimmedPhone.length < 9 || trimmedPhone.length > 10) {
+    if (trimmedPhone.isEmpty) {
+      _otpError = 'Please enter your phone number';
+      _notifyListenersSafely();
+      return;
+    }
+    
+    // Convert Arabic digits before validation
+    final converted = PhoneUtils.convertArabicToEnglishDigits(trimmedPhone);
+    final digitsOnly = converted.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // Check if contains only digits
+    if (!RegExp(r'^\d+$').hasMatch(digitsOnly)) {
+      _otpError = 'Phone number must contain only numbers (0-9)';
+      _notifyListenersSafely();
+      return;
+    }
+    
+    // Check length: must be 9-10 digits (with or without leading zero)
+    if (digitsOnly.length < 9 || digitsOnly.length > 10) {
       _otpError = 'Please enter a valid phone number (9-10 digits)';
       _notifyListenersSafely();
       return;
@@ -1134,7 +1152,25 @@ class DeliveryRequestFormController extends ChangeNotifier {
 
     final trimmedPhone = phoneNumberController.text.trim();
     
-    if (trimmedPhone.isEmpty || trimmedPhone.length < 9 || trimmedPhone.length > 10) {
+    if (trimmedPhone.isEmpty) {
+      return DeliveryRequestSubmitResult.failure(
+        localized('pleaseEnterPhoneNumber', 'Please enter your phone number.'),
+      );
+    }
+    
+    // Convert Arabic digits before validation
+    final converted = PhoneUtils.convertArabicToEnglishDigits(trimmedPhone);
+    final digitsOnly = converted.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // Check if contains only digits
+    if (!RegExp(r'^\d+$').hasMatch(digitsOnly)) {
+      return DeliveryRequestSubmitResult.failure(
+        localized('phoneNumberMustBeNumeric', 'Phone number must contain only numbers (0-9)'),
+      );
+    }
+    
+    // Check length: must be 9-10 digits (with or without leading zero)
+    if (digitsOnly.length < 9 || digitsOnly.length > 10) {
       return DeliveryRequestSubmitResult.failure(
         localized('pleaseEnterValidPhoneNumber', 'Please enter a valid phone number (9-10 digits).'),
       );
@@ -1277,7 +1313,32 @@ class DeliveryRequestFormController extends ChangeNotifier {
     }
 
     final trimmedPhone = phoneNumberController.text.trim();
-    final parsedPhoneNumber = int.tryParse(trimmedPhone);
+    
+    if (trimmedPhone.isEmpty) {
+      return DeliveryRequestSubmitResult.failure(
+        localized('pleaseEnterPhoneNumber', 'Please enter your phone number.'),
+      );
+    }
+    
+    // Convert Arabic digits before validation
+    final converted = PhoneUtils.convertArabicToEnglishDigits(trimmedPhone);
+    final digitsOnly = converted.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // Check if contains only digits
+    if (!RegExp(r'^\d+$').hasMatch(digitsOnly)) {
+      return DeliveryRequestSubmitResult.failure(
+        localized('phoneNumberMustBeNumeric', 'Phone number must contain only numbers (0-9)'),
+      );
+    }
+    
+    // Check length: must be 9-10 digits (with or without leading zero)
+    if (digitsOnly.length < 9 || digitsOnly.length > 10) {
+      return DeliveryRequestSubmitResult.failure(
+        localized('pleaseEnterValidPhoneNumber', 'Please enter a valid phone number (9-10 digits).'),
+      );
+    }
+    
+    final parsedPhoneNumber = int.tryParse(digitsOnly);
     if (parsedPhoneNumber == null) {
       return DeliveryRequestSubmitResult.failure(
         localized('pleaseEnterValidPhoneNumber', 'Please enter a valid phone number.'),
@@ -1435,7 +1496,25 @@ class DeliveryRequestFormController extends ChangeNotifier {
 
     final trimmedPhone = phoneNumberController.text.trim();
     
-    if (trimmedPhone.isEmpty || trimmedPhone.length < 9 || trimmedPhone.length > 10) {
+    if (trimmedPhone.isEmpty) {
+      return DeliveryRequestSubmitResult.failure(
+        localized('pleaseEnterPhoneNumber', 'Please enter your phone number.'),
+      );
+    }
+    
+    // Convert Arabic digits before validation
+    final converted = PhoneUtils.convertArabicToEnglishDigits(trimmedPhone);
+    final digitsOnly = converted.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // Check if contains only digits
+    if (!RegExp(r'^\d+$').hasMatch(digitsOnly)) {
+      return DeliveryRequestSubmitResult.failure(
+        localized('phoneNumberMustBeNumeric', 'Phone number must contain only numbers (0-9)'),
+      );
+    }
+    
+    // Check length: must be 9-10 digits (with or without leading zero)
+    if (digitsOnly.length < 9 || digitsOnly.length > 10) {
       return DeliveryRequestSubmitResult.failure(
         localized('pleaseEnterValidPhoneNumber', 'Please enter a valid phone number (9-10 digits).'),
       );

@@ -19,6 +19,7 @@ import 'view_models/map_style_view_model.dart';
 import 'view_models/driver_view_model.dart';
 import 'view_models/region_view_model.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/auth/welcome_screen.dart';
 import 'services/notification_service.dart';
 import 'services/fcm_service.dart';
 import 'services/app_lifecycle_service.dart';
@@ -187,7 +188,11 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LocaleViewModel()),
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
         ChangeNotifierProvider(create: (_) => LocationViewModel()),
-        ChangeNotifierProvider(create: (_) => OrderViewModel()),
+        ChangeNotifierProvider(
+          create: (context) => OrderViewModel(
+            authViewModel: context.read<AuthViewModel>(),
+          ),
+        ),
         ChangeNotifierProvider(create: (_) => MapStyleViewModel()),
         ChangeNotifierProvider(create: (_) => DriverViewModel()),
         ChangeNotifierProvider(create: (_) => RegionViewModel()),
@@ -240,13 +245,42 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _hasCheckedFCMToken = false;
+  bool _hasCheckedOnboarding = false;
+  bool _showOnboarding = false;
+  bool _lastAuthState = false;
 
   @override
   void initState() {
     super.initState();
+    // Initialize last auth state from current auth state
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+    _lastAuthState = authViewModel.isAuthenticated;
+    
+    _checkOnboardingStatus();
     // Sync language preference from backend when user data is available
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncLanguagePreference();
+    });
+  }
+
+  Future<void> _checkOnboardingStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
+    
+    setState(() {
+      if (!hasSeenOnboarding) {
+        _showOnboarding = true;
+      }
+      _hasCheckedOnboarding = true;
+    });
+  }
+
+
+  Future<void> _markOnboardingComplete() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_seen_onboarding', true);
+    setState(() {
+      _showOnboarding = false;
     });
   }
 
@@ -262,9 +296,40 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    // Show onboarding on first launch
+    if (!_hasCheckedOnboarding) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
     // Sync language preference when user data changes
     return Consumer<AuthViewModel>(
       builder: (context, authViewModel, _) {
+        // Re-check onboarding status when user logs out (becomes unauthenticated)
+        if (!authViewModel.isAuthenticated && _lastAuthState && _hasCheckedOnboarding) {
+          // User just logged out - check onboarding status immediately
+          _lastAuthState = false;
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            final prefs = await SharedPreferences.getInstance();
+            final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
+            if (!hasSeenOnboarding && !_showOnboarding) {
+              setState(() {
+                _showOnboarding = true;
+              });
+            }
+          });
+        } else if (authViewModel.isAuthenticated) {
+          _lastAuthState = true;
+        }
+        
+        // Show welcome screen if onboarding flag is not set
+        if (_showOnboarding) {
+          return WelcomeScreen(
+            onOnboardingComplete: _markOnboardingComplete,
+          );
+        }
+        
         // Sync language preference when user data is available
         if (authViewModel.isAuthenticated && authViewModel.user != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {

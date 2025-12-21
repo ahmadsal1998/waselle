@@ -46,7 +46,14 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     if (!mounted) return;
 
     if (success) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      // Return true to indicate successful verification
+      // Check if we can pop (if opened from phone login screen)
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(true);
+      } else {
+        // Navigate to home if this was opened directly
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(authViewModel.errorMessage ?? l10n.invalidOtp)),

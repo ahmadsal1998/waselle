@@ -1596,8 +1596,10 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
           controller: controller.phoneNumberController,
           keyboardType: TextInputType.phone,
           inputFormatters: [
-            // Allow both English and Arabic digits
+            // Only allow numeric characters (0-9)
+            // Convert Arabic digits to English in real-time via onChanged
             FilteringTextInputFormatter.allow(RegExp(r'[0-9٠-٩۰-۹]')),
+            // Limit to 10 digits maximum
             LengthLimitingTextInputFormatter(10),
           ],
           textInputAction: TextInputAction.next,
@@ -1630,8 +1632,16 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
             }
             // Convert Arabic digits before validation
             final converted = PhoneUtils.convertArabicToEnglishDigits(value.trim());
-            // Remove leading zero for validation
+            // Check if contains only digits after conversion
             final digitsOnly = converted.replaceAll(RegExp(r'[^\d]'), '');
+            if (!RegExp(r'^\d+$').hasMatch(digitsOnly)) {
+              return l10n.phoneNumberMustBeNumeric;
+            }
+            // Check length: must be 9-10 digits (with or without leading zero)
+            if (digitsOnly.length < 9 || digitsOnly.length > 10) {
+              return l10n.pleaseEnterValidPhoneNumber;
+            }
+            // Remove leading zero for validation
             final digitsWithoutLeadingZero = digitsOnly.startsWith('0') 
                 ? digitsOnly.substring(1) 
                 : digitsOnly;
@@ -1962,7 +1972,7 @@ class _DeliveryRequestFormViewState extends State<DeliveryRequestFormView> {
           : () async {
               FocusScope.of(context).unfocus();
               
-              // Check if authenticated - if yes, create order directly; if no, send OTP
+              // Validate form and submit - this will handle OTP flow for guest users
               final authProvider = Provider.of<AuthViewModel>(context, listen: false);
               final result = await controller.validateFormAndSubmitOrder(
                 locationProvider: locationProvider,

@@ -143,8 +143,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   inputFormatters: [
-                    // Allow both English and Arabic digits
+                    // Allow both English and Arabic digits (converted to English in onChanged)
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9٠-٩۰-۹]')),
+                    // Limit to 10 digits maximum
                     LengthLimitingTextInputFormatter(10),
                   ],
                   decoration: InputDecoration(
@@ -167,6 +168,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       );
                     }
+                  },
+                  validator: (value) {
+                    // Phone number is optional, but if provided, must be valid
+                    if (value != null && value.trim().isNotEmpty) {
+                      final trimmed = value.trim();
+                      // Convert Arabic digits before validation
+                      final converted = PhoneUtils.convertArabicToEnglishDigits(trimmed);
+                      final digitsOnly = converted.replaceAll(RegExp(r'[^\d]'), '');
+                      
+                      // Check if contains only digits
+                      if (!RegExp(r'^\d+$').hasMatch(digitsOnly)) {
+                        return l10n.phoneNumberMustBeNumeric;
+                      }
+                      // Check length: must be 9-10 digits (with or without leading 0)
+                      if (digitsOnly.length < 9 || digitsOnly.length > 10) {
+                        return l10n.pleaseEnterValidPhoneNumber;
+                      }
+                    }
+                    return null;
                   },
                 ),
                 const SizedBox(height: 16),

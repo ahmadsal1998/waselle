@@ -131,7 +131,8 @@
   "pleaseSelectDeliveryVehicle": "الرجاء اختيار مركبة التوصيل.",
   "pleaseSelectYourCity": "الرجاء اختيار مدينتك.",
   "pleaseSelectYourVillage": "الرجاء اختيار قريتك.",
-  "pleaseEnterValidPhoneNumber": "الرجاء إدخال رقم هاتف صحيح مكون من 10 أرقام.",
+  "pleaseEnterValidPhoneNumber": "الرجاء إدخال رقم هاتف صحيح (9-10 أرقام).",
+  "phoneNumberMustBeNumeric": "يجب أن يحتوي رقم الهاتف على أرقام فقط (0-9)",
   "waitForEstimatedCost": "الرجاء الانتظار للحصول على التكلفة المقدرة قبل الإرسال.",
   "pleaseSelectOrderCategory": "الرجاء اختيار فئة الطلب.",
   "orderCategoryNoLongerAvailable": "فئة الطلب المختارة لم تعد متاحة. الرجاء اختيار أخرى.",
@@ -331,6 +332,19 @@
   "notificationPermissionDeniedMessage": "لن تتلقى إشعارات فورية لتحديثات الطلبات. يمكنك تفعيل الإشعارات لاحقًا من الإعدادات.",
   "notificationPermissionProvisionalMessage": "ستتلقى الإشعارات بهدوء. يمكنك تغيير هذا من الإعدادات.",
   "notificationPermissionGrantedMessage": "ستتلقى إشعارات فورية لتحديثات الطلبات.",
-  "ok": "موافق"
+  "ok": "موافق",
+  "welcomeToApp": "مرحباً بك في Wassle",
+  "chooseHowToContinue": "اختر كيف تريد المتابعة",
+  "continueWithPhoneNumber": "المتابعة برقم الهاتف",
+  "continueAsGuest": "المتابعة كضيف",
+  "guest": "ضيف",
+  "enterPhoneNumber": "أدخل رقم هاتفك",
+  "enterPhoneNumberDescription": "سنرسل لك رمز التحقق لتسجيل الدخول",
+  "phoneNumberHint": "0593202026",
+  "sendOTP": "إرسال رمز التحقق",
+  "loginRequired": "تسجيل الدخول مطلوب",
+  "loginRequiredMessage": "الرجاء تسجيل الدخول برقم هاتفك لإرسال طلب",
+  "loginNow": "تسجيل الدخول الآن",
+  "loginToAccessAccount": "سجل الدخول للوصول إلى حسابك وسجل الطلبات"
 }
 
