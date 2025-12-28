@@ -103,6 +103,18 @@ export const sendPushNotification = async (
         error.code === 'messaging/registration-token-not-registered') {
       console.log(`🗑️  Removing invalid FCM token for user ${userId}`);
       await User.findByIdAndUpdate(userId, { $unset: { fcmToken: 1 } });
+    } else if (error.code === 'messaging/third-party-auth-error') {
+      // APNS authentication error - Firebase cannot authenticate with Apple
+      console.error(`❌ APNS Authentication Error for user ${userId}`);
+      console.error(`   This means Firebase cannot authenticate with Apple's APNS Production service.`);
+      console.error(`   Error code: ${error.code}`);
+      console.error(`   ⚠️  ACTION REQUIRED: Configure APNS in Firebase Console:`);
+      console.error(`   1. Go to Firebase Console → Project Settings → Cloud Messaging`);
+      console.error(`   2. Under "Apple app configuration", upload your APNS Authentication Key (.p8)`);
+      console.error(`   3. Make sure the bundle ID matches exactly:`);
+      console.error(`      - User app: com.wassle.userapp`);
+      console.error(`      - Driver app: com.wassle.driverapp`);
+      console.error(`   4. See IOS_PRODUCTION_APNS_FIX.md for detailed instructions`);
     }
     
     return false;

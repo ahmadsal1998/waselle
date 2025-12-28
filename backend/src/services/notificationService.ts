@@ -130,16 +130,19 @@ export const sendNotificationToUser = async (
     } else if (error.code === 'messaging/third-party-auth-error') {
       // APNS authentication error - Firebase cannot authenticate with Apple
       console.error(`❌ APNS Authentication Error for user ${userId}`);
-      console.error(`   This means Firebase cannot authenticate with Apple's APNS service.`);
+      console.error(`   This means Firebase cannot authenticate with Apple's APNS Production service.`);
       console.error(`   Error code: ${error.code}`);
       console.error(`   Error message: ${error.message}`);
       console.error(`   ⚠️  ACTION REQUIRED: Configure APNS in Firebase Console:`);
       console.error(`   1. Go to Firebase Console → Project Settings → Cloud Messaging`);
-      console.error(`   2. Under "Apple app configuration", upload your APNS Authentication Key`);
-      console.error(`   3. Or upload your APNS Certificate (if using certificate-based auth)`);
-      console.error(`   4. Make sure the bundle ID matches: com.wassle.userapp`);
-      console.error(`   5. For production, use APNS Authentication Key (recommended)`);
-      console.error(`   6. For development, you can use APNS Certificate or Auth Key`);
+      console.error(`   2. Under "Apple app configuration", upload your APNS Authentication Key (.p8)`);
+      console.error(`   3. Or upload your APNS Production Certificate (.p12) if using certificate-based auth`);
+      console.error(`   4. Make sure the bundle ID matches exactly:`);
+      console.error(`      - User app: com.wassle.userapp`);
+      console.error(`      - Driver app: com.wassle.driverapp`);
+      console.error(`   5. For production, APNS Authentication Key is recommended (works for both dev & prod)`);
+      console.error(`   6. This error occurs when app is from App Store/TestFlight (Production APNs)`);
+      console.error(`   7. See IOS_PRODUCTION_APNS_FIX.md for detailed instructions`);
       console.error(`   Full error:`, error);
       
       // Don't remove the token - this is a configuration issue, not a token issue
